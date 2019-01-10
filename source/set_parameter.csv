@@ -1,0 +1,39 @@
+Note1,please specify column E,,,
+,,,,
+,,,,
+,,,,Please Specify 
+,,,,
+,,,,
+,,,,
+,Name,Description,Unit,Value
+Solar,,,,
+0,azimuth_angle,from East to North,dgrC,180
+1,elevation_angle,0 is the horzontal,dgrC,78
+2,sun_shape,buie or pillbox,-,pillbox
+3,sun_shape_parameter,CSR-if buie or the half-angle-if pillbox(deg),deg,0.2664
+4,DNI,,W/m2,1000
+5,num_rays,,,2000000
+6,spectral_property,bool: consider spectrum properties or not?  1 yes or 0 no,-,0
+7,atmospheric_attenuation,bool: consider this effect or not? 0 no or Ke of the air- eg 0.00001,-,0
+,,,,
+Heliostat,,,unit,
+0,Field_name,-,-,-
+1,mirror_reflectivity,-,-,0.95
+2,slope_error,rms,rad,0.002
+3,heliostat_directory,pos  and focal  and aimings -the absolute directiory,-,./source/paper_layout.csv
+4,heliostat_width,,m,10
+5,heliostat_height,,m,10
+6,tower_height,,m,0.001
+7,tower_radius,,m,4
+8,tower_slice,slice of the geometry of tower,-,100
+,,,,
+Receiver,,,,
+,flat_receiver,,,
+0,receiver width,,m,8
+1,receiver height,,m,6
+2,absorptivity,,-,0.9
+3,location_x,,m,0
+4,location_y,,m,0
+5,location_z,,m,62
+6,tilt angle,receiver tilt angle- back plane vs vertical axis (theta),dgr,0
+7,receiver_slice,number of elements,-,100
