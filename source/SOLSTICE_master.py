@@ -18,7 +18,6 @@ class SolsticeScene:
     def __init__(self, receiver, folder, casename, pmfile, annual=False):
         '''
         Import and define the parameters
-
         Arguments:
         receiver - str, 'flat' or 'blade' or 'STL'
         folder - str, the directory of saving the case

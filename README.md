@@ -2,10 +2,17 @@
 Scripts and wrappers for Solstice ray-tracing software
 
 # example
+* If need installation of Solstice:
+get version 0.8.2
+'''bash
+wget 'https://www.meso-star.com/projects/solstice/downloads/Solstice-0.8.2-GNU-Linux64.tar.gz'
+tar xzf ~/Solstice-0.8.2-GNU-Linux64.tar.gz
+rm ~/Solstice-0.8.2-GNU-Linux64.tar.gz
+'''
 
-* get Solstice ready
+* get Solstice ready to run
 ```bash
-source ~/Solstice-0.8.1-GNU-Linux64/etc/solstice.profile
+source ~/Solstice-0.8.2-GNU-Linux64/etc/solstice.profile
 ```
 * run solstice by the master script
 ```bash
