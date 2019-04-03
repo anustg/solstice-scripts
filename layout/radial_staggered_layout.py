@@ -1,6 +1,6 @@
 import numpy as N
 
-def radial_stagger(Nhel1, Nzones, width, height, towerheight, hst_z, az_rim=2*N.pi, dsep=0.):
+def radial_stagger(Nhel1, Nzones, width, height, towerheight, hst_z, az_rim=2*N.pi, dsep=0., savedir='.'):
 
     '''
     Ref. (Collado and Guallar, 2012), Campo: Generation of regular heliostat field.
@@ -11,6 +11,7 @@ def radial_stagger(Nhel1, Nzones, width, height, towerheight, hst_z, az_rim=2*N.
     width, height - float, heliostat dimension (m)
     az_rim - float, (rad), start from y (North) clockwise, for trimming the surrounding field to a polar field 
     dsep - float, separation distance
+    savedir - directory of saving the pos_and_aiming.csv
 
     Return:
     pos_and_aiming: position, focul length and aiming points.
@@ -47,8 +48,6 @@ def radial_stagger(Nhel1, Nzones, width, height, towerheight, hst_z, az_rim=2*N.
 
         delta_az=DM/R
         half_Nhel=Nhel
-        X_zone=N.array([])
-        Y_zone=N.array([])
 
         for row in xrange(Nrows):
 
@@ -70,8 +69,6 @@ def radial_stagger(Nhel1, Nzones, width, height, towerheight, hst_z, az_rim=2*N.
                     X=N.append(X, xx)
                     Y=N.append(Y, yy)
 
-                    X_zone=N.append(X_zone, xx)
-                    Y_zone=N.append(Y_zone, yy)
                     total_real+=1
 
     total_area=width*height*float(total_real)
@@ -88,13 +85,15 @@ def radial_stagger(Nhel1, Nzones, width, height, towerheight, hst_z, az_rim=2*N.
 
     pos_and_aiming=N.append(X, (Y,Z, foc, aim_x, aim_y, aim_z))
     title=N.array(['x', 'y', 'z', 'foc', 'aim x', 'aim y', 'aim z', 'm', 'm', 'm', 'm', 'm', 'm', 'm'])
-    pos_and_aiming=N.append(title, pos_and_aiming)
-    pos_and_aiming=pos_and_aiming.reshape(7, len(pos_and_aiming)/7)
-    N.savetxt('./pos_and_aiming.csv', pos_and_aiming.T, fmt='%s', delimiter=',')
+    pos_and_aiming=pos_and_aiming.reshape(7,len(pos_and_aiming)/7)
+    pos_and_aiming=N.append(title, pos_and_aiming.T)
+    pos_and_aiming=pos_and_aiming.reshape(len(pos_and_aiming)/7, 7)
+    
+    N.savetxt('%s/pos_and_aiming.csv'%savedir, pos_and_aiming, fmt='%s', delimiter=',')
     return pos_and_aiming
 
 if __name__=='__main__':
-    radial_stagger(Nhel1=52, Nzones=4, width=10., height=10., towerheight=200., hst_z=5., az_rim=N.pi*2., dsep=0.)
+    radial_stagger(Nhel1=52, Nzones=4, width=10., height=10., towerheight=200., hst_z=5., az_rim=N.pi*2., dsep=3.)
     
     #radial_stagger(Nhel1=35, Nzones=3, width=12.3, height=9.75, towerheight=200., hst_z=5., az_rim=N.pi*2., dsep=0.)
     
