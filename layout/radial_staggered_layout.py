@@ -115,9 +115,9 @@ def radial_stagger(Nhel1, Nzones, width, height, towerheight, hst_z, az_rim=2*N.
     N.savetxt('./pos_and_aiming.csv', pos_and_aiming.T, fmt='%s', delimiter=',')
 
 if __name__=='__main__':
-    #radial_stagger(Nhel1=52, Nzones=4, width=10., height=10., towerheight=200., hst_z=5., az_rim=N.pi*0.4063, dsep=0.)
+    radial_stagger(Nhel1=52, Nzones=4, width=10., height=10., towerheight=200., hst_z=5., az_rim=N.pi*0.4063, dsep=0.)
     
-    radial_stagger(Nhel1=35, Nzones=3, width=12.3, height=9.75, towerheight=200., hst_z=5., az_rim=N.pi*2., dsep=0.)
+    #radial_stagger(Nhel1=35, Nzones=3, width=12.3, height=9.75, towerheight=200., hst_z=5., az_rim=N.pi*2., dsep=0.)
     
 
 
