@@ -1,13 +1,14 @@
 import numpy as N
 
-def radial_stagger(Nhel1, Nzones, width, height, towerheight, hst_z, az_rim=2*N.pi, dsep=0., savedir='.'):
+def radial_stagger(Target_A, R1, width, height, towerheight, hst_z, az_rim=2*N.pi, dsep=0., savedir='.'):
 
     '''
     Ref. (Collado and Guallar, 2012), Campo: Generation of regular heliostat field.
 
     Arguements:
-    Nhel1 - int, number of heliostat in the first zone
-    Nzones - int, number of zones
+
+    Target_A: the targeted total reflector area
+    R1: distance from the first row to the bottom of the tower (0, 0, 0)
     width, height - float, heliostat dimension (m)
     az_rim - float, (rad), start from y (North) clockwise, for trimming the surrounding field to a polar field 
     dsep - float, separation distance
@@ -27,19 +28,27 @@ def radial_stagger(Nhel1, Nzones, width, height, towerheight, hst_z, az_rim=2*N.
     # minimum radial increment
     delta_Rmin=0.866*DM
 
-    total=0.
+    # number of heliostats in the first row
+    Nhel1 =int(2.*N.pi*R1/DM)
+
+    target_num=Target_A/width/height
+
+    # the total number of zones (estimated)
+
+    Nzones=int(N.log(5.44*3*(Target_A/az_rim*N.pi/width/height)/Nhel1**2+1)/N.log(4))+1
+
     total_real=0.
     X=N.array([])
     Y=N.array([])
 
     for i in xrange(Nzones):
-
+        
         R=(2.**(i))*(DM)*Nhel1/(2.*N.pi)
 
         Nrows= int((2.**(i))*Nhel1/5.44)
 
         Nhel=(2**(i))*Nhel1
-        total+=Nhel*Nrows
+
         print ''
         print 'Zone :', i+1
         print 'R    :', R
@@ -70,11 +79,15 @@ def radial_stagger(Nhel1, Nzones, width, height, towerheight, hst_z, az_rim=2*N.
                     Y=N.append(Y, yy)
 
                     total_real+=1
+                if total_real>=target_num:
+                    break                    
 
     total_area=width*height*float(total_real)
     print ''
     print 'Total number:', total_real
     print 'Total area  :', total_area/1.e6
+    print 'Total design area:', Target_A/1.e6
+    print 'diff', (total_area-Target_A)/Target_A
 
     Z=N.ones(len(X))*hst_z
 
@@ -93,7 +106,7 @@ def radial_stagger(Nhel1, Nzones, width, height, towerheight, hst_z, az_rim=2*N.
     return pos_and_aiming
 
 if __name__=='__main__':
-    radial_stagger(Nhel1=52, Nzones=4, width=10., height=10., towerheight=200., hst_z=5., az_rim=N.pi*2., dsep=3.)
+    radial_stagger(Nhel1=52, Nzones=4, width=10., height=10., towerheight=200., hst_z=5., az_rim=N.pi*2., dsep=0.)
     
     #radial_stagger(Nhel1=35, Nzones=3, width=12.3, height=9.75, towerheight=200., hst_z=5., az_rim=N.pi*2., dsep=0.)
     
