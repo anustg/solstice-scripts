@@ -4,7 +4,7 @@ from get_raw import proces_raw_results
 import subprocess
 import sys
 import matplotlib
-import numpy as np
+import numpy as N
 import matplotlib.cm as cm
 import matplotlib.mlab as mlab
 import matplotlib.pyplot as plt
@@ -32,7 +32,10 @@ class SolsticeScene:
         self.receiver=receiver
 
         # Solar Related parameters
-        pm=np.loadtxt(pmfile, dtype=str, delimiter=',', skiprows=9)
+        pm=N.loadtxt(pmfile, dtype=str, delimiter=',', skiprows=9)
+        for i in xrange(len(pm)):
+            for j in xrange(len(pm[i])):
+                pm[i,j]=pm[i,j].replace('"','')
         
         self.azimuth=pm[0,4].astype(float)
         self.zenith=pm[1,4].astype(float)
@@ -47,19 +50,28 @@ class SolsticeScene:
 
 
         # heliostat related parameters
-        pm=np.loadtxt(pmfile, dtype=str, delimiter=',', skiprows=19)
-        self.fieldname=pm[0,4]
-        self.mirror_reflectivity=pm[1,4].astype(float)
-        self.slope=pm[2,4].astype(float)
-        self.hst_dir=pm[3,4]
-        self.hst_w=pm[4,4].astype(float)
-        self.hst_h=pm[5,4].astype(float)
-        self.tower_h=pm[6,4].astype(float)
-        self.tower_r=pm[7,4].astype(float)
-        self.tower_slice=int(pm[8,4].astype(float))
+        pm=N.loadtxt(pmfile, dtype=str, delimiter=',', skiprows=19)
+        for i in xrange(len(pm)):
+            for j in xrange(len(pm[i])):
+                pm[i,j]=pm[i,j].replace('"','')
+        self.field_layout=pm[0,4]
+        self.field_shape=pm[1,4]
+        self.field_area=pm[2,4].astype(float)
+        self.mirror_reflectivity=pm[3,4].astype(float)
+        self.slope=pm[4,4].astype(float)
+        self.hst_dir=pm[5,4]
+        self.hst_w=pm[6,4].astype(float)
+        self.hst_h=pm[7,4].astype(float)
+        self.hst_z=pm[8,4].astype(float)
+        self.tower_h=pm[9,4].astype(float)
+        self.tower_r=pm[10,4].astype(float)
+        self.tower_slice=int(pm[11,4].astype(float))
 
         # receiver related parameters
-        pm=np.loadtxt(pmfile, dtype=str, delimiter=',', skiprows=31)
+        pm=N.loadtxt(pmfile, dtype=str, delimiter=',', skiprows=34)
+        for i in xrange(len(pm)):
+            for j in xrange(len(pm[i])):
+                pm[i,j]=pm[i,j].replace('"','')
         self.rec_w=pm[0,4].astype(float)
         self.rec_h=pm[1,4].astype(float)
         self.absorptivity=pm[2,4].astype(float)
@@ -232,10 +244,10 @@ class SolsticeScene:
             Wb = 8.5 # Width of the blade (and of the receiver)
             Hb = 8.5 # Height of the bladed receiver
 
-            pi = 4.*np.arctan(1.) 
+            pi = 4.*N.arctan(1.) 
             tiltr =  tilt*pi/180. #tilt in radians
             # Depth of the top blade
-            Lb = Db + Tb/np.tan(tiltr) # Depth of the top blade Lb = Db + Tb/tan(tilt) 
+            Lb = Db + Tb/N.tan(tiltr) # Depth of the top blade Lb = Db + Tb/tan(tilt) 
             # space between blades
             space = (Hb-nb*Tb)/(nb-1.) 
 
@@ -244,7 +256,7 @@ class SolsticeScene:
 
             fd.write("- geometry: &blade_top \n")
             fd.write("    - material: *material_target\n")
-            trans_y = Lb*np.sin(tiltr)*0.5 
+            trans_y = Lb*N.sin(tiltr)*0.5 
             trans_z = Tb
             fd.write("      transform: {translation: [0,  %s,  %s], rotation: [ %s, 0, 0]}\n" % (trans_y,trans_z,-90+tilt))  #Tb-Lb*cos(tiltr)*0.5
             fd.write("      plane : {clip: [{operation: AND, vertices: [[ %s,  %s],[ %s,  %s],[ %s,  %s],[ %s,  %s]]}], slices: 64}\n"%( 
@@ -252,42 +264,44 @@ class SolsticeScene:
 
             fd.write("- geometry: &blade_bottom \n") 
             fd.write("    - material: *material_target\n") 
-            trans_y = Db*np.sin(tiltr)*0.5  
+            trans_y = Db*N.sin(tiltr)*0.5  
             fd.write("      transform: {translation: [0,  %s,  %s], rotation: [ %s, 0, 0]}\n"% (trans_y ,0.,90+tilt))  #-Db*cos(tiltr)*0.5
             fd.write("      plane : {clip: [{operation: AND, vertices: [[ %s,  %s],[ %s,  %s],[ %s,  %s],[ %s,  %s]]}], slices: 64}\n"%(
             -Wb*0.5,-Db*0.5, -Wb*0.5,Db*0.5, Wb*0.5,Db*0.5, Wb*0.5,-Db*0.5)) 
 
             fd.write("- geometry: &blade_front \n") 
             fd.write("    - material: *material_target\n") 
-            trans_y = Db*np.sin(tiltr)+Tb*np.cos(tiltr)*0.5  
-            trans_z = Tb- 0.5*Tb/np.sin(tiltr) - Db*np.cos(tiltr)*0.5  
+            trans_y = Db*N.sin(tiltr)+Tb*N.cos(tiltr)*0.5  
+            trans_z = Tb- 0.5*Tb/N.sin(tiltr) - Db*N.cos(tiltr)*0.5  
             fd.write("      transform: {translation: [0, %s,  %s], rotation: [ %s, 0, 0]}\n"%( trans_y, trans_z, 180+tilt))  #trans_z + Tb*0.5
             fd.write("      plane : {clip: [{operation: AND, vertices: [[ %s,  %s],[ %s,  %s],[ %s,  %s],[ %s,  %s]]}], slices: 32}\n"%( 
             -Wb*0.5,-Tb*0.5, -Wb*0.5,Tb*0.5, Wb*0.5,Tb*0.5, Wb*0.5,-Tb*0.5) )
 
             fd.write("- geometry: &blade_end_xmin \n") 
             fd.write("    - material: *material_target\n") 
-            trans_y = Lb*np.sin(tiltr)*0.5  
-            trans_z = Tb  - 0.5*Tb/np.sin(tiltr) 
+            trans_y = Lb*N.sin(tiltr)*0.5  
+            trans_z = Tb  - 0.5*Tb/N.sin(tiltr) 
             fd.write("      transform: {translation: [ %s,  %s,  %s], rotation: [ %s, -90, 90]}\n"%(-Wb*0.5,trans_y,trans_z, -90+tilt) )
             fd.write("      plane : {clip: [{operation: AND, vertices: [[ %s,  %s],[ %s,  %s],[ %s,  %s],[ %s,  %s]]}], slices: 32}\n"%( 
-            -Db*0.5-Tb/np.tan(tiltr),-Tb*0.5, -Db*0.5,Tb*0.5, Db*0.5,Tb*0.5, Db*0.5,-Tb*0.5) )
+            -Db*0.5-Tb/N.tan(tiltr),-Tb*0.5, -Db*0.5,Tb*0.5, Db*0.5,Tb*0.5, Db*0.5,-Tb*0.5) )
 
             fd.write("- geometry: &blade_end_xmax \n") 
             fd.write("    - material: *material_target\n") 
             fd.write("      transform: {translation: [ %s,  %s,  %s], rotation: [ %s,90, 90]}\n"%(Wb*0.5,trans_y,trans_z, -90+tilt) )
             fd.write("      plane : {clip: [{operation: AND, vertices: [[ %s,  %s],[ %s,  %s],[ %s,  %s],[ %s,  %s]]}], slices: 32}\n"%( 
-            -Db*0.5,-Tb*0.5, -Db*0.5-Tb/np.tan(tiltr),Tb*0.5, Db*0.5,Tb*0.5, Db*0.5,-Tb*0.5) )
+            -Db*0.5,-Tb*0.5, -Db*0.5-Tb/N.tan(tiltr),Tb*0.5, Db*0.5,Tb*0.5, Db*0.5,-Tb*0.5) )
 
             fd.write("- geometry: &space \n") 
             fd.write("    - material: *material_target\n") 
-            fd.write("      transform: {translation: [0, 0,  %s], rotation: [-90, 0, 0]}\n"%( Db*np.cos(tiltr)*0.5+Tb/np.sin(tiltr)+space*0.5) )
+            fd.write("      transform: {translation: [0, 0,  %s], rotation: [-90, 0, 0]}\n"%( Db*N.cos(tiltr)*0.5+Tb/N.sin(tiltr)+space*0.5) )
             fd.write("      plane : {clip: [{operation: AND, vertices: [[ %s,  %s],[ %s,  %s],[ %s,  %s],[ %s,  %s]]}], slices: 128}\n"%( 
             -Wb*0.5,-space*0.5, -Wb*0.5,space*0.5, Wb*0.5,space*0.5, Wb*0.5,-space*0.5) )
   
 
         # IMPORT CSV file for the heliostat positions
-        hst_info=np.loadtxt(self.hst_dir,delimiter=',', skiprows=2)
+
+        hst_info=N.loadtxt(self.hst_dir,delimiter=',', skiprows=2)
+
         hst_x=hst_info[:,0]
         hst_y=hst_info[:,1]
         hst_z=hst_info[:,2]
@@ -298,7 +312,7 @@ class SolsticeScene:
         aim_y=hst_info[:,5]
         aim_z=hst_info[:,6]
 
-        #foc = np.sqrt((hst_x-rec_x)**2+ (hst_y-rec_y)**2+(hst_z-rec_z)**2) # ideal focus
+        #foc = N.sqrt((hst_x-rec_x)**2+ (hst_y-rec_y)**2+(hst_z-rec_z)**2) # ideal focus
 
         h_hst = self.hst_h # heliostat height
         w_hst = self.hst_w # heliostat width
@@ -369,28 +383,28 @@ class SolsticeScene:
                 i+=1
                 fd.write("    - name: blade_bottom_%d\n"%i)   # First blade at Z minimum
                 fd.write("      primary: 0\n") 
-                fd.write("      transform: {translation: [0, 0,  %s]}\n"%(-Hb*0.5+ (float(i)*(Tb/np.sin(tiltr)+space))))
+                fd.write("      transform: {translation: [0, 0,  %s]}\n"%(-Hb*0.5+ (float(i)*(Tb/N.sin(tiltr)+space))))
                 fd.write("      geometry: *blade_bottom\n") 
                 fd.write("    - name: blade_top_%d\n"%i)   # First blade at Z minimum
                 fd.write("      primary: 0\n") 
-                fd.write("      transform: {translation: [0, 0,  %s]}\n"%(-Hb*0.5+ (float(i))*(Tb/np.sin(tiltr)+space)))
+                fd.write("      transform: {translation: [0, 0,  %s]}\n"%(-Hb*0.5+ (float(i))*(Tb/N.sin(tiltr)+space)))
                 fd.write("      geometry: *blade_top\n") 
                 fd.write("    - name: blade_front_%d\n"%i)   # First blade at Z minimum
                 fd.write("      primary: 0\n") 
-                fd.write("      transform: {translation: [0, 0,  %s]}\n"%(-Hb*0.5+ (float(i))*(Tb/np.sin(tiltr)+space)))
+                fd.write("      transform: {translation: [0, 0,  %s]}\n"%(-Hb*0.5+ (float(i))*(Tb/N.sin(tiltr)+space)))
                 fd.write("      geometry: *blade_front\n") 
                 fd.write("    - name: blade_end_xmin_%d\n"%i)   # First blade at Z minimum
                 fd.write("      primary: 0\n") 
-                fd.write("      transform: {translation: [0, 0,  %s]}\n"%(-Hb*0.5+ (float(i))*(Tb/np.sin(tiltr)+space)))
+                fd.write("      transform: {translation: [0, 0,  %s]}\n"%(-Hb*0.5+ (float(i))*(Tb/N.sin(tiltr)+space)))
                 fd.write("      geometry: *blade_end_xmin\n") 
                 fd.write("    - name: blade_end_xmax_%d\n"%i)   # First blade at Z minimum
                 fd.write("      primary: 0\n") 
-                fd.write("      transform: {translation: [0, 0,  %s]}\n"%(-Hb*0.5+ (float(i))*(Tb/np.sin(tiltr)+space)))
+                fd.write("      transform: {translation: [0, 0,  %s]}\n"%(-Hb*0.5+ (float(i))*(Tb/N.sin(tiltr)+space)))
                 fd.write("      geometry: *blade_end_xmax\n") 
                 if i<nb:
                     fd.write("    - name: space_%d\n"%i)   # First blade at Z minimum
                     fd.write("      primary: 0\n") 
-                    fd.write("      transform: {translation: [0, 0,  %s]}\n"%(-Hb*0.5+ ((float(i))*(Tb/np.sin(tiltr)+space))))
+                    fd.write("      transform: {translation: [0, 0,  %s]}\n"%(-Hb*0.5+ ((float(i))*(Tb/N.sin(tiltr)+space))))
                     fd.write("      geometry: *space\n") 
 
             
@@ -610,8 +624,8 @@ class AnnualPerformance:
 
     def sun_position(self):
         # sun_position that defined in SolarTherm
-        self.AZI=np.linspace(0., 180., 7)
-        self.ELE=np.linspace(0., 90., 4)
+        self.AZI=N.linspace(0., 180., 7)
+        self.ELE=N.linspace(0., 90., 4)
 
         # convert sun position into SOLSTICE convention
         self.AZI_c=90.-self.AZI
@@ -626,7 +640,7 @@ class AnnualPerformance:
         '''
         SINGLE Process
         '''
-        table=np.array([])
+        table=N.array([])
         for j in xrange(len(self.ELE)):
             ele=self.ELE[j]
             zenith_c=self.ZENITH_c[j]
@@ -644,37 +658,39 @@ class AnnualPerformance:
                 print 'azi%s_ele%s'%(int(azi), int(ele))
 
                 eta=self.scene.runSOLSTICE(savefile=savefile, azi=azi_c, zenith=zenith_c, view=False)
-                table=np.append(table, eta)
+                table=N.append(table, eta)
 
                 print eta
 
         table=table.reshape(len(self.ELE), len(self.AZI))
-        full_table=np.hstack((table, np.fliplr(table)[:, 1:]))
-        print np.shape(table)
+        full_table=N.hstack((table, N.fliplr(table)[:, 1:]))
+        print N.shape(table)
 
         ELE=self.ELE.reshape(len(self.ELE), 1)
-        AZI=np.append(9999, self.AZI)
+        AZI=N.append(9999, self.AZI)
         AZI=AZI.reshape(1, len(AZI))
 
-        table=np.hstack((ELE,table))
-        table=np.vstack((AZI, table))
+        table=N.hstack((ELE,table))
+        table=N.vstack((AZI, table))
 
-        np.savetxt(self.folder+'/lookup_table_ori.csv', table, fmt='%.4f', delimiter=',')
+        N.savetxt(self.folder+'/lookup_table_ori.csv', table, fmt='%.4f', delimiter=',')
 
         # apply symetry to make the full look up table
-        print np.shape(full_table)
-        full_table=np.hstack((ELE,full_table))
-        AZI2=np.append(AZI, AZI[0,1:-1]+360.-AZI[0,-2])
+        print N.shape(full_table)
+        full_table=N.hstack((ELE,full_table))
+        AZI2=N.append(AZI, AZI[0,1:-1]+360.-AZI[0,-2])
         AZI2=AZI2.reshape(1, len(AZI2))
-        print np.shape(AZI2)
-        full_table=np.vstack((AZI2, full_table))
+        print N.shape(AZI2)
+        full_table=N.vstack((AZI2, full_table))
 
-        np.savetxt(self.folder+'/lookup_table_full.csv', full_table, fmt='%.4f', delimiter=',')        
+        N.savetxt(self.folder+'/lookup_table_full.csv', full_table, fmt='%.4f', delimiter=',')        
                 
         
        
 
 if __name__=='__main__':
+
+    # source ~/Solstice-0.8.2-GNU-Linux64/etc/solstice.profile
 
     #======================================================
     #
