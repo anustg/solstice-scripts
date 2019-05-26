@@ -22,7 +22,7 @@ num_rays=2000000
 #
 # the field
 #
-layout=N.loadtxt('./paper_layout.csv', delimiter=',', skiprows=2)
+layout=N.loadtxt('./demo_layout.csv', delimiter=',', skiprows=2)
 hst_pos=layout[:,:3]
 hst_foc=layout[:,3]
 hst_aims=layout[:,4:]
