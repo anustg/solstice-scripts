@@ -32,16 +32,16 @@ sudo python setup.py install
 
     3.1 initialise the Solstice directory in the 'run' shell script
 
-    ```bash
-    cd ~/Solstice-0.8.2-GNU-Linux64/src-Linux/runLinux
-    gedit run
-    ```
+```bash
+cd ~/Solstice-0.8.2-GNU-Linux64/src-Linux/runLinux
+gedit run
+```
     Set the 'solstice_dir' = 'your Solstice directory'
 
     3.2 Define the simulation case
-    ```bash
-    gedit set_case.py
-    ```
+```bash
+gedit set_case.py
+```
     The set_case.py is the script that initialises the Solstice directory, casefolder, detailed parameters of the case: (I) the sun, (II) the field, (III) the target  
 
     -- the example case is a solar tower system, including a heliostat field and a billboard receiver       
@@ -51,12 +51,12 @@ sudo python setup.py install
     -- users are welcome to define their own test cases by changing these parameters
 
 
-* Run
+(4) Run
 ```bash
 ./run
 ```
 
-* Visualise the results in Paraview, e.g.
+(5) Visualise the results in Paraview, e.g.
 ```bash
 ~/ParaView-5.6.0-MPI-Linux-64bit/bin/paraview 
 ```
