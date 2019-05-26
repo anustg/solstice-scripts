@@ -51,7 +51,7 @@ gen_YAML(DNI, sunshape, sunsize, hst_pos, hst_foc, hst_aims,hst_w, hst_h, rho_re
 N.savetxt(casefolder+'/azimuth.input', [azimuth])
 N.savetxt(casefolder+'/elevation.input', [elevation])
 N.savetxt(casefolder+'/rays.input', [num_rays],fmt='%s')
-N.savetxt(solstice_dir+'/src/runLinux/casedir.input', [casefolder], fmt='%s')
+N.savetxt(solstice_dir+'/casedir.input', [casefolder], fmt='%s')
 
 
 
