@@ -3,7 +3,7 @@
 # Initialise
 #=====================================================
 
-solstice_dir='/home/ye/Solstice-0.8.1-GNU-Linux64'
+solstice_dir='/home/yewang/Solstice-0.8.1-GNU-Linux64'
 
 #======================================================
 #
@@ -11,7 +11,7 @@ solstice_dir='/home/ye/Solstice-0.8.1-GNU-Linux64'
 #
 python set_case.py
 #
-case_dir="`cat $solstice_dir/src-Linux/runLinux/casedir.input`"
+case_dir="`cat $solstice_dir/casedir.input`"
 azimuth="`cat $case_dir/azimuth.input`"
 elevation="`cat $case_dir/elevation.input`"
 num_rays="`cat $case_dir/rays.input`"
