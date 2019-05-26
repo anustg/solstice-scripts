@@ -45,7 +45,7 @@ $case_dir/solpath $case_dir/solpaths
 mv *vtk $case_dir
 mv *obj $case_dir
 mv *txt $case_dir
-rm *.input
+rm $solstice_dir/*.input
 rm $case_dir/*input
 
 rawfile=$case_dir'/simul'
