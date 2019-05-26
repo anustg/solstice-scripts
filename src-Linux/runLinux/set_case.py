@@ -3,7 +3,7 @@ from srcPy.gen_YAML import gen_YAML
 import numpy as N
 import os
 
-solstice_dir='/home/yewang/Solstice-0.8.1-GNU-Linux64'
+solstice_dir='/home/ye/Solstice-0.8.1-GNU-Linux64'
 casefolder='./example'
 if not os.path.exists(casefolder):
     os.makedirs(casefolder)
@@ -52,7 +52,7 @@ gen_YAML(DNI, sunshape, sunsize, hst_pos, hst_foc, hst_aims,hst_w, hst_h, rho_re
 N.savetxt(casefolder+'/azimuth.input', [azimuth])
 N.savetxt(casefolder+'/elevation.input', [elevation])
 N.savetxt(casefolder+'/rays.input', [num_rays],fmt="%s")
-N.savetxt(solstice_dir+'/src/runLinux/casedir.input', [casefolder], fmt='%s')
+N.savetxt(solstice_dir+'/src-Linux/runLinux/casedir.input', [casefolder], fmt='%s')
 
 
 
