@@ -18,17 +18,17 @@ rm ~/Solstice-0.8.2-GNU-Linux64.tar.gz
 # Running the wrapper scripts in this repository
 * In Linux system (e.g. Ubuntu 16.04):
 
-(1) clone the 'src-Linux' folder and save it in the Solstice directory, 
+(1) Clone the 'src-Linux' folder and save it in the Solstice directory, e.g.
 
-    e.g. ~/Solstice-0.8.2-GNU-Linux64
+    ~/Solstice-0.8.2-GNU-Linux64
 
-(2) setup the python source scripts
+(2) Setup the python source scripts
 ```bash
 cd ~/Solstice-0.8.2-GNU-Linux64/src-Linux
 sudo python setup.py install
 ```
 
-(3) initialisation
+(3) Initialisation
 ```bash
 cd ~/Solstice-0.8.2-GNU-Linux64/src-Linux/runLinux
 ```
@@ -42,7 +42,7 @@ Define the simulation case
 ```bash
 gedit set_case.py
 ```
-this is the script that initialise the Solstice directory, casefolder, detailed parameters of the case: (I) the sun, (II) the field, (III) the target  
+The set_case.py is the script that initialises the Solstice directory, casefolder, detailed parameters of the case: (I) the sun, (II) the field, (III) the target  
 
 -- the example case is a solar tower system, including a heliostat field and a billboard receiver       
 
@@ -56,7 +56,7 @@ this is the script that initialise the Solstice directory, casefolder, detailed 
 ./run
 ```
 
-* visualise the results in Paraview, e.g.
+* Visualise the results in Paraview, e.g.
 ```bash
 ~/ParaView-5.6.0-MPI-Linux-64bit/bin/paraview 
 ```
