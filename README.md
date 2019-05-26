@@ -1,5 +1,5 @@
-# solstice-scripts
-Scripts and wrappers for Solstice ray-tracing software
+# Introduction
+This repository is under developing scripts and wrappers for Solstice ray-tracing software.
 
 # Solstice Installation 
 * In Linux system (e.g. Ubuntu 16.04):
@@ -11,12 +11,15 @@ rm ~/Solstice-0.8.2-GNU-Linux64.tar.gz
 ```
 
 * In Windows system (e.g. Windows 10, 64-bit):
+
     (coming soon ... )
 
 
 # Running the wrapper scripts in this repository
 * In Linux system (e.g. Ubuntu 16.04):
+
 (1) clone the 'src-Linux' folder and save it in the Solstice directory, 
+
     e.g. ~/Solstice-0.8.2-GNU-Linux64
 
 (2) setup the python source scripts
@@ -25,25 +28,27 @@ cd ~/Solstice-0.8.2-GNU-Linux64/src-Linux
 sudo python setup.py install
 ```
 
-(3) initialise the simulation case
+(3) initialisation
 ```bash
 cd ~/Solstice-0.8.2-GNU-Linux64/src-Linux/runLinux
 ```
-* initialise the Solstice directory
+initialise the Solstice directory
 ```bash
 gedit run
 ```
 Set the 'solstice_dir' = 'your Solstice directory'
 
-
-* Define the simulation case
+Define the simulation case
 ```bash
 gedit set_case.py
 ```
 this is the script that initialise the Solstice directory, casefolder, detailed parameters of the case: (I) the sun, (II) the field, (III) the target  
-- the example case is a solar tower system, including a heliostat field and a billboard receiver       
-- the example parameters are the case C1.1 in Wang et al., 2019 (in progress), for verification purposes
-- users are welcome to define their own test cases by changing these parameters
+
+-- the example case is a solar tower system, including a heliostat field and a billboard receiver       
+
+--- the example parameters are the case C1.1 in Wang et al., 2019 (in progress), for verification purposes
+
+--- users are welcome to define their own test cases by changing these parameters
 
 
 * Run
