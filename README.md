@@ -18,9 +18,17 @@ rm ~/Solstice-0.8.2-GNU-Linux64.tar.gz
 # Running the wrapper scripts in this repository
 * In Linux system (e.g. Ubuntu 16.04):
 
-(1) Clone the 'src-Linux' folder and save it in the Solstice directory, e.g.
+(1) download the 'src-Linux' folder and save it in the Solstice directory, e.g.
 
     ~/Solstice-0.8.2-GNU-Linux64
+
+    or clone the develop branch, and copy the 'src-Linux' folder in the Solstice directory
+    
+```bash
+git clone https://github.com/anustg/solstice-scripts.git
+git checkout develop
+```
+    
 
 (2) Setup the python source scripts
 ```bash
