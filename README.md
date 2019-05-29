@@ -1,5 +1,6 @@
 # Introduction
-This repository is under developing scripts and wrappers for Solstice ray-tracing software.
+This repository contains the wrappers for running the Solstice ray-tracing software.
+(Development in progress ..)
 
 # Solstice Installation 
 * In Linux system (e.g. Ubuntu 16.04):
