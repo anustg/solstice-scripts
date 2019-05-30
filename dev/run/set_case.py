@@ -1,10 +1,10 @@
-from srcPy.gen_YAML import gen_YAML
+from source.gen_YAML import gen_YAML
 
 import numpy as N
 import os
 
-solstice_dir='/home/yewang/Solstice-0.8.1-GNU-Linux64'
-casefolder='./example'
+solstice_dir='/home/yewang/Solstice-0.8.2-GNU-Linux64'
+casefolder='/home/yewang/GitHub/stganu/solstice-script/dev/results'
 if not os.path.exists(casefolder):
     os.makedirs(casefolder)
 
@@ -23,12 +23,12 @@ num_rays=2000000
 #
 # the field
 #
-layout=N.loadtxt('./demo_layout.csv', delimiter=',', skiprows=2)
+layout=N.loadtxt('/home/yewang/GitHub/stganu/solstice-script/dev/results/pos_and_aiming.csv', delimiter=',', skiprows=2)
 hst_pos=layout[:,:3]
 hst_foc=layout[:,3]
 hst_aims=layout[:,4:]
-hst_w=10.
-hst_h=10.
+hst_w=13.
+hst_h=9.6
 rho_refl=0.95 # mirror reflectivity
 slope_error=2.e-3 # rad
 tower_h=0.01
@@ -38,12 +38,12 @@ tower_r=3.
 #
 receiver='flat'
 rec_abs=0.9
-rec_w=8.
-rec_h=6.
+rec_w=10.
+rec_h=10.
 rec_mesh=100
 loc_x=0.
 loc_y=0.
-loc_z=62.
+loc_z=115.
 tilt=0. # deg
 #
 #

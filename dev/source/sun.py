@@ -265,6 +265,9 @@ class SunPosition:
         
         case_list=case_list.reshape(len(case_list)/5,5)
         N.savetxt('./annual_simulation_list.csv', case_list, fmt='%s', delimiter=',')
+        azimuth=case_list[1:,-1].astype(float)
+        zenith=case_list[1:,-2].astype(float)
+        return azimuth, zenith
 
         
 
@@ -290,7 +293,7 @@ if __name__=='__main__':
     print 'elevation', 90.-theta
     print 'azimuth', phi
 
-    sun.annual_angles(latitude, hemisphere='North', nd=5, nh=5)
+    sun.annual_angles(latitude, hemisphere='North', nd=5, nh=9)
 
     
     

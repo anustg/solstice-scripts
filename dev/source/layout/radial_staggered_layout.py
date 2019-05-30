@@ -1,13 +1,13 @@
 import numpy as N
 
 def radial_stagger(Target_A, R1, width, height, towerheight, hst_z, az_rim=2*N.pi, dsep=0., savedir='.'):
-
     '''
     Ref. (Collado and Guallar, 2012), Campo: Generation of regular heliostat field.
 
+    Generate a rather large field
+
     Arguements:
 
-    Target_A: the targeted total reflector area
     R1: distance from the first row to the bottom of the tower (0, 0, 0)
     width, height - float, heliostat dimension (m)
     az_rim - float, (rad), start from y (North) clockwise, for trimming the surrounding field to a polar field 
