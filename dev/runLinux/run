@@ -3,7 +3,7 @@
 # Initialise
 #=====================================================
 
-solstice_dir='/home/yewang/Solstice-0.8.2-GNU-Linux64'
+solstice_dir='/home/yewang/Solstice-0.8.1-GNU-Linux64'
 
 #======================================================
 #
@@ -28,19 +28,19 @@ solstice -D$azimuth,$elevation -q -n 100 -R $case_dir/input-rcv.yaml -p default 
 #
 # postprocessing in C (provided by Cyril Caliot)
 #Read "simul" results and produce a text file with the raw results
-gcc $solstice_dir/src-Linux/ppLinux/solppraw.c -o $case_dir/solppraw
-$case_dir/solppraw $case_dir/simul
+gcc $solstice_dir/src-Linux/ppLinux/solppraw.c -o $solstice_dir/src-Linux/ppLinux/solppraw
+$solstice_dir/src-Linux/ppLinux/solppraw $case_dir/simul
 #Read "simul" results and produce receiver files (.vtk) of incoming and/or absorbed solar flux per-primitive
-gcc $solstice_dir/src-Linux/ppLinux/solmaps.c -o $case_dir/solmaps
-$case_dir/solmaps $case_dir/simul
+gcc $solstice_dir/src-Linux/ppLinux/solmaps.c -o $solstice_dir/src-Linux/ppLinux/solmaps
+$solstice_dir/src-Linux/ppLinux/solmaps $case_dir/simul
 
 #Read "geom" and "simul" file results and produce primaries and receivers files (.vtk), and .obj geometry files
-gcc $solstice_dir/src-Linux/ppLinux/solpp.c -o $case_dir/solpp
-$case_dir/solpp $case_dir/geom $case_dir/simul
+gcc $solstice_dir/src-Linux/ppLinux/solpp.c -o $solstice_dir/src-Linux/ppLinux/solpp
+$solstice_dir/src-Linux/ppLinux/solpp $case_dir/geom $case_dir/simul
 
 #Read "solpaths" file and produce readable file (.vtk) by paraview to visualize the ray paths
-gcc $solstice_dir/src-Linux/ppLinux/solpaths.c -o $case_dir/solpath
-$case_dir/solpath $case_dir/solpaths
+gcc $solstice_dir/src-Linux/ppLinux/solpaths.c -o $solstice_dir/src-Linux/ppLinux/solpath
+$solstice_dir/src-Linux/ppLinux/solpath $case_dir/solpaths
 
 mv *vtk $case_dir
 mv *obj $case_dir
@@ -48,6 +48,7 @@ mv *txt $case_dir
 rm $solstice_dir/*.input
 rm $case_dir/*input
 
+
 rawfile=$case_dir'/simul'
-python postprocess.py $rawfile $case_dir
+python $solstice_dir/src-Linux/srcPy/get_raw.py $rawfile $case_dir
 
