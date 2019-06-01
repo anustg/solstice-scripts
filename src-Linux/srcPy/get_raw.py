@@ -1,6 +1,7 @@
 import numpy as N
 import re
 import sys
+import os
 
 def proces_raw_results(rawfile, savedir):
 
@@ -124,9 +125,6 @@ def proces_raw_results(rawfile, savedir):
 
 if __name__=='__main__':
     
-    rawfile='./Case/results/simul'
-    saveresult='./Case/results'
-    proces_raw_results(rawfile, saveresult)
-
+    proces_raw_results(sys.argv[1], sys.argv[2])
 
 

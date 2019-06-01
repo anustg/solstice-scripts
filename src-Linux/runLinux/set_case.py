@@ -4,7 +4,7 @@ import os
 
 # please SET:
 # set the directory of the Solstice software in your local system
-solstice_dir='/home/yewang/Solstice-0.8.2-GNU-Linux64' 
+solstice_dir='/home/yewang/Solstice-0.8.1-GNU-Linux64' 
 # set the folder for saving the current ray-tracing case
 casefolder='./example'
 #

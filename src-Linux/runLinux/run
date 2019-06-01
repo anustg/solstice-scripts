@@ -3,7 +3,7 @@
 # Initialise
 #=====================================================
 
-solstice_dir='/home/yewang/Solstice-0.8.2-GNU-Linux64'
+solstice_dir='/home/yewang/Solstice-0.8.1-GNU-Linux64'
 
 #======================================================
 #
@@ -48,6 +48,7 @@ mv *txt $case_dir
 rm $solstice_dir/*.input
 rm $case_dir/*input
 
+
 rawfile=$case_dir'/simul'
-python postprocess.py $rawfile $case_dir
+python $solstice_dir/src-Linux/srcPy/get_raw.py $rawfile $case_dir
 
