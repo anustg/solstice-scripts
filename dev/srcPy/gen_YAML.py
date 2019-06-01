@@ -1,6 +1,6 @@
 import numpy as N
 
-from source.spectral_data import SolarSpectrum, MirrorRhoSpectrum
+from srcPy.spectral_data import SolarSpectrum, MirrorRhoSpectrum
 
 def gen_YAML(DNI, sunshape, sunsize, hst_pos, hst_foc, hst_aims,hst_w, hst_h, rho_refl, slope_error, tower_h, tower_r, receiver, rec_param, rec_abs, casefolder, spectral=False, medium=0 ):
     '''

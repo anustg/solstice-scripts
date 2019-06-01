@@ -1,5 +1,7 @@
 import numpy as N
 import re
+import sys
+import os
 
 def proces_raw_results(rawfile, savedir):
 
@@ -110,9 +112,11 @@ def proces_raw_results(rawfile, savedir):
     Qblock=Qtotal-Qcos-Qshade-Qfield_abs-Qspil-Qabs-Qrefl
 
     organised=N.array(['Qall', Qtotal/1000., 'Qshade+cos', (Qcos+Qshade)/1000., 'Qblcok', Qblock/1000., 'Qfield_abs', Qfield_abs/1000., 'Qspil', Qspil/1000., 'Qrefl', Qrefl/1000., 'Qabs', Qabs/1000., 'rays', num_rays])
-    N.savetxt(savedir+'/res-orgnised.csv', organised.reshape(len(organised)/2,2), fmt='%s', delimiter=',')
+    N.savetxt(savedir+'/result-formated.csv', organised.reshape(len(organised)/2,2), fmt='%s', delimiter=',')
     
     efficiency_total=Qabs/Qtotal
+    print ''
+    print 'Total efficiency:', efficiency_total
 
     return efficiency_total
     
@@ -120,9 +124,7 @@ def proces_raw_results(rawfile, savedir):
 
 
 if __name__=='__main__':
-    rawfile='./Case/results/simul'
-    saveresult='./Case/results'
-    proces_raw_results(rawfile, saveresult)
-
+    
+    proces_raw_results(sys.argv[1], sys.argv[2])
 
 
