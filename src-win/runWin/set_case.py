@@ -16,7 +16,7 @@ azimuth=270. # from East to North
 elevation =78.  # 0 is horizontal
 
 sunshape='pillbox' # or 'buie'
-sunsize=4.65e-3*180./N.pi#deg or CSR value
+sunsize=4.65e-3*180./N.pi #deg or CSR value
 DNI=1000 # W/m2
 num_rays=2000000
 #
