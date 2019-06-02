@@ -6,7 +6,7 @@ import os
 # set the directory of the Solstice software in your local system
 solstice_dir='/home/yewang/Solstice-0.8.1-GNU-Linux64' 
 # set the folder for saving the current ray-tracing case
-casefolder='./example'
+casefolder='./1-example/results'
 #
 #
 # the sun
@@ -36,9 +36,6 @@ hst_w=10. # m
 hst_h=10. # m
 rho_refl=0.95 # mirror reflectivity
 slope_error=2.e-3 # radians
-# F3. Tower ( a cylindar shape)
-tower_h=0.01 # tower height, m
-tower_r=3. # tower radius, m
 #
 # the receiver
 # ============
@@ -66,10 +63,11 @@ rec_mesh=100
 if not os.path.exists(casefolder):
     os.makedirs(casefolder) 
 rec_param=N.r_[rec_w, rec_h, rec_mesh, loc_x, loc_y, loc_z, tilt]
-gen_YAML(DNI, sunshape, sunsize, hst_pos, hst_foc, hst_aims,hst_w, hst_h, rho_refl, slope_error, tower_h, tower_r, receiver, rec_param, rec_abs, casefolder, spectral=False, medium=0 )
+gen_YAML(DNI, sunshape, sunsize, hst_pos, hst_foc, hst_aims,hst_w, hst_h, rho_refl, slope_error, receiver, rec_param, rec_abs, casefolder, spectral=False, medium=0., OneHeliostat=False )
 N.savetxt(casefolder+'/azimuth.input', [azimuth])
 N.savetxt(casefolder+'/elevation.input', [elevation])
 N.savetxt(casefolder+'/rays.input', [num_rays],fmt="%s")
+N.savetxt(casefolder+'/mirror.input', [rho_refl])
 N.savetxt(solstice_dir+'/casedir.input', [casefolder], fmt='%s')
 
 

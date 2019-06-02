@@ -1,6 +1,8 @@
 import numpy as N
 #from tracer.models.heliostat_field import solar_vector
 import matplotlib.pyplot as plt
+from scipy.spatial import Delaunay
+from gen_vtk import gen_vtk
 
 class FieldPF:
 
@@ -82,6 +84,69 @@ class FieldPF:
 
         return cos_factor
 
+    def heliostat(self, width, height ):
+        '''
+        the local coordinate of the heliostat
+        '''
+        x=N.linspace(-width/2., width/2., 3)
+        y=N.linspace(-height/2., height/2., 3)
+        
+        xx, yy=N.meshgrid(x, y)
+        coords=N.column_stack([xx.ravel(),yy.ravel()])   
+        tri=Delaunay(coords).simplices
+        #plt.figure(1) 
+        #plt.triplot(coords[:,0], coords[:,1], tri)   
+        #plt.show()
+        return coords, tri
+
+    def view_heliostats(self, width, height, normals, hstpos):
+        
+        coord1, tri1=self.heliostat(width, height)
+        ele=len(tri1)
+        nc=len(coord1)
+
+        num_hst=len(hstpos)
+
+        COORD=N.zeros(num_hst*nc*3).reshape(num_hst*nc, 3)
+        TRI=N.zeros(num_hst*ele*3).reshape(num_hst*ele, 3)
+
+        norm_x=normals[:,0]
+        norm_y=normals[:,1]
+        norm_z=normals[:,2]
+        hstat_elev = N.arccos(norm_z)            
+  
+        for i in xrange(num_hst):            
+         
+            TRI[i*ele: (i+1)*ele]=tri1+i*nc
+
+            if norm_x[i]>=0:
+                hstat_az = N.arccos(-norm_y[i]/N.sqrt(norm_x[i]**2+norm_y[i]**2))                                     
+            elif norm_x[i]<0:
+                hstat_az = N.arccos(norm_y[i]/N.sqrt(norm_x[i]**2+norm_y[i]**2)) +N.pi
+            elev_rot = rotx(hstat_elev[i])
+            az_rot = rotz(hstat_az)
+            trans = N.dot(az_rot,elev_rot)
+            trans[:3,3] = hstpos[i]
+
+            x=coord1[:,0]
+            y=coord1[:,1]
+            z=hstpos[i,2]*N.ones(nc)  
+
+            cd=N.vstack((x, y, z, N.ones(nc)))   
+            cd_t=N.dot(trans, cd)
+
+            xx=cd_t[0]
+            yy=cd_t[1]
+            zz=cd_t[2]
+
+            COORD[i*nc: (i+1)*nc,0]=xx
+            COORD[i*nc: (i+1)*nc,1]=yy
+            COORD[i*nc: (i+1)*nc,2]=zz
+
+        #plt.figure(1) 
+        #plt.triplot(COORD[:,0], COORD[:,1], TRI)   
+        #plt.show()        
+        return COORD, TRI, ele, nc
 
     def plot_cosine(self, savename,pm):
         x=self.hstpos[:,0]
@@ -115,24 +180,63 @@ class FieldPF:
         #plt.title('Receiver view \n Tower height %s m'%pm )
         plt.savefig(open(savename, 'w'),dpi=500, bbox_inches='tight')
         plt.close()	
+       
+def rotx(ang):
+    """Generate a homogenous trransform for ang radians around the x axis"""
+    s = N.sin(ang); c = N.cos(ang)
+    return N.array([
+        [1., 0, 0, 0],
+        [0, c,-s, 0],
+        [0, s, c, 0],
+        [0, 0, 0, 1.]
+    ])
 
+def roty(ang):
+    """Generate a homogenous trransform for ang radians around the y axis"""
+    s = N.sin(ang); c = N.cos(ang)
+    return N.array([
+        [c, 0, s, 0],
+        [0, 1., 0, 0],
+        [-s,0, c, 0],
+        [0, 0, 0, 1.]
+    ])
 
-    
-            
-        
-        
+def rotz(ang):
+    """Generate a homogenous trransform for ang radians around the z axis"""
+    s = N.sin(ang); c = N.cos(ang)
+    return N.array([
+        [c,-s, 0, 0],
+        [s, c, 0, 0],
+        [0, 0, 1., 0],
+        [0, 0, 0, 1.]
+    ])
 
-        
-        
+def translate(x=0, y=0, z=0):
+    """Generate a homogenous transform for translation by x, y, z"""
+    return N.array([
+        [1., 0, 0, x],
+        [0, 1., 0, y],
+        [0 ,0, 1., z],
+        [0, 0, 0, 1.]
+    ])
           
 
 if __name__=='__main__':
     #pos_and_aiming=N.loadtxt('/media/yewang/Work/svn_ye/Solstice-tutorial/cases/2-Validation/layout.csv', delimiter=',', skiprows=2)
-    pos_and_aiming=N.loadtxt('/home/yewang/Github_repo/anustg/solstice-scripts/src-Linux/srcPy/layout/pos_and_aiming.csv', delimiter=',', skiprows=2)
+    pos_and_aiming=N.loadtxt('/media/yewang/Work/svn_ye/Solstice-tutorial/cases/2-PS10-case/runLinux/PS10_layout.csv', delimiter=',', skiprows=2)
     pos=pos_and_aiming[:,:3]
     aim=pos_and_aiming[:,4:]
-    azimuth=0.
-    zenith=12.
-    field=Field(pos, aim, azimuth, zenith)
-    field.plot_cosine()
+    azimuth=N.r_[-60.]
+    zenith=N.r_[45.]
+    field=FieldPF(azimuth, zenith,N.r_[0,1,0])
+    sun_vec=field.get_solar_vector(azimuth, zenith)
+    norms=field.get_normals(towerheight=70., hstpos=pos, sun_vec=sun_vec)
+    field.heliostat(10, 8)
+    COORD, TRI, ele, nc=field.view_heliostats(10., 8., norms, pos)
+    cos=field.get_cosine(towerheight=70., hstpos=pos)
+    savedir='./field.vtk'
+    COS=N.repeat(cos, ele)
+    DATA={'cos':COS}
+    NORMS=N.repeat(norms, ele, axis=0)
+    gen_vtk(savedir, COORD.T, TRI, NORMS, True, DATA)
         

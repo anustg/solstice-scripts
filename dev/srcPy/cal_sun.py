@@ -104,6 +104,7 @@ class SunPosition:
 
     def zenith(self, latitude, delta, omega):
         '''
+        ref. eq.1.6.5
         Arguement:
         latitude: latitude angle, float, deg
         delta:  declination angle, float, deg
@@ -125,6 +126,8 @@ class SunPosition:
     def azimuth(self, latitude, theta, delta, omega):
 
         '''
+        ref: eq. 1.6.6
+        from South to West
         Arguement:
         latitude: latitude angle, deg
         delta: declination angle ,deg

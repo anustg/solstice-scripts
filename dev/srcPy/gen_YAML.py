@@ -2,7 +2,7 @@ import numpy as N
 
 from srcPy.data_spectral import SolarSpectrum, MirrorRhoSpectrum
 
-def gen_YAML(DNI, sunshape, sunsize, hst_pos, hst_foc, hst_aims,hst_w, hst_h, rho_refl, slope_error, tower_h, tower_r, receiver, rec_param, rec_abs, casefolder, spectral=False, medium=0 ):
+def gen_YAML(DNI, sunshape, sunsize, hst_pos, hst_foc, hst_aims,hst_w, hst_h, rho_refl, slope_error, receiver, rec_param, rec_abs, casefolder, tower_h=0.01, tower_r=0.01,  spectral=False, medium=0, OneHeliostat=False ):
     '''
     Arguements:
     (1) the sun
@@ -56,6 +56,20 @@ def gen_YAML(DNI, sunshape, sunsize, hst_pos, hst_foc, hst_aims,hst_w, hst_h, rh
         iyaml+='  - {wavelength: %s, data: %s }\n' % (I_sun[i][0],I_sun[i][1]) 
         iyaml+='\n'
 
+        # CREATE the spectrum for the reflectivity (mirror)
+        mirror_rho= MirrorRhoSpectrum()
+        mirror_ref=mirror_rho
+        for i in range(0,len(mirror_rho)):
+            mirror_ref[i][0] = mirror_rho[len(mirror_rho)-1-i][0]/1000.
+            mirror_ref[i][1] = mirror_rho[len(mirror_rho)-1-i][1]/100.
+        mirror_ref.append([4,0.9])
+        iyaml+='- spectrum: &%s  \n' % 'ref_mirror'
+        for i in range(0,len(mirror_ref)-1):
+            iyaml+='  - {wavelength: %15.8e, data: %15.8e }\n' % (float(mirror_ref[i][0]),float(mirror_ref[i][1])) 
+        i = len(mirror_ref)-1
+        iyaml+='  - {wavelength: %15.8e, data: %15.8e }\n' % (float(mirror_ref[i][0]),float(mirror_ref[i][1])) 
+        iyaml+='\n'
+
     # 
     ### Section (2)
     # set the medium types: 
@@ -67,7 +81,7 @@ def gen_YAML(DNI, sunshape, sunsize, hst_pos, hst_foc, hst_aims,hst_w, hst_h, rh
         ke_air = I_sun
         for i in range(0,len(I_sun)):
             ke_air[i][1] = medium
-        iyaml+='- spectrum: &%s  \n' % 'air_kext'
+        iyaml+='- spectrum: &%s  \n' % 'airkext'
         for i in range(0,len(ke_air)-1):
             iyaml+='  - {wavelength: %s, data: %s }\n' % (ke_air[i][0],ke_air[i][1])
         i = len(ke_air)-1
@@ -163,16 +177,27 @@ def gen_YAML(DNI, sunshape, sunsize, hst_pos, hst_foc, hst_aims,hst_w, hst_h, rh
     #
     # Heliostats Geometry
     #
-    hst_x=hst_pos[:,0]
-    hst_y=hst_pos[:,1]
-    hst_z=hst_pos[:,2]
-    aim_x=hst_aims[:,0]
-    aim_y=hst_aims[:,1]
-    aim_z=hst_aims[:,2]
+    if OneHeliostat:
+        hst_x=N.r_[hst_pos[0]]
+        hst_y=N.r_[hst_pos[1]]
+        hst_z=N.r_[hst_pos[2]]
+        aim_x=N.r_[hst_aims[0]] 
+        aim_y=N.r_[hst_aims[1]]
+        aim_z=N.r_[hst_aims[2]]
+        num_hst=1
+        hst_foc=N.r_[hst_foc]
+    else:
+        hst_x=hst_pos[:,0]
+        hst_y=hst_pos[:,1]
+        hst_z=hst_pos[:,2]
+        aim_x=hst_aims[:,0]
+        aim_y=hst_aims[:,1]
+        aim_z=hst_aims[:,2]
+        num_hst=len(hst_x)
     slices = 4 # slices for the envelop circle
     pts_hst = [ [-hst_w*0.5, -hst_h*0.5], [-hst_w*0.5, hst_h*0.5], [hst_w*0.5, hst_h*0.5], [hst_w*0.5,-hst_h*0.5] ]
     # CREATE a reflective facet (mirror)
-    for i in range(0,len(hst_foc)):
+    for i in range(0,num_hst):
         name_hst_g = 'hst_g_'+str(i)
         iyaml+='- geometry: &%s\n' % name_hst_g 
         iyaml+='  - material: *%s\n' % 'material_mirror' 
@@ -200,7 +225,7 @@ def gen_YAML(DNI, sunshape, sunsize, hst_pos, hst_foc, hst_aims,hst_w, hst_h, rh
     # (programming objects gathering geometries or pivot and geometries)
     #------------------------------
     # CREATE the heliostat templates
-    for i in range(0,len(hst_foc)):    
+    for i in range(0,num_hst):    
         name_hst_t = 'hst_t_'+str(i)
         iyaml+='- template: &%s\n' % name_hst_t 
         name_hst_n = 'hst_'+ str(i)
@@ -234,7 +259,7 @@ def gen_YAML(DNI, sunshape, sunsize, hst_pos, hst_foc, hst_aims,hst_w, hst_h, rh
     iyaml+='    geometry: *%s\n' % 'tower_g'    
     #
     # heliostat entities from the template
-    for i in range(0,len(hst_foc)):
+    for i in range(0,num_hst):
         name_e ='H_'+str(i)
         name_hst_t = 'hst_t_'+str(i)
         iyaml+='\n- entity:\n'

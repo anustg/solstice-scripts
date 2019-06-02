@@ -15,6 +15,7 @@ case_dir="`cat $solstice_dir/casedir.input`"
 azimuth="`cat $case_dir/azimuth.input`"
 elevation="`cat $case_dir/elevation.input`"
 num_rays="`cat $case_dir/rays.input`"
+rho_mirror="`cat $case_dir/mirror.input`"
 
 solstice_pack=$solstice_dir'/etc/solstice.profile'
 source $solstice_pack
@@ -50,5 +51,5 @@ rm $case_dir/*input
 
 
 rawfile=$case_dir'/simul'
-python $solstice_dir/src-Linux/srcPy/get_raw.py $rawfile $case_dir
+python $solstice_dir/src-Linux/srcPy/get_raw.py $rawfile $case_dir $rho_mirror
 
