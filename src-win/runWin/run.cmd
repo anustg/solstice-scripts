@@ -15,6 +15,7 @@ SET /P case_dir= < %solstice_dir%/casedir.input
 SET /P azimuth= < %case_dir%/azimuth.input
 SET /P elevation= < %case_dir%/elevation.input
 SET /P num_rays= < %case_dir%/rays.input
+SET /P rho_mirror= <%case_dir%/mirror.input
 ::
 :: Run Solstice
 solstice -D%azimuth%,%elevation% -v -n %num_rays% -R %case_dir%/input-rcv.yaml -fo %case_dir%/simul %case_dir%/input.yaml
@@ -43,7 +44,7 @@ solstice -D%azimuth%,%elevation% -q -n 100 -R %case_dir%/input-rcv.yaml -p defau
 
 :: postprocessing
 SET rawfile=%case_dir%/simul
-python postprocess.py %rawfile% %case_dir%
+python %solstice_dir%/src-win/srcPy/get_raw.py %rawfile% %case_dir% %rho_mirror
 
 
 move *vtk %case_dir% >nul
