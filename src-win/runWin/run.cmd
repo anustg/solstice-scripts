@@ -44,7 +44,7 @@ solstice -D%azimuth%,%elevation% -q -n 100 -R %case_dir%/input-rcv.yaml -p defau
 
 :: postprocessing
 SET rawfile=%case_dir%/simul
-python %solstice_dir%/src-win/srcPy/get_raw.py %rawfile% %case_dir% %rho_mirror
+python %solstice_dir%/src-win/srcPy/get_raw.py %rawfile% %case_dir% %rho_mirror%
 
 
 move *vtk %case_dir% >nul
