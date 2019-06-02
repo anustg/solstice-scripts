@@ -2,11 +2,8 @@ from srcPy.gen_YAML import gen_YAML
 import numpy as N
 import os
 
-# please SET:
-# set the directory of the Solstice software in your local system
-solstice_dir='/home/yewang/Solstice-0.8.1-GNU-Linux64' 
+casefolder=os.environ['CASEFOLDER']
 # set the folder for saving the current ray-tracing case
-casefolder='./1-example/results'
 #
 #
 # the sun
@@ -68,7 +65,6 @@ N.savetxt(casefolder+'/azimuth.input', [azimuth])
 N.savetxt(casefolder+'/elevation.input', [elevation])
 N.savetxt(casefolder+'/rays.input', [num_rays],fmt="%s")
 N.savetxt(casefolder+'/mirror.input', [rho_refl])
-N.savetxt(solstice_dir+'/casedir.input', [casefolder], fmt='%s')
 
 
 
