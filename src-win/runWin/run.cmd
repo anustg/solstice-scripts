@@ -18,6 +18,7 @@ SET /P num_rays= < %case_dir%/rays.input
 SET /P rho_mirror= <%case_dir%/mirror.input
 ::
 :: Run Solstice
+ECHO Solstice is running
 solstice -D%azimuth%,%elevation% -v -n %num_rays% -R %case_dir%/input-rcv.yaml -fo %case_dir%/simul %case_dir%/input.yaml
 ::
 :: Postprocessing

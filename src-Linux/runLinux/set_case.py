@@ -15,7 +15,7 @@ sunsize=0.2664 # the half angle of the pillbox sunshape distribution, in degree
                # or CSR value of Buie sunshape
 
 # S3. sun position
-# e.g. spring equinox, solar noon
+# e.g. summer solstice, solar noon
 azimuth=270. # from East to North, deg
 elevation =78.  # 0 is horizontal, deg
 
