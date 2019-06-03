@@ -241,7 +241,7 @@ class SunPosition:
         table[3:,3]=solartime
 
         c=1
-        case_list=N.array(['Case','declination','solar hour angle', 'azimuth', 'zenith'])
+        case_list=N.array(['Case','declination (deg)','solar hour angle (deg)', 'azimuth (deg) S-to-W ', 'zenith (deg)'])
         for i in xrange(len(DELTA)):
             delta=DELTA[i]
             hour, sunrise=self.solarhour(delta, latitude)
@@ -294,7 +294,7 @@ if __name__=='__main__':
     print 'elevation', 90.-theta
     print 'azimuth', phi
 
-    #sun.annual_angles(latitude, hemisphere='North', casefolder=',',nd=5, nh=9)
+    #sun.annual_angles(latitude, hemisphere='North', casefolder='.',nd=5, nh=9)
 
     
     
