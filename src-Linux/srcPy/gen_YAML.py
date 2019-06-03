@@ -327,21 +327,3 @@ def flat_receiver(rec_param):
     
     return geom, entt, rcv
     
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    #------------------------------

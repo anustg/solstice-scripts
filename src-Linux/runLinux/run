@@ -7,11 +7,13 @@ set -e
 # initialise all needed file locations
 
 # location where the Solstice binary tarball was unpacked...
-solstice_dir=$HOME/01OKDND/solstice/Solstice-0.8.2-GNU-Linux64
+solstice_dir=$HOME/Solstice-0.8.2-GNU-Linux64
 
 # location of solstice post-processing C codes, eg solppraw.c
-#solpp_dir=$solstice_dir/src-Linux/ppLinux
-solpp_dir=$HOME/01OKDND/solstice/Solstice-PP-Sources-0.3.1
+solpp_dir=$HOME/Solstice-0.8.2-GNU-Linux64/src-Linux/ppLinux
+
+# location of saving results of a simulation
+export CASEFOLDER="1-example/results"
 
 #-------------------------------------------------------------------------------
 # configure the environment to run Solstice
@@ -35,7 +37,7 @@ fi
 #-------------------------------------------------------------------------------
 # set up some solstice input files
 
-export CASEFOLDER="1-example/results"
+
 python set_case.py
 
 azimuth="`cat $CASEFOLDER/azimuth.input`"
