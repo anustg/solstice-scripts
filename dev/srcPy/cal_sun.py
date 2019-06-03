@@ -140,11 +140,7 @@ class SunPosition:
         latitude*=N.pi/180.
         delta*=N.pi/180.
         theta*=N.pi/180.
-
-        # TODO
-        # solve the invalid denominator
-        phi=abs(N.arccos((N.cos(theta)*N.sin(latitude)-N.sin(delta))/(N.sin(theta)*N.cos(latitude)))) # unit radian
-
+    
         a1=N.cos(theta)*N.sin(latitude)-N.sin(delta)
         a2=N.sin(theta)*N.cos(latitude)
         b=a1/a2
@@ -152,8 +148,10 @@ class SunPosition:
         if abs(b+1.)<1e-10:
             phi=N.pi
 
-        if abs(b-1.)<1e-10:
+        elif abs(b-1.)<1e-10:
             phi=0.
+        else:
+            phi=abs(N.arccos((N.cos(theta)*N.sin(latitude)-N.sin(delta))/(N.sin(theta)*N.cos(latitude)))) # unit radian
 
         if omega<0:
             phi=-phi
@@ -196,7 +194,7 @@ class SunPosition:
         #TODO develope the transfermation from conventions in different tools 
         pass
 
-    def annual_angles(self, latitude, hemisphere, nd=5, nh=5):
+    def annual_angles(self, latitude, hemisphere, casefolder, nd=5, nh=5):
         '''
         Arguements:
         latitude: latitude of the location, deg
@@ -264,10 +262,10 @@ class SunPosition:
                     
 
 
-        N.savetxt('./table_view.csv', table, fmt='%s', delimiter=',')
+        N.savetxt(casefolder+'/table_view.csv', table, fmt='%s', delimiter=',')
         
         case_list=case_list.reshape(len(case_list)/5,5)
-        N.savetxt('./annual_simulation_list.csv', case_list, fmt='%s', delimiter=',')
+        N.savetxt(casefolder+'/annual_simulation_list.csv', case_list, fmt='%s', delimiter=',')
         azimuth=case_list[1:,-1].astype(float)
         zenith=case_list[1:,-2].astype(float)
         return azimuth, zenith
@@ -277,7 +275,7 @@ class SunPosition:
 
 if __name__=='__main__':
     # example: PS10, Spring equinox, solar noon
-    latitude=37.+43./60.
+    latitude=37.44
 
     sun=SunPosition()
     dd=sun.days(21, 'Jun')
@@ -296,7 +294,7 @@ if __name__=='__main__':
     print 'elevation', 90.-theta
     print 'azimuth', phi
 
-    sun.annual_angles(latitude, hemisphere='North', nd=5, nh=9)
+    #sun.annual_angles(latitude, hemisphere='North', casefolder=',',nd=5, nh=9)
 
     
     

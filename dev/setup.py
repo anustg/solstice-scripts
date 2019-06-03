@@ -8,7 +8,7 @@ setup(name='Solstice-py',
       author='Ye Wang',
       author_email='ye.wang@anu.edu.au',
       url='https://github.com/anustg/solstice-scripts',
-      packages=['srcPy', 'srcPy.layout'],
+      packages=['srcPy'],
       license="GPL v3.0 or later, see LICENSE file"
      )
 
