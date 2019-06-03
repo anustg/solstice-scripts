@@ -124,7 +124,7 @@ def proces_raw_results(rawfile, savedir,rho_mirror):
                        'Qrefl (kW)', Qrefl/1000., 
                        'Qabs (kW)', Qabs/1000., 
                        'rays', num_rays])
-    N.savetxt(savedir+'/result-formated.csv', organised.reshape(len(organised)/2,2), fmt='%s', delimiter=',')
+    N.savetxt(savedir+'/result-formatted.csv', organised.reshape(len(organised)/2,2), fmt='%s', delimiter=',')
     
     efficiency_total=Qabs/Qtotal
     print ''
