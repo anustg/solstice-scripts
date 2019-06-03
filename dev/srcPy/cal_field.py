@@ -1,6 +1,6 @@
 import numpy as N
 #from tracer.models.heliostat_field import solar_vector
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 from scipy.spatial import Delaunay
 from gen_vtk import gen_vtk
 
@@ -48,7 +48,7 @@ class FieldPF:
         return sun_vec
 
     def get_normals(self, towerheight, hstpos, sun_vec):
-        
+
         tower_vec=-hstpos
         tower_vec[:,-1]+=towerheight
         tower_vec/=N.sqrt(N.sum(tower_vec**2, axis=1)[:,None])
@@ -223,15 +223,15 @@ def translate(x=0, y=0, z=0):
 
 if __name__=='__main__':
     #pos_and_aiming=N.loadtxt('/media/yewang/Work/svn_ye/Solstice-tutorial/cases/2-Validation/layout.csv', delimiter=',', skiprows=2)
-    pos_and_aiming=N.loadtxt('/media/yewang/Work/svn_ye/Solstice-tutorial/cases/2-PS10-case/runLinux/PS10_layout.csv', delimiter=',', skiprows=2)
+    pos_and_aiming=N.loadtxt('./pos_and_aiming.csv', delimiter=',', skiprows=2)
     pos=pos_and_aiming[:,:3]
     aim=pos_and_aiming[:,4:]
-    azimuth=N.r_[-60.]
-    zenith=N.r_[45.]
+    azimuth=N.r_[0.]
+    zenith=N.r_[12.]
     field=FieldPF(azimuth, zenith,N.r_[0,1,0])
     sun_vec=field.get_solar_vector(azimuth, zenith)
     norms=field.get_normals(towerheight=70., hstpos=pos, sun_vec=sun_vec)
-    field.heliostat(10, 8)
+    #field.heliostat(10, 8)
     COORD, TRI, ele, nc=field.view_heliostats(10., 8., norms, pos)
     cos=field.get_cosine(towerheight=70., hstpos=pos)
     savedir='./field.vtk'

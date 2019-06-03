@@ -194,7 +194,7 @@ class SunPosition:
         #TODO develope the transfermation from conventions in different tools 
         pass
 
-    def annual_angles(self, latitude, hemisphere, casefolder, nd=5, nh=5):
+    def annual_angles(self, latitude, hemisphere, casefolder='NOTSAVE', nd=5, nh=5):
         '''
         Arguements:
         latitude: latitude of the location, deg
@@ -260,21 +260,22 @@ class SunPosition:
                     case_list=N.append(case_list, (c, delta, omega, phi, theta)) 
                     c+=1
                     
-
-
-        N.savetxt(casefolder+'/table_view.csv', table, fmt='%s', delimiter=',')
-        
+     
         case_list=case_list.reshape(len(case_list)/5,5)
-        N.savetxt(casefolder+'/annual_simulation_list.csv', case_list, fmt='%s', delimiter=',')
         azimuth=case_list[1:,-1].astype(float)
         zenith=case_list[1:,-2].astype(float)
+
+        if casefolder!='NOTSAVE':    
+            N.savetxt(casefolder+'/table_view.csv', table, fmt='%s', delimiter=',')  
+            N.savetxt(casefolder+'/annual_simulation_list.csv', case_list, fmt='%s', delimiter=',')          
+
         return azimuth, zenith
 
         
 
 
 if __name__=='__main__':
-    # example: PS10, Spring equinox, solar noon
+    # example: PS10, summer solstice, solar noon
     latitude=37.44
 
     sun=SunPosition()

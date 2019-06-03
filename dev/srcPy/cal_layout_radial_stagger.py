@@ -1,9 +1,9 @@
 import numpy as N
-from field import *
-from sun import *
-import matplotlib.pyplot as plt
+from cal_field import *
+from cal_sun import *
+from gen_vtk import gen_vtk
 
-def radial_stagger(Target_A, R1, width, height, towerheight, hst_z, azimuth, zenith, receiver_norm, az_rim=2*N.pi, dsep=0., savedir='.'):
+def radial_stagger(Target_A, R1, width, height, towerheight, hst_z, receiver_norm, latitude, az_rim=2*N.pi, dsep=0., savedir='.'):
     '''
     Ref. (Collado and Guallar, 2012), Campo: Generation of regular heliostat field.
 
@@ -85,14 +85,13 @@ def radial_stagger(Target_A, R1, width, height, towerheight, hst_z, azimuth, zen
     hstpos[:, 1]=Y
     hstpos[:,2]=hst_z
 
-    
-    # example: PS10, Spring equinox, solar noon
-    latitude=37.+43./60.
+ 
+
     sun=SunPosition()
-    azimuth, zenith=sun.annual_angles(latitude, hemisphere='North', nd=5, nh=5)
+    sun_azi, sun_zenith=sun.annual_angles(latitude, hemisphere='North', nd=5, nh=5)
     
 
-    pf=FieldPF(azimuth, zenith, receiver_norm)            
+    pf=FieldPF(sun_azi, sun_zenith, receiver_norm)            
 
     vis_idx=pf.get_rec_view(towerheight, hstpos)
     vis_hst=hstpos[vis_idx, :]
@@ -115,11 +114,10 @@ def radial_stagger(Target_A, R1, width, height, towerheight, hst_z, azimuth, zen
     Yv=hst[:,1]
     Zv=N.ones(len(Xv))*hst_z
     
-    plt.figure(1)
+    #plt.figure(1)
     #plt.plot(X, Y, '.')
-    plt.scatter(Xv, Yv, c='r')
-    plt.show()
-
+    #plt.scatter(Xv, Yv, c='r')
+    #plt.show()
 
     aim_x=N.zeros(len(Xv))
     aim_y=N.zeros(len(Xv))
@@ -134,12 +132,60 @@ def radial_stagger(Target_A, R1, width, height, towerheight, hst_z, azimuth, zen
     pos_and_aiming=pos_and_aiming.reshape(len(pos_and_aiming)/7, 7)
     
     N.savetxt('%s/pos_and_aiming.csv'%savedir, pos_and_aiming, fmt='%s', delimiter=',')
+
+    # get the view
+    # TODO will be organised
+    field=FieldPF(azimuth=N.r_[0.], zenith=N.r_[12.], receiver_norm=receiver_norm)
+    sun_vec=field.get_solar_vector(azimuth=N.r_[0.], zenith=N.r_[12.])
+    norms=field.get_normals(towerheight=towerheight, hstpos=hstpos, sun_vec=sun_vec)
+    COORD, TRI, ele, nc=field.view_heliostats(width, height, norms, hstpos)
+    cos=field.get_cosine(towerheight=towerheight, hstpos=hstpos)
+    COS=N.repeat(cos, ele)
+    DATA={'cos':COS}
+    NORMS=N.repeat(norms, ele, axis=0)
+    gen_vtk(savedir+'/pre_field_large.vtk', COORD.T, TRI, NORMS, True, DATA)
+
+
+    norms=field.get_normals(towerheight=towerheight, hstpos=vis_hst, sun_vec=sun_vec)
+    COORD, TRI, ele, nc=field.view_heliostats(width, height, norms, vis_hst)
+    cos=field.get_cosine(towerheight=towerheight, hstpos=vis_hst)
+    COS=N.repeat(cos, ele)
+    DATA={'cos':COS}
+    NORMS=N.repeat(norms, ele, axis=0)
+    gen_vtk(savedir+'/pre_field_rec_vis.vtk', COORD.T, TRI, NORMS, True, DATA)
+
+    pos=pos_and_aiming[2:,:3].astype(float)
+    norms=field.get_normals(towerheight=towerheight, hstpos=pos, sun_vec=sun_vec)
+    COORD, TRI, ele, nc=field.view_heliostats(width, height, norms, pos)
+    cos=field.get_cosine(towerheight=towerheight, hstpos=pos)
+    COS=N.repeat(cos, ele)
+    DATA={'cos':COS}
+    NORMS=N.repeat(norms, ele, axis=0)
+    gen_vtk(savedir+'/pre_field_design.vtk', COORD.T, TRI, NORMS, True, DATA)
+
+
     return pos_and_aiming
 
 if __name__=='__main__':
-    radial_stagger(Nhel1=52, Nzones=4, width=10., height=10., towerheight=200., hst_z=5., az_rim=N.pi*2., dsep=0.)
+    ## a PS10 like field
+    design_area=624.*1.*12.926*9.6 # m2
+    R1=40.
+    hst_w=13.
+    hst_h=10.
+    tower_h=110.
+
+    # receiver orientation
+    # receiver is mounted at the tower height, (0, 0, tower_h)
+    # face to the North
+    receiver_normal=N.r_[0., 1., 0.] 
+
+    print 'Target field area:', '%.2f'%design_area, 'm2'
+    print 
+    pos_and_aim=radial_stagger(Target_A=design_area, R1=R1, width=hst_w, height=hst_h, towerheight=tower_h, hst_z=5., receiver_norm=receiver_normal, latitude=37.44, az_rim=2*N.pi, dsep=0.)
+
     
-    #radial_stagger(Nhel1=35, Nzones=3, width=12.3, height=9.75, towerheight=200., hst_z=5., az_rim=N.pi*2., dsep=0.)
+
+
     
 
 
