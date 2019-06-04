@@ -202,7 +202,7 @@ class SunPosition:
         nd: number of points in the declination movement ( -- suggest nd>=5)
         nh: number of points in the solar hours (half of the day)
         '''
-     
+
         # declination angle (deg)  
         # -23.45 ~ 23.45
         DELTA=N.linspace(-23.45, 23.45, nd)
@@ -216,31 +216,33 @@ class SunPosition:
             delta_summer=-23.45
         
         daymax, sunmax=self.solarhour(delta_summer, latitude)
-        solartime=N.linspace(sunmax, 0, nh)
+        solartime=N.linspace(sunmax, -sunmax, nh*2-1)
         #print 'solar', solar
 
         # solar time
         time=12.+solartime/15
         #print time
 
-        table=N.zeros(((nh+3)*(nd+4)))
+        table=N.zeros(((nh*2-1+3)*(nd+4)))
         table=table.astype(str)
         for i in xrange(len(table)):
             table[i]=' '
 
-        table=table.reshape(nh+3,nd+4)
-        table[0,6]='Declination (deg)'
-        table[0,7]=''
+        table=table.reshape(nh*2-1+3,nd+4)
+        table[0,4]='Declination (deg)'
         table[1,0]='Lookup table'
         table[1,4:]=N.arange(1,nd+1)
         table[2,2]='Solar time (h)'
         table[2,3]='Hour angle (deg)'
         table[2,4:]=DELTA
-        table[3:,1]=N.arange(1,nh+1)
+        table[3:,1]=N.arange(1,nh*2-1+1)
         table[3:,2]=time
         table[3:,3]=solartime
 
-        c=1
+        c=1 
+        AZI=N.array([])
+        ZENITH=N.array([])
+
         case_list=N.array(['Case','declination (deg)','solar hour angle (deg)', 'azimuth (deg) S-to-W ', 'zenith (deg)'])
         for i in xrange(len(DELTA)):
             delta=DELTA[i]
@@ -251,25 +253,53 @@ class SunPosition:
                 if (omega>sunset or omega<sunrise):
                     table[3+j,4+i]='-' 
                 else:
-                    table[3+j, 4+i]=' case %s'%(c)
-                    #zenith angle
-                    theta=self.zenith(latitude, delta, omega)
-                    # azimuth        
-                    phi=self.azimuth(latitude, theta, delta, omega)
+                    if omega<0:
+ 
+                        table[3+j, 4+i]=' case %s'%(c)
+                        table[-(1+j), 4+i]='***%s'%(c)
 
-                    case_list=N.append(case_list, (c, delta, omega, phi, theta)) 
-                    c+=1
+                        #zenith angle (morning)
+                        theta=self.zenith(latitude, delta, omega)
+                        # azimuth        
+                        phi=self.azimuth(latitude, theta, delta, omega)
+                        case_list=N.append(case_list, (c, delta, omega, phi, theta)) 
+
+                        AZI=N.append(AZI, phi)
+                        ZENITH=N.append(ZENITH, theta)
+
+                        #zenith angle (afternoon)
+                        theta=self.zenith(latitude, delta, -omega)
+                        # azimuth        
+                        phi=self.azimuth(latitude, theta, delta, -omega)
+                        case_list=N.append(case_list, (c, delta, -omega, phi, theta)) 
+
+                        c+=1
+                    elif omega==0:
+ 
+                        table[3+j, 4+i]=' case %s'%(c)
+
+                        #zenith angle
+                        theta=self.zenith(latitude, delta, omega)
+                        # azimuth        
+                        phi=self.azimuth(latitude, theta, delta, omega)
+                        AZI=N.append(AZI, phi)
+                        ZENITH=N.append(ZENITH, theta)
+
+                        case_list=N.append(case_list, (c, delta, omega, phi, theta)) 
+                        c+=1
+                        
+                        
                     
      
         case_list=case_list.reshape(len(case_list)/5,5)
-        azimuth=case_list[1:,-1].astype(float)
-        zenith=case_list[1:,-2].astype(float)
+        #azimuth=case_list[1:,-2].astype(float)
+        #zenith=case_list[1:,-1].astype(float)
 
         if casefolder!='NOTSAVE':    
             N.savetxt(casefolder+'/table_view.csv', table, fmt='%s', delimiter=',')  
             N.savetxt(casefolder+'/annual_simulation_list.csv', case_list, fmt='%s', delimiter=',')          
 
-        return azimuth, zenith
+        return AZI, ZENITH,table,case_list
 
         
 
@@ -295,7 +325,8 @@ if __name__=='__main__':
     print 'elevation', 90.-theta
     print 'azimuth', phi
 
-    #sun.annual_angles(latitude, hemisphere='North', casefolder='.',nd=5, nh=9)
+    azi, zen, table,caselist=sun.annual_angles(latitude, hemisphere='North', casefolder='.',nd=5, nh=7)
+
 
     
     
