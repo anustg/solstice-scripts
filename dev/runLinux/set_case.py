@@ -1,4 +1,4 @@
-from srcPy.gen_YAML import gen_YAML
+from SolsticePy.gen_YAML import gen_YAML
 import numpy as N
 import os
 
@@ -6,7 +6,7 @@ import os
 # set the directory of the Solstice software in your local system
 solstice_dir='/home/yewang/Solstice-0.8.1-GNU-Linux64' 
 # set the folder for saving the current ray-tracing case
-casefolder='./1-example/results'
+casefolder='./test'
 #
 #
 # the sun

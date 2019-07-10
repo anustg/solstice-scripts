@@ -1,6 +1,6 @@
-from srcPy.gen_YAML import gen_YAML
-from srcPy.cal_sun import *
-from srcPy.get_raw import proces_raw_results
+from SolsticePy.gen_YAML import gen_YAML
+from SolsticePy.cal_sun import *
+from SolsticePy.get_raw import proces_raw_results
 import numpy as N
 import os
 import matplotlib.pyplot as plt
