@@ -132,7 +132,7 @@ def gen_YAML(DNI, sunshape, sunsize, hst_pos, hst_foc, hst_aims,hst_w, hst_h, rh
     #
     # CREATE a material for the target
     r_f = 1.-rec_abs # front
-    r_b = 1. # and back reflectivity
+    r_b = 1.-rec_abs # and back reflectivity
     iyaml+='- material: &%s\n' % 'material_target'
     iyaml+='   front:\n'
     iyaml+='     matte: {reflectivity: %6.4f }\n' % r_f    
@@ -371,9 +371,11 @@ def STL_receiver(rec_param, hemisphere='North'):
     entt+='    name: STL_receiver_e\n'
     entt+='    primary: 0\n'
     if hemisphere=='North':
+
         entt+='    transform: { translation: %s, rotation: %s }\n' % ([x, y, z], [-90.-tilt, 0, 0]) 
     else:
-        entt+='    transform: { translation: %s, rotation: %s }\n' % ([x, y, z], [90.+tilt, 0, 0]) 
+        # if it is the mesh model of the bladed receiver at CSIRO
+        entt+='    transform: { translation: %s, rotation: %s }\n' % ([x, y, z], [180.+tilt, 0, 0]) 
     entt+='    geometry:\n'
     entt+='    - material: *material_target\n'
     entt+='      transform: {translation: [0, 0, 0], rotation: [0, 0, 0]}\n'
