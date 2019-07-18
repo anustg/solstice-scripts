@@ -52,19 +52,31 @@ def proces_raw_results(rawfile, savedir,rho_mirror):
 
     # Target (receiver)
     target=content[9].split()
+    # 0 receiver name
+    # 1 - 2 id and area
+    # 3 - 24 (total 22) front
+    # 25- 46 (total 22) back 
     rec_area=float(target[2]) # m2  
-    rec_income=float(target[3])
-    rec_income_err=float(target[4])
+
+    rec_front_income=float(target[3])
+    rec_front_income_err=float(target[4])
     #rec_no_material_loss=float(target[5])
     #rec_no_material_loss_err=float(target[6])
     #rec_no_atmo_loss=float(target[7])
     #rec_no_atmo_loss_err=float(target[8])
     #rec_material_loss=float(target[9])
     #rec_material_loss_err=float(target[10])
-    rec_absorbed=float(target[13])
-    rec_absorbed_err=float(target[14])
-    rec_eff=float(target[23])
-    rec_eff_err=float(target[24])
+    rec_front_absorbed=float(target[13])
+    rec_front_absorbed_err=float(target[14])
+    rec_front_eff=float(target[23])
+    rec_front_eff_err=float(target[24])
+
+    rec_back_income=float(target[25])
+    rec_back_income_err=float(target[26])
+    rec_back_absorbed=float(target[35])
+    rec_back_absorbed_err=float(target[36])
+    rec_back_eff=float(target[-2])
+    rec_back_eff_err=float(target[-1])
 
 
     #Virtual target
@@ -73,9 +85,7 @@ def proces_raw_results(rawfile, savedir,rho_mirror):
     vir_income=float(virtual[3])
     vir_income_err=float(virtual[4])
     
-    
-
-    
+       
     raw_res=N.array(['name','value', 'error',
                      'sun_azimuth', azimuth,'',
                      'sun_elevation', elevation, '',
@@ -91,9 +101,12 @@ def proces_raw_results(rawfile, savedir,rho_mirror):
                      '','','',
                      'Target', '','',
                      'area', rec_area, '',
-                     'Incoming flux', rec_income, rec_income_err, 
-                     'absorbed flux', rec_absorbed, rec_absorbed_err, 
-                     'efficiency', rec_eff, rec_eff_err,
+                     'front income flux', rec_front_income, rec_front_income_err, 
+                     'back income flux', rec_back_income, rec_back_income_err, 
+                     'front absorbed flux', rec_front_absorbed, rec_front_absorbed_err, 
+                     'back absorbed flux', rec_back_absorbed, rec_back_absorbed_err, 
+                     'front efficiency', rec_front_eff, rec_front_eff_err,
+                     'back efficiency', rec_back_eff, rec_back_eff_err,
                       '','','',
                       'Virtual plane','','',
                       'area', vir_area, '',
@@ -111,8 +124,8 @@ def proces_raw_results(rawfile, savedir,rho_mirror):
     Qfield_abs=(Qtotal-Qcos-Qshade)*(1.-float(rho_mirror))
     Qatm=ufloat(atmospheric_loss, atmospheric_err)
     Qspil=ufloat(vir_income,vir_income_err)
-    Qabs=ufloat(rec_absorbed, rec_absorbed_err)
-    Qrefl=ufloat(rec_income,rec_income_err)-Qabs
+    Qabs=ufloat(absorbed, absorbed_err)
+    Qrefl=ufloat(rec_front_income,rec_front_income_err)+ufloat(rec_back_income,rec_back_income_err)-Qabs
     Qblock=Qtotal-Qcos-Qshade-Qfield_abs-Qspil-Qabs-Qrefl-Qatm
 
     
