@@ -5,8 +5,8 @@ from SolsticePy.get_raw import *
 # Initialise
 #=====================================================
 
-solstice_dir='/home/yewang/Solstice-0.8.1-GNU-Linux64'
-system='Linux' # 'Linux' or 'windows'
+solstice_dir='E:\Solstice-0.9.0-Win64'
+system='windows' # 'Linux' or 'windows'
 
 #======================================================
 
@@ -53,6 +53,12 @@ if system=='Linux':
     #Read "solpaths" file and produce readable file (.vtk) by paraview to visualize the ray paths
     os.system('gcc %s/ppLinux/solpaths.c -o %s/ppLinux/solpath'%(solstice_dir, solstice_dir))
     os.system('%s/ppLinux/solpath %s/solpaths'%(solstice_dir, case_dir))
+	
+    os.system('mv *vtk %s'%case_dir)
+    os.system('mv *obj %s'%case_dir)
+    os.system('mv *txt %s'%case_dir)
+    os.system('rm %s/*.input'%solstice_dir)
+    os.system('rm %s/*input*'%case_dir)
 
 else:
     os.system('%s/ppWin/solppraw.exe %s/simul'%(solstice_dir, case_dir))
@@ -66,14 +72,14 @@ else:
     #Read "solpaths" file and produce readable file (.vtk) by paraview to visualize the ray paths
     os.system('%s/ppWin/solpath.exe %s/solpaths'%(solstice_dir, case_dir))
 
+	
+    os.system('move *vtk %s >nul'%case_dir)
+    os.system('move *obj %s >nul'%case_dir)
+    os.system('move *txt %s >nul'%case_dir)
+	
 
 
 
-os.system('mv *vtk %s'%case_dir)
-os.system('mv *obj %s'%case_dir)
-os.system('mv *txt %s'%case_dir)
-os.system('rm %s/*.input'%solstice_dir)
-os.system('rm %s/*input*'%case_dir)
 
 
 rawfile=case_dir+'/simul'
