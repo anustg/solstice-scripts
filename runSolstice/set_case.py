@@ -64,10 +64,7 @@ if not os.path.exists(casefolder):
     os.makedirs(casefolder) 
 rec_param=N.r_[rec_w, rec_h, rec_mesh, loc_x, loc_y, loc_z, tilt]
 gen_YAML(DNI, sunshape, sunsize, hst_pos, hst_foc, hst_aims,hst_w, hst_h, rho_refl, slope_error, receiver, rec_param, rec_abs, casefolder, spectral=False, medium=0., OneHeliostat=False )
-N.savetxt(casefolder+'/azimuth.input', [azimuth])
-N.savetxt(casefolder+'/elevation.input', [elevation])
-N.savetxt(casefolder+'/rays.input', [num_rays],fmt="%s")
-N.savetxt(casefolder+'/mirror.input', [rho_refl])
+N.savetxt(casefolder+'/input.csv', N.r_[azimuth, elevation, num_rays, rho_refl], delimiter=',', fmt='%.2f')
 N.savetxt(solstice_dir+'/casedir.input', [casefolder], fmt='%s')
 
 

@@ -1,55 +1,68 @@
-#!/bin/bash
+import os
+import numpy as N
+from SolsticePy.get_raw import *
 
 # Initialise
 #=====================================================
 
 solstice_dir='/home/yewang/Solstice-0.8.1-GNU-Linux64'
+system='Linux' # 'Linux' or 'windows'
 
 #======================================================
-#
-#
-#
-python set_case.py
-#
-case_dir="`cat $solstice_dir/casedir.input`"
-azimuth="`cat $case_dir/azimuth.input`"
-elevation="`cat $case_dir/elevation.input`"
-num_rays="`cat $case_dir/rays.input`"
-rho_mirror="`cat $case_dir/mirror.input`"
 
-solstice_pack=$solstice_dir'/etc/solstice.profile'
-source $solstice_pack
+#
+#
+#
+os.system("python set_case.py")
+#
+case_dir=N.loadtxt(solstice_dir+'/casedir.input', dtype=str)
+case_dir=str(case_dir)
+data=N.loadtxt(case_dir+'/input.csv', delimiter=',')
+
+azimuth=data[0]
+elevation=data[1]
+num_rays=int(data[2])
+rho_mirror=data[3]
+
+
+solstice_pack=solstice_dir+'/etc/solstice.profile'
+#source $solstice_pack
 # run solstice
 #
-solstice -D$azimuth,$elevation -v -n $num_rays -R $case_dir/input-rcv.yaml -fo $case_dir/simul $case_dir/input.yaml
+os.system("solstice -D%s,%s -v -n %s -R %s/input-rcv.yaml -fo %s/simul %s/input.yaml"%(azimuth, elevation, num_rays, case_dir, case_dir, case_dir))
 #
+
 # preparing post processing
-solstice -D$azimuth,$elevation -g format=obj:split=geometry -fo $case_dir/geom $case_dir/input.yaml
-solstice -D$azimuth,$elevation -q -n 100 -R $case_dir/input-rcv.yaml -p default $case_dir/input.yaml > $case_dir/solpaths
+os.system('solstice -D%s,%s -g format=obj:split=geometry -fo %s/geom %s/input.yaml'%(azimuth, elevation, case_dir, case_dir))
+os.system('solstice -D%s,%s -q -n 100 -R %s/input-rcv.yaml -p default %s/input.yaml > %s/solpaths'%(azimuth, elevation, case_dir, case_dir, case_dir))
 #
 # postprocessing in C (provided by Cyril Caliot)
 #Read "simul" results and produce a text file with the raw results
-gcc $solstice_dir/src-Linux/ppLinux/solppraw.c -o $solstice_dir/src-Linux/ppLinux/solppraw
-$solstice_dir/src-Linux/ppLinux/solppraw $case_dir/simul
-#Read "simul" results and produce receiver files (.vtk) of incoming and/or absorbed solar flux per-primitive
-gcc $solstice_dir/src-Linux/ppLinux/solmaps.c -o $solstice_dir/src-Linux/ppLinux/solmaps
-$solstice_dir/src-Linux/ppLinux/solmaps $case_dir/simul
+if system=='Linux':
 
-#Read "geom" and "simul" file results and produce primaries and receivers files (.vtk), and .obj geometry files
-gcc $solstice_dir/src-Linux/ppLinux/solpp.c -o $solstice_dir/src-Linux/ppLinux/solpp
-$solstice_dir/src-Linux/ppLinux/solpp $case_dir/geom $case_dir/simul
+    os.system('gcc %s/ppLinux/solppraw.c -o %s/ppLinux/solppraw'%(solstice_dir, solstice_dir))
+    os.system('%s/ppLinux/solppraw %s/simul'%(solstice_dir, case_dir))
+    #Read "simul" results and produce receiver files (.vtk) of incoming and/or absorbed solar flux per-primitive
+    os.system('gcc %s/ppLinux/solmaps.c -o %s/ppLinux/solmaps'%(solstice_dir, solstice_dir))
+    os.system('%s/ppLinux/solmaps %s/simul'%(solstice_dir, case_dir))
 
-#Read "solpaths" file and produce readable file (.vtk) by paraview to visualize the ray paths
-gcc $solstice_dir/src-Linux/ppLinux/solpaths.c -o $solstice_dir/src-Linux/ppLinux/solpath
-$solstice_dir/src-Linux/ppLinux/solpath $case_dir/solpaths
+    #Read "geom" and "simul" file results and produce primaries and receivers files (.vtk), and .obj geometry files
+    os.system('gcc %s/ppLinux/solpp.c -o %s/ppLinux/solpp'%(solstice_dir, solstice_dir))
+    os.system('%s/ppLinux/solpp %s/geom %s/simul'%(solstice_dir, case_dir, case_dir))
 
-mv *vtk $case_dir
-mv *obj $case_dir
-mv *txt $case_dir
-rm $solstice_dir/*.input
-rm $case_dir/*input
+    #Read "solpaths" file and produce readable file (.vtk) by paraview to visualize the ray paths
+    os.system('gcc %s/ppLinux/solpaths.c -o %s/ppLinux/solpath'%(solstice_dir, solstice_dir))
+    os.system('%s/ppLinux/solpath %s/solpaths'%(solstice_dir, case_dir))
 
 
-rawfile=$case_dir'/simul'
-python $solstice_dir/src-Linux/srcPy/get_raw.py $rawfile $case_dir $rho_mirror
+os.system('mv *vtk %s'%case_dir)
+os.system('mv *obj %s'%case_dir)
+os.system('mv *txt %s'%case_dir)
+os.system('rm %s/*.input'%solstice_dir)
+os.system('rm %s/*input*'%case_dir)
+
+
+rawfile=case_dir+'/simul'
+proces_raw_results(rawfile, case_dir,rho_mirror)
+
 
