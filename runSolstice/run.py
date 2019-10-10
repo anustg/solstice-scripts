@@ -54,6 +54,20 @@ if system=='Linux':
     os.system('gcc %s/ppLinux/solpaths.c -o %s/ppLinux/solpath'%(solstice_dir, solstice_dir))
     os.system('%s/ppLinux/solpath %s/solpaths'%(solstice_dir, case_dir))
 
+else:
+    os.system('%s/ppWin/solppraw.exe %s/simul'%(solstice_dir, case_dir))
+
+    #Read "simul" results and produce receiver files (.vtk) of incoming and/or absorbed solar flux per-primitive
+    os.system('%s/ppWin/solmaps.exe %s/simul'%(solstice_dir, case_dir))
+
+    #Read "geom" and "simul" file results and produce primaries and receivers files (.vtk), and .obj geometry files
+    os.system('%s/ppWin/solpp.exe %s/geom %s/simul'%(solstice_dir, case_dir, case_dir))
+
+    #Read "solpaths" file and produce readable file (.vtk) by paraview to visualize the ray paths
+    os.system('%s/ppWin/solpath.exe %s/solpaths'%(solstice_dir, case_dir))
+
+
+
 
 os.system('mv *vtk %s'%case_dir)
 os.system('mv *obj %s'%case_dir)
