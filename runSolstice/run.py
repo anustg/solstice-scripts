@@ -5,8 +5,8 @@ from SolsticePy.get_raw import *
 # Initialise
 #=====================================================
 
-solstice_dir='E:\Solstice-0.9.0-Win64'
-system='windows' # 'Linux' or 'windows'
+solstice_dir='/home/yewang/Solstice-0.8.1-GNU-Linux64'
+system='Linux' # 'Linux' or 'windows'
 
 #======================================================
 
@@ -58,7 +58,7 @@ if system=='Linux':
     os.system('mv *obj %s'%case_dir)
     os.system('mv *txt %s'%case_dir)
     os.system('rm %s/*.input'%solstice_dir)
-    os.system('rm %s/*input*'%case_dir)
+    os.system('rm %s/input.csv'%case_dir)
 
 else:
     os.system('%s/ppWin/solppraw.exe %s/simul'%(solstice_dir, case_dir))
