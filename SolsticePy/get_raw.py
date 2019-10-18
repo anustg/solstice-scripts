@@ -128,7 +128,7 @@ def proces_raw_results(rawfile, savedir,rho_mirror):
     Qrefl=ufloat(rec_front_income,rec_front_income_err)+ufloat(rec_back_income,rec_back_income_err)-Qabs
     Qblock=Qtotal-Qcos-Qshade-Qfield_abs-Qspil-Qabs-Qrefl-Qatm
 
-    
+    '''    
     organised=N.array(['Name', 'Value', '+/-Error', 
                        'Qall (kW)', Qtotal.n/1000., Qtotal.s/1000., 
                        'Qcos (kW)', Qcos.n/1000.,Qcos.s/1000.,
@@ -141,7 +141,7 @@ def proces_raw_results(rawfile, savedir,rho_mirror):
                        'Qabs (kW)', Qabs.n/1000., Qabs.s/1000., 
                        'rays', num_rays,'-'])
     N.savetxt(savedir+'/result-formatted.csv', organised.reshape(len(organised)/3,3), fmt='%s', delimiter=',')
-    
+    '''
     efficiency_total=Qabs/Qtotal
     print ''
     print 'Total efficiency:', efficiency_total
