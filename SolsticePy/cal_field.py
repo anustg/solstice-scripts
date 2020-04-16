@@ -6,7 +6,7 @@ from gen_vtk import gen_vtk
 
 class FieldPF:
 
-    def __init__(self, azimuth, zenith, receiver_norm):
+    def __init__(self, receiver_norm=N.r_[0,1,0]):
         '''
         Evaluation of field initial performance
         1. cosine factors: sun - heliostat
@@ -19,8 +19,7 @@ class FieldPF:
         '''
         #self.sun_vec=self.get_solar_vector(azimuth, zenith)
         self.rec_norm=receiver_norm.reshape(3,1)
-        self.azimuth=azimuth
-        self.zenith=zenith
+
 
 
     def get_solar_vector(self, azimuth, zenith):
@@ -44,6 +43,7 @@ class FieldPF:
         sun_y=-N.sin(zenith)*N.cos(azimuth)
         sun_x=-N.sin(zenith)*N.sin(azimuth)
         sun_vec = N.r_[sun_x, sun_y,sun_z] 
+
 
         return sun_vec
 
@@ -72,15 +72,9 @@ class FieldPF:
         return vis_idx
 
 
-    def get_cosine(self,towerheight, hstpos):
-        cos_factor=N.zeros(len(hstpos))
-        i=0
-        for az in self.azimuth:
-            for zen in self.zenith:
-                sun_vec=self.get_solar_vector(az, zen)
-                
-                hst_norms=self.get_normals(towerheight, hstpos, sun_vec)
-                cos_factor=(cos_factor*float(i)+N.sum(hst_norms*sun_vec, axis=1))/float(i+1)
+    def get_cosine(self,hst_norms, sun_vec):
+ 
+        cos_factor=N.sum(hst_norms*sun_vec, axis=1)
 
         return cos_factor
 
@@ -88,8 +82,8 @@ class FieldPF:
         '''
         the local coordinate of the heliostat
         '''
-        x=N.linspace(-width/2., width/2., 3)
-        y=N.linspace(-height/2., height/2., 3)
+        x=N.linspace(-width/2., width/2., 2)
+        y=N.linspace(-height/2., height/2., 2)
         
         xx, yy=N.meshgrid(x, y)
         coords=N.column_stack([xx.ravel(),yy.ravel()])   
@@ -102,6 +96,7 @@ class FieldPF:
     def view_heliostats(self, width, height, normals, hstpos):
         
         coord1, tri1=self.heliostat(width, height)
+
         ele=len(tri1)
         nc=len(coord1)
 
@@ -112,25 +107,18 @@ class FieldPF:
 
         norm_x=normals[:,0]
         norm_y=normals[:,1]
-        norm_z=normals[:,2]
-        hstat_elev = N.arccos(norm_z)            
+        norm_z=normals[:,2]          
   
         for i in xrange(num_hst):            
          
             TRI[i*ele: (i+1)*ele]=tri1+i*nc
 
-            if norm_x[i]>=0:
-                hstat_az = N.arccos(-norm_y[i]/N.sqrt(norm_x[i]**2+norm_y[i]**2))                                     
-            elif norm_x[i]<0:
-                hstat_az = N.arccos(norm_y[i]/N.sqrt(norm_x[i]**2+norm_y[i]**2)) +N.pi
-            elev_rot = rotx(hstat_elev[i])
-            az_rot = rotz(hstat_az)
-            trans = N.dot(az_rot,elev_rot)
+            trans = N.eye(4)
             trans[:3,3] = hstpos[i]
 
             x=coord1[:,0]
             y=coord1[:,1]
-            z=hstpos[i,2]*N.ones(nc)  
+            z=float(hstpos[i,2])*N.ones(nc)  
 
             cd=N.vstack((x, y, z, N.ones(nc)))   
             cd_t=N.dot(trans, cd)

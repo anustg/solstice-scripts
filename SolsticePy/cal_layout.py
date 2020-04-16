@@ -1,28 +1,31 @@
 import numpy as N
+import matplotlib.pyplot as plt
 from cal_field import *
 from cal_sun import *
 from gen_vtk import gen_vtk
 
-def radial_stagger(Target_A, R1, width, height, towerheight, hst_z, receiver_norm, latitude, az_rim=2*N.pi, dsep=0., savedir='.'):
+def radial_stagger(num_hst, width, height, hst_z, towerheight, R1, dsep=0., field='polar-half', savedir='.', plot=False):
     '''
     Ref. (Collado and Guallar, 2012), Campo: Generation of regular heliostat field.
 
     Generate a rather large field
 
     Arguements:
-
-    R1: distance from the first row to the bottom of the tower (0, 0, 0)
-    width, height - float, heliostat dimension (m)
-    az_rim - float, (rad), estimated shape
-    dsep - float, separation distance
-    savedir - directory of saving the pos_and_aiming.csv
+    num_hst    : int, number of heliostats
+    width      : float, mirror width (m)
+    height     : float, mirror height (m)
+    hst_z      : float, the vertical location of each heliostat (m)
+    towerheight: float, tower height (m)
+    R1         : float, distance from the first row to the bottom of the tower (0, 0, 0)
+    dsep       : float, separation distance (m)
+    field      : str, 'polar-half' or 'surround-half' or 'polar' or 'surround' field, 
+                       the 'half' option is for simulation a symmetric field
+    savedir    : str, directory of saving the pos_and_aiming.csv
 
     Return:
-    pos_and_aiming: position, focul length and aiming points.
-    
+    pos_and_aiming: (n, 7) array, position, focal length and aiming point of each generated heliostat
     '''
-
-        
+ 
     # heliostat diagonal distantce
     DH=N.sqrt(height**2+width**2) 
 
@@ -35,97 +38,121 @@ def radial_stagger(Target_A, R1, width, height, towerheight, hst_z, receiver_nor
     # number of heliostats in the first row
     Nhel1 =int(2.*N.pi*R1/DM)
 
-    target_num=Target_A/width/height
 
     # the total number of zones (estimated)
-    az_rim_lim=N.pi/6.
-    Nzones=int(N.log(5.44*3*(Target_A/az_rim_lim*N.pi/width/height)/Nhel1**2+1)/N.log(4))+1
+    #Nzones=int(N.log(5.44*3*(num_hst/az_rim*N.pi)/Nhel1**2+1)/N.log(4))+1
 
     X=N.array([])
     Y=N.array([])
 
-    for i in xrange(Nzones):
-        
-        R=(2.**(i))*(DM)*Nhel1/(2.*N.pi)
+    num=0
+    i=0
+    print 'DM', DM
+    print 'dRm', delta_Rmin
 
-        Nrows= int((2.**(i))*Nhel1/5.44)
+    if field[-4:]=='half':
 
-        Nhel=(2**(i))*Nhel1
+        while num<num_hst/2:
+            Nrows= int((2.**(i))*Nhel1/5.44)
+            Nhel=(2**(i))*Nhel1
+            R=Nhel/2./N.pi*DM
+            delta_az=2.*N.pi/Nhel
+            print ''
+            print 'zone', i
+            print 'R', R
+            print 'rows', Nrows
+            print 'hst', Nhel
+            print 'daz', delta_az
 
-        print ''
-        print 'Zone :', i+1
-        print 'R    :', R
-        print 'N row:', Nrows
-        print 'N hel:', Nhel
+            for row in xrange(Nrows):
 
-        delta_az=DM/R
-        half_Nhel=Nhel
+                r=R+float(row)*delta_Rmin
 
-        for row in xrange(Nrows):
+                for nh in xrange(Nhel):
 
-            r=R+float(row)*delta_Rmin
+                    if num<num_hst/2:   
+               
+                        if row%2==0:
+                            # the odd row
+                            azimuth=delta_az/2.+float(nh)*delta_az
 
-            for nh in xrange(half_Nhel):
-          
-                if row%2==0:
-                    # the odd row
-                    azimuth=delta_az/2.+float(nh)*delta_az
-                else:
-                    # the even row
-                    azimuth=float(nh)*delta_az  
-         
-                xx=r*N.sin(azimuth)
-                yy=r*N.cos(azimuth)   
-                X=N.append(X, xx)
-                Y=N.append(Y, yy)
+                        else:
+                            # the even row
+                            azimuth=float(nh)*delta_az  
+                 
+                        xx=r*N.sin(azimuth)
+                        yy=r*N.cos(azimuth)
+    
+                        if field=='polar-half':
+                            if (xx>0 and yy>0):  
+                                X=N.append(X, xx)
+                                Y=N.append(Y, yy)
+                                num+=1
+                        elif field=='surround-half':
+                            if (yy>0):  
+                                X=N.append(X, xx)
+                                Y=N.append(Y, yy)
+                                num+=1
+            i+=1
 
-    num=len(X)
+    else:
+        while num<num_hst:
+            Nrows= int((2.**(i))*Nhel1/5.44)
+            Nhel=(2**(i))*Nhel1
+            R=Nhel/2./N.pi*DM
+            delta_az=2.*N.pi/Nhel
+            print ''
+            print 'zone', i
+            print 'R', R
+            print 'rows', Nrows
+            print 'hst', Nhel
+            print 'daz', delta_az
+
+            for row in xrange(Nrows):
+
+                r=R+float(row)*delta_Rmin
+
+                for nh in xrange(Nhel):
+              
+                    if num<num_hst:
+
+                        if row%2==0:
+                            # the odd row
+                            azimuth=delta_az/2.+float(nh)*delta_az
+
+                        else:
+                            # the even row
+                            azimuth=float(nh)*delta_az  
+                 
+                        xx=r*N.sin(azimuth)
+                        yy=r*N.cos(azimuth)
+             
+                        if field=='polar':
+                            if (yy>0):  
+                                X=N.append(X, xx)
+                                Y=N.append(Y, yy)
+                                num+=1
+                        elif field=='surround':
+                                X=N.append(X, xx)
+                                Y=N.append(Y, yy)
+                                num+=1
+            i+=1
+
+
+    print ''
+    print 'total hst', num
     hstpos=N.zeros(num*3).reshape(num, 3)
     hstpos[:, 0]=X
     hstpos[:, 1]=Y
     hstpos[:,2]=hst_z
 
- 
+    aim_x=N.zeros(num)
+    aim_y=N.zeros(num)
+    aim_z=N.ones(num)*towerheight
 
-    sun=SunPosition()
-    sun_azi, sun_zenith=sun.annual_angles(latitude, hemisphere='North', nd=5, nh=5)
-    
+    foc=N.sqrt((X-aim_x)**2+(Y-aim_y)**2+(hstpos[:,2]-aim_z)**2)
 
-    pf=FieldPF(sun_azi, sun_zenith, receiver_norm)            
-
-    vis_idx=pf.get_rec_view(towerheight, hstpos)
-    vis_hst=hstpos[vis_idx, :]
-
-    cosf=pf.get_cosine(towerheight, vis_hst)
-    sort_idx=N.argsort(cosf)
-    sort_targ=sort_idx[len(sort_idx)-(int(target_num)+1):]
-
-    hst=vis_hst[sort_targ]
-    total_real=len(hst)
-
-    total_area=width*height*float(total_real)
-    print ''
-    print 'Total number:', total_real
-    print 'Total area  :', total_area/1.e6
-    print 'Total design area:', Target_A/1.e6
-    print 'diff', (total_area-Target_A)/Target_A
-
-    Xv=hst[:,0]
-    Yv=hst[:,1]
-    Zv=N.ones(len(Xv))*hst_z
-    
-    #plt.figure(1)
-    #plt.plot(X, Y, '.')
-    #plt.scatter(Xv, Yv, c='r')
-    #plt.show()
-
-    aim_x=N.zeros(len(Xv))
-    aim_y=N.zeros(len(Xv))
-    aim_z=N.ones(len(Xv))*towerheight
-
-    foc=N.sqrt((Xv-aim_x)**2+(Yv-aim_y)**2+(Zv-aim_z)**2)
-
-    pos_and_aiming=N.append(Xv, (Yv,Zv, foc, aim_x, aim_y, aim_z))
+    pos_and_aiming=N.append(X, (Y, hstpos[:,2], foc, aim_x, aim_y, aim_z))
     title=N.array(['x', 'y', 'z', 'foc', 'aim x', 'aim y', 'aim z', 'm', 'm', 'm', 'm', 'm', 'm', 'm'])
     pos_and_aiming=pos_and_aiming.reshape(7,len(pos_and_aiming)/7)
     pos_and_aiming=N.append(title, pos_and_aiming.T)
@@ -133,55 +160,24 @@ def radial_stagger(Target_A, R1, width, height, towerheight, hst_z, receiver_nor
     
     N.savetxt('%s/pos_and_aiming.csv'%savedir, pos_and_aiming, fmt='%s', delimiter=',')
 
-    # get the view
-    # TODO will be organised
-    field=FieldPF(azimuth=N.r_[0.], zenith=N.r_[12.], receiver_norm=receiver_norm)
-    sun_vec=field.get_solar_vector(azimuth=N.r_[0.], zenith=N.r_[12.])
-    norms=field.get_normals(towerheight=towerheight, hstpos=hstpos, sun_vec=sun_vec)
-    COORD, TRI, ele, nc=field.view_heliostats(width, height, norms, hstpos)
-    cos=field.get_cosine(towerheight=towerheight, hstpos=hstpos)
-    COS=N.repeat(cos, ele)
-    DATA={'cos':COS}
-    NORMS=N.repeat(norms, ele, axis=0)
-    gen_vtk(savedir+'/pre_field_large.vtk', COORD.T, TRI, NORMS, True, DATA)
-
-
-    norms=field.get_normals(towerheight=towerheight, hstpos=vis_hst, sun_vec=sun_vec)
-    COORD, TRI, ele, nc=field.view_heliostats(width, height, norms, vis_hst)
-    cos=field.get_cosine(towerheight=towerheight, hstpos=vis_hst)
-    COS=N.repeat(cos, ele)
-    DATA={'cos':COS}
-    NORMS=N.repeat(norms, ele, axis=0)
-    gen_vtk(savedir+'/pre_field_rec_vis.vtk', COORD.T, TRI, NORMS, True, DATA)
-
-    pos=pos_and_aiming[2:,:3].astype(float)
-    norms=field.get_normals(towerheight=towerheight, hstpos=pos, sun_vec=sun_vec)
-    COORD, TRI, ele, nc=field.view_heliostats(width, height, norms, pos)
-    cos=field.get_cosine(towerheight=towerheight, hstpos=pos)
-    COS=N.repeat(cos, ele)
-    DATA={'cos':COS}
-    NORMS=N.repeat(norms, ele, axis=0)
-    gen_vtk(savedir+'/pre_field_design.vtk', COORD.T, TRI, NORMS, True, DATA)
-
+    if plot:
+        fts=24
+        plt.figure(dpi=100.,figsize=(12,9))
+        plt.plot(X, Y, '.')
+        plt.xlim(-1000, 1000)
+        plt.ylim(-1000, 1000)
+        plt.xticks(fontsize=fts)
+        plt.yticks(fontsize=fts)
+        plt.savefig(open('/media/yewang/Data/owncloud/Research/modelica/solstice-doc/field_design/%s.png'%field,'w'), bbox_inches='tight')
+        plt.close()
 
     return pos_and_aiming
 
+
+
 if __name__=='__main__':
-    ## a PS10 like field
-    design_area=624.*1.*12.926*9.6 # m2
-    R1=40.
-    hst_w=13.
-    hst_h=10.
-    tower_h=110.
-
-    # receiver orientation
-    # receiver is mounted at the tower height, (0, 0, tower_h)
-    # face to the North
-    receiver_normal=N.r_[0., 1., 0.] 
-
-    print 'Target field area:', '%.2f'%design_area, 'm2'
-    print 
-    pos_and_aim=radial_stagger(Target_A=design_area, R1=R1, width=hst_w, height=hst_h, towerheight=tower_h, hst_z=5., receiver_norm=receiver_normal, latitude=37.44, az_rim=2*N.pi, dsep=0.)
+    
+    pos_and_aim=radial_stagger(num_hst=4000, width=12.3, height=9.75, hst_z=1., towerheight=100, R1=87.5, dsep=0., field='polar', savedir='.', plot=True)
 
     
 
