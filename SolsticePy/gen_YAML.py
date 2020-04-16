@@ -1,6 +1,6 @@
 import numpy as N
 
-from SolsticePy.data_spectral import SolarSpectrum, MirrorRhoSpectrum
+from data_spectral import SolarSpectrum, MirrorRhoSpectrum
 
 def gen_YAML(DNI, sunshape, sunsize, hst_pos, hst_foc, hst_aims,hst_w, hst_h, rho_refl, slope_error, receiver, rec_param, rec_abs, casefolder, hemisphere='North', tower_h=0.01, tower_r=0.01,  spectral=False, medium=0, OneHeliostat=False ):
     '''
@@ -170,7 +170,8 @@ def gen_YAML(DNI, sunshape, sunsize, hst_pos, hst_foc, hst_aims,hst_w, hst_h, rh
         iyaml+=geom
 
     elif receiver=='cylinder':
-        pass
+        geom, rec_entt, rcv = cylindrical_receiver(rec_param, hemisphere)
+        iyaml+=geom
 
     elif receiver=='stl':
         rec_entt, rcv=STL_receiver(rec_param, hemisphere)
@@ -345,6 +346,73 @@ def flat_receiver(rec_param, hemisphere='North'):
     
     return geom, entt, rcv
     
+
+
+def cylindrical_receiver(rec_param, hemisphere='North'):
+    '''
+    hemishpere : 'North' or 'South' hemisphere of the earth where the field located
+                if North: the field is in the positive y direction
+                if South: the field is in the negtive y direction
+                this will influence:
+                 (1) the setting of the receiver tilt angle, 
+                     if the front surface always facing to the field is desirable
+                 (2) the position of the virtual target
+    '''
+    rec_r=rec_param[0]
+    rec_h=rec_param[1]
+    slices=rec_param[2]
+    x=rec_param[3]
+    y=rec_param[4]
+    z=rec_param[5]
+
+    geom=''
+    geom+='- geometry: &%s\n' % 'target_g'
+    geom+='  - material: *%s\n' % 'material_target'
+    geom+='    cylinder: \n'
+    geom+='      height: %s\n'%rec_h 
+    geom+='      radius: %s\n'%rec_r 
+    geom+='      slices: %d\n' % slices 
+    geom+='\n'
+
+    # CREATE a receiver entity from "target_g" geometry (primary = 0)
+    entt=''
+    entt+='\n- entity:\n'
+    entt+='    name: target_e\n'
+    entt+='    primary: 0\n'
+
+    entt+='    transform: { translation: %s, rotation: %s }\n' % ([x, y, z], [0., 0., 0.]) 
+
+    entt+='    geometry: *%s\n' % 'target_g'
+
+    # CREATE a virtual target entity from "target_g" geometry (primary = 0)
+    Vsize=100.
+    pts = [ [-rec_h*Vsize, -rec_h*Vsize], [-rec_h*Vsize, rec_h*Vsize], [rec_h*Vsize, rec_h*Vsize], [rec_h*Vsize,-rec_h*Vsize] ]
+    slices = 4
+    entt+='\n- entity:\n'
+    entt+='    name: virtual_target_e\n'
+    entt+='    primary: 0\n'
+
+    entt+='    transform: { translation: %s, rotation: %s }\n' % ([x, y, z+rec_h/2.+1], [-180., 0, 0])
+ 
+    entt+='    geometry: \n' 
+    entt+='      - material: *%s\n' % 'material_virtual' 
+    entt+='        plane: \n'
+    entt+='          clip: \n'    
+    entt+='          - operation: AND \n'
+    entt+='            vertices: %s\n' % pts
+    entt+='          slices: %d\n' % slices  
+
+    rcv=''
+    rcv+='- name: target_e \n' 
+    rcv+='  side: %s \n' % 'FRONT_AND_BACK'
+    rcv+='  per_primitive: %s \n' % 'INCOMING_AND_ABSORBED'
+    rcv+='- name: virtual_target_e \n'
+    rcv+='  side: %s \n' % 'FRONT'
+    rcv+='  per_primitive: %s \n' % 'INCOMING'
+    
+    return geom, entt, rcv
+
+
 
 def STL_receiver(rec_param, hemisphere='North'):
     '''
