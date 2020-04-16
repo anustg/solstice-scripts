@@ -1,9 +1,9 @@
 import os
 import numpy as N
 import platform
-from SolsticePy.get_raw import *
+from proces_raw import *
 
-def run(azimuth, elevation, num_rays, rho_mirror, case_dir='.', version='0.9.0'):
+def run(azimuth, elevation, num_rays, rho_mirror, dni, case_dir='.', version='0.9.0'):
 
     system=platform.system() # 'Linux' or 'windows'
 
@@ -60,6 +60,6 @@ def run(azimuth, elevation, num_rays, rho_mirror, case_dir='.', version='0.9.0')
         os.system('move *txt %s >nul'%case_dir)
 
     rawfile=case_dir+'/simul'
-    proces_raw_results(rawfile, case_dir,rho_mirror)
+    proces_raw_results(rawfile, case_dir,rho_mirror, dni)
 
 
