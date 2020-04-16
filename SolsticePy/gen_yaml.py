@@ -9,280 +9,278 @@ def gen_yaml(DNI, sunshape, sunsize, hst_pos, hst_foc, hst_aims,hst_w, hst_h
 		, hemisphere='North', tower_h=0.01, tower_r=0.01,  spectral=False
 		, medium=0, one_heliostat=False
 ):
-	"""
-	Arguments:
-	(1) the sun
-	DNI: float, the direct normal irrandice of solar radiation (W/m2)
-	sunshape: str, 'buie' or ' pillbox
-	sunsize: float, pillbox half-angle (deg), or Buie CSR value 
+    """
+    Arguments:
+    (1) the sun
+    DNI: float, the direct normal irrandice of solar radiation (W/m2)
+    sunshape: str, 'buie' or ' pillbox
+    sunsize: float, pillbox half-angle (deg), or Buie CSR value 
 
 
-	(2) the field
-	hst_pos: (n, 3) array, heliostat positions (x, y, z)
-	hst_foc: (n, 1) array, heliostat focal length
-	hst_aims: (n, 3) array, heliostat aiming point(ax, ay, az)
-	hst_w: float, heliostat mirror width (in x direction)
-	hst_h: float, heliostat mirror height (in y direction)
-	hst_z: float, heliostat center height (in z direction)
-	rho_refl: float, reflector reflectivity
-	slope_error: float, reflector surface slope error rms, (rad)
-	tower_h: float, tower height
-	tower_r: float, tower radius (a cylindrical shape tower)
+    (2) the field
+    hst_pos: (n, 3) array, heliostat positions (x, y, z)
+    hst_foc: (n, 1) array, heliostat focal length
+    hst_aims: (n, 3) array, heliostat aiming point(ax, ay, az)
+    hst_w: float, heliostat mirror width (in x direction)
+    hst_h: float, heliostat mirror height (in y direction)
+    hst_z: float, heliostat center height (in z direction)
+    rho_refl: float, reflector reflectivity
+    slope_error: float, reflector surface slope error rms, (rad)
+    tower_h: float, tower height
+    tower_r: float, tower radius (a cylindrical shape tower)
 
-	(3) the receiver
-	receiver: str, 'flat', 'cylinder', or 'stl'
-	rec_abs: float, receiver absorptivity
-	rec_param: numpy array, each element contain the geometrical parameter of the correpsonding receiver
-		(1) flat receiver: index 0 is width, 1 is height, 2 is slices, 3- 6 is x, y, z and tilt angle (deg)
-		(2) cylinder receiver: index 0 is radius, 1 is height, 2 is slices
-		(3) stl: the directory of the stl file
+    (3) the receiver
+    receiver: str, 'flat', 'cylinder', or 'stl'
+    rec_abs: float, receiver absorptivity
+    rec_param: numpy array, each element contain the geometrical parameter of the correpsonding receiver
+	    (1) flat receiver: index 0 is width, 1 is height, 2 is slices, 3- 6 is x, y, z and tilt angle (deg)
+	    (2) cylinder receiver: index 0 is radius, 1 is height, 2 is slices
+	    (3) stl: the directory of the stl file
 
-	(4) others
-	spectral: bool, if investigate spectral dependent performance 
-	medium: float, if the atmosphere is surrounded by non-participant medium, medium=0; otherwise it is the extinction coefficient in m-1
+    (4) others
+    spectral: bool, if investigate spectral dependent performance 
+    medium: float, if the atmosphere is surrounded by non-participant medium, medium=0; otherwise it is the extinction coefficient in m-1
 
-	FIXME one_heliostat...?
+    Return:
+    Generation of the YAML inputs for SOLSTICE simulation
+    """
 
-	Return:
-	Generation of the YAML inputs for SOLSTICE simulation
-	"""
+    sys.stderr.write("Generating YAML file...\n")
 
-	sys.stderr.write("Generating YAML file...\n")
+    iyaml='' # the input yaml file
 
-	iyaml='' # the input yaml file
+    # 
+    ### Section (1)
+    # set the spectral data: 
+    # solar radiative intensity, refractive indexes, extinction coefficients, reflectivities
+    #------------------------------
+    if spectral:
+        I_sun=SolarSpectrum()
+        # CREATE the spectrum for the sun
+        iyaml+='- spectrum: &solar_spectrum  \n'
+        for i in range(0,len(I_sun)-1):
+            iyaml+='  - {wavelength: %s, data: %s }\n' % (I_sun[i][0],I_sun[i][1])  
+        i = len(I_sun)-1
+        iyaml+='  - {wavelength: %s, data: %s }\n' % (I_sun[i][0],I_sun[i][1]) 
+        iyaml+='\n'
 
-	# 
-	### Section (1)
-	# set the spectral data: 
-	# solar radiative intensity, refractive indexes, extinction coefficients, reflectivities
-	#------------------------------
-	if spectral:
-		I_sun=SolarSpectrum()
-		# CREATE the spectrum for the sun
-		iyaml+='- spectrum: &solar_spectrum  \n'
-		for i in range(0,len(I_sun)-1):
-		    iyaml+='  - {wavelength: %s, data: %s }\n' % (I_sun[i][0],I_sun[i][1])  
-		i = len(I_sun)-1
-		iyaml+='  - {wavelength: %s, data: %s }\n' % (I_sun[i][0],I_sun[i][1]) 
-		iyaml+='\n'
+        # CREATE the spectrum for the reflectivity (mirror)
+        mirror_rho= MirrorRhoSpectrum()
+        mirror_ref=mirror_rho
+        for i in range(0,len(mirror_rho)):
+            mirror_ref[i][0] = mirror_rho[len(mirror_rho)-1-i][0]/1000.
+            mirror_ref[i][1] = mirror_rho[len(mirror_rho)-1-i][1]/100.
+        mirror_ref.append([4,0.9])
+        iyaml+='- spectrum: &%s  \n' % 'ref_mirror'
+        for i in range(0,len(mirror_ref)-1):
+            iyaml+='  - {wavelength: %15.8e, data: %15.8e }\n' % (float(mirror_ref[i][0]),float(mirror_ref[i][1])) 
+        i = len(mirror_ref)-1
+        iyaml+='  - {wavelength: %15.8e, data: %15.8e }\n' % (float(mirror_ref[i][0]),float(mirror_ref[i][1])) 
+        iyaml+='\n'
 
-		# CREATE the spectrum for the reflectivity (mirror)
-		mirror_rho= MirrorRhoSpectrum()
-		mirror_ref=mirror_rho
-		for i in range(0,len(mirror_rho)):
-		    mirror_ref[i][0] = mirror_rho[len(mirror_rho)-1-i][0]/1000.
-		    mirror_ref[i][1] = mirror_rho[len(mirror_rho)-1-i][1]/100.
-		mirror_ref.append([4,0.9])
-		iyaml+='- spectrum: &%s  \n' % 'ref_mirror'
-		for i in range(0,len(mirror_ref)-1):
-		    iyaml+='  - {wavelength: %15.8e, data: %15.8e }\n' % (float(mirror_ref[i][0]),float(mirror_ref[i][1])) 
-		i = len(mirror_ref)-1
-		iyaml+='  - {wavelength: %15.8e, data: %15.8e }\n' % (float(mirror_ref[i][0]),float(mirror_ref[i][1])) 
-		iyaml+='\n'
+    # 
+    ### Section (2)
+    # set the medium types: 
+    # air, glass, vacuum, etc. gathering spectral data
+    #------------------------------
+    #
+    if medium>1e-99:
+        #TODO need data/info of extinction coefficient as a function of spectral
+        ke_air = I_sun
+        for i in range(0,len(I_sun)):
+            ke_air[i][1] = medium
+        iyaml+='- spectrum: &%s  \n' % 'airkext'
+        for i in range(0,len(ke_air)-1):
+            iyaml+='  - {wavelength: %s, data: %s }\n' % (ke_air[i][0],ke_air[i][1])
+        i = len(ke_air)-1
+        iyaml+='  - {wavelength: %s, data: %s }\n' % (ke_air[i][0], ke_air[i][1])
+        iyaml+='\n'
+        #
+        # Creation of the sun and atmosphere
+        #
+    if spectral:
+        iyaml+='- sun: {dni: %15.8e, spectrum: *solar_spectrum, %s: {half_angle: %6.4f}}\n' % (DNI, sunshape,sunsize) 
+    else:
+        iyaml+='- sun: {dni: %15.8e, %s: {half_angle: %6.4f}}\n' % (DNI, sunshape,sunsize)  
+    if medium>1e-99:
+        iyaml+='- atmosphere: {extinction: *airkext}\n' 
+        iyaml+='\n'
 
-	# 
-	### Section (2)
-	# set the medium types: 
-	# air, glass, vacuum, etc. gathering spectral data
-	#------------------------------
-	#
-	if medium>1e-99:
-		#TODO need data/info of extinction coefficient as a function of spectral
-		ke_air = I_sun
-		for i in range(0,len(I_sun)):
-		    ke_air[i][1] = medium
-		iyaml+='- spectrum: &%s  \n' % 'airkext'
-		for i in range(0,len(ke_air)-1):
-		    iyaml+='  - {wavelength: %s, data: %s }\n' % (ke_air[i][0],ke_air[i][1])
-		i = len(ke_air)-1
-		iyaml+='  - {wavelength: %s, data: %s }\n' % (ke_air[i][0], ke_air[i][1])
-		iyaml+='\n'
-	#
-	# Creation of the sun and atmosphere
-	#
-	if spectral:
-		iyaml+='- sun: {dni: %15.8e, spectrum: *solar_spectrum, %s: {half_angle: %6.4f}}\n' % (DNI, sunshape,sunsize) 
-	else:
-		iyaml+='- sun: {dni: %15.8e, %s: {half_angle: %6.4f}}\n' % (DNI, sunshape,sunsize)  
-	if medium>1e-99:
-		iyaml+='- atmosphere: {extinction: *airkext}\n' 
-		iyaml+='\n'
+	       
+    # 
+    ### Section (3)
+    # set the materials
+    # (gathering media)
+    # occultant material, mirror specular material, receiver material, virtual target
+    #------------------------------
+    #
+    # CREATE an occultant material
+    r_f = 0. # front
+    r_b = 0. # and back reflectivity
+    iyaml+='- material: &%s\n' % 'material_black'
+    iyaml+='   front:\n'
+    iyaml+='     matte: {reflectivity: %6.4f }\n' % r_f    
+    iyaml+='   back:\n'
+    iyaml+='     matte: {reflectivity: %6.4f }\n' % r_b
+    iyaml+='\n'
+    #
+    # CREATE a specular material
+    r_f= rho_refl # front
+    r_b = 0.      # and back reflectivity
+    iyaml+='- material: &%s\n' % 'material_mirror'
+    iyaml+='   front:\n'
+    if spectral:
+        iyaml+='     mirror: {reflectivity: *%s, slope_error: %15.8e }\n' % ('ref_mirror', slope_error ) 
+    else:
+        iyaml+='     mirror: {reflectivity: %6.4f, slope_error: %15.8e }\n' % (r_f, slope_error) 
 
-		   
-	# 
-	### Section (3)
-	# set the materials
-	# (gathering media)
-	# occultant material, mirror specular material, receiver material, virtual target
-	#------------------------------
-	#
-	# CREATE an occultant material
-	r_f = 0. # front
-	r_b = 0. # and back reflectivity
-	iyaml+='- material: &%s\n' % 'material_black'
-	iyaml+='   front:\n'
-	iyaml+='     matte: {reflectivity: %6.4f }\n' % r_f    
-	iyaml+='   back:\n'
-	iyaml+='     matte: {reflectivity: %6.4f }\n' % r_b
-	iyaml+='\n'
-	#
-	# CREATE a specular material
-	r_f= rho_refl # front
-	r_b = 0.      # and back reflectivity
-	iyaml+='- material: &%s\n' % 'material_mirror'
-	iyaml+='   front:\n'
-	if spectral:
-		iyaml+='     mirror: {reflectivity: *%s, slope_error: %15.8e }\n' % ('ref_mirror', slope_error ) 
-	else:
-		iyaml+='     mirror: {reflectivity: %6.4f, slope_error: %15.8e }\n' % (r_f, slope_error) 
-
-	iyaml+='   back:\n'
-	iyaml+='     matte: {reflectivity: %6.4f }\n' % r_b 
-	iyaml+='\n'
-	#
-	# CREATE a material for the target
-	r_f = 1.-rec_abs # front
-	r_b = 1.-rec_abs # and back reflectivity
-	iyaml+='- material: &%s\n' % 'material_target'
-	iyaml+='   front:\n'
-	iyaml+='     matte: {reflectivity: %6.4f }\n' % r_f    
-	iyaml+='   back:\n'
-	iyaml+='     matte: {reflectivity: %6.4f }\n' % r_b
-	iyaml+='\n'
-	#
-	# CREATE a virtual material for the calculation of spillage
-	iyaml+='- material: &%s\n' % 'material_virtual'
-	iyaml+='   virtual:\n'
-	iyaml+='\n'
+    iyaml+='   back:\n'
+    iyaml+='     matte: {reflectivity: %6.4f }\n' % r_b 
+    iyaml+='\n'
+    #
+    # CREATE a material for the target
+    r_f = 1.-rec_abs # front
+    r_b = 1.-rec_abs # and back reflectivity
+    iyaml+='- material: &%s\n' % 'material_target'
+    iyaml+='   front:\n'
+    iyaml+='     matte: {reflectivity: %6.4f }\n' % r_f    
+    iyaml+='   back:\n'
+    iyaml+='     matte: {reflectivity: %6.4f }\n' % r_b
+    iyaml+='\n'
+    #
+    # CREATE a virtual material for the calculation of spillage
+    iyaml+='- material: &%s\n' % 'material_virtual'
+    iyaml+='   virtual:\n'
+    iyaml+='\n'
 
 
-	# 
-	### Section (4)
-	# set the geometries
-	# (gathering shapes and materials)
-	# the tower, the receiver, the heliostat
-	#------------------------------
-	#
-	# Tower Geometry
-	# (cylindrical shape)
-	#
-	slices = 10 # slices for the envelop circle
-	iyaml+='- geometry: &%s\n' % 'tower_g' 
-	iyaml+='  - material: *%s\n' % 'material_black' 
-	#iyaml+='    transform: { translation: %s, rotation: %s }\n' % ([0, 0, h_tow*0.5], [0, 90, 0]) 
-	iyaml+='    cylinder: {height: %7.3f, radius: %7.3f, slices: %d }\n' % (tower_h, tower_r, slices) 
-	iyaml+='\n'
-	#
-	# Receiver Geometry
-	#
-	if receiver=='flat':
-		geom, rec_entt, rcv = flat_receiver(rec_param, hemisphere)
-		iyaml+=geom
+    # 
+    ### Section (4)
+    # set the geometries
+    # (gathering shapes and materials)
+    # the tower, the receiver, the heliostat
+    #------------------------------
+    #
+    # Tower Geometry
+    # (cylindrical shape)
+    #
+    slices = 10 # slices for the envelop circle
+    iyaml+='- geometry: &%s\n' % 'tower_g' 
+    iyaml+='  - material: *%s\n' % 'material_black' 
+    #iyaml+='    transform: { translation: %s, rotation: %s }\n' % ([0, 0, h_tow*0.5], [0, 90, 0]) 
+    iyaml+='    cylinder: {height: %7.3f, radius: %7.3f, slices: %d }\n' % (tower_h, tower_r, slices) 
+    iyaml+='\n'
+    #
+    # Receiver Geometry
+    #
+    if receiver=='flat':
+        geom, rec_entt, rcv = flat_receiver(rec_param, hemisphere)
+        iyaml+=geom
 
-	elif receiver=='cylinder':
-		geom, rec_entt, rcv = cylindrical_receiver(rec_param, hemisphere)
-		iyaml+=geom
+    elif receiver=='cylinder':
+        geom, rec_entt, rcv = cylindrical_receiver(rec_param, hemisphere)
+        iyaml+=geom
 
-	elif receiver=='stl':
-		rec_entt, rcv=STL_receiver(rec_param, hemisphere)
-	#
-	# Heliostats Geometry
-	#
-	if one_heliostat:
-		hst_x=N.r_[hst_pos[0]]
-		hst_y=N.r_[hst_pos[1]]
-		hst_z=N.r_[hst_pos[2]]
-		aim_x=N.r_[hst_aims[0]] 
-		aim_y=N.r_[hst_aims[1]]
-		aim_z=N.r_[hst_aims[2]]
-		num_hst=1
-		hst_foc=N.r_[hst_foc]
-	else:
-		hst_x=hst_pos[:,0]
-		hst_y=hst_pos[:,1]
-		hst_z=hst_pos[:,2]
-		aim_x=hst_aims[:,0]
-		aim_y=hst_aims[:,1]
-		aim_z=hst_aims[:,2]
-		num_hst=len(hst_x)
-	slices = 4 # slices for the envelop circle
-	pts_hst = [ [-hst_w*0.5, -hst_h*0.5], [-hst_w*0.5, hst_h*0.5], [hst_w*0.5, hst_h*0.5], [hst_w*0.5,-hst_h*0.5] ]
-	# CREATE a reflective facet (mirror)
-	for i in range(0,num_hst):
-		name_hst_g = 'hst_g_'+str(i)
-		iyaml+='- geometry: &%s\n' % name_hst_g 
-		iyaml+='  - material: *%s\n' % 'material_mirror' 
-		#iyaml+='    transform: { translation: %s, rotation: %s }\n' % ([hst_x[i], hst_y[i], hst_z[i]], [0, 0, 0]) )
-		iyaml+='    parabol: \n'
-		iyaml+='      focal: %s\n' % hst_foc[i]
-		iyaml+='      clip: \n'  
-		iyaml+='      - operation: AND \n'
-		iyaml+='        vertices: %s\n' % pts_hst
-		iyaml+='      slices: %d\n' % slices  
+    elif receiver=='stl':
+        rec_entt, rcv=STL_receiver(rec_param, hemisphere)
+    #
+    # Heliostats Geometry
+    #
+    if one_heliostat:
+        hst_x=N.r_[hst_pos[0]]
+        hst_y=N.r_[hst_pos[1]]
+        hst_z=N.r_[hst_pos[2]]
+        aim_x=N.r_[hst_aims[0]] 
+        aim_y=N.r_[hst_aims[1]]
+        aim_z=N.r_[hst_aims[2]]
+        num_hst=1
+        hst_foc=N.r_[hst_foc]
+    else:
+        hst_x=hst_pos[:,0]
+        hst_y=hst_pos[:,1]
+        hst_z=hst_pos[:,2]
+        aim_x=hst_aims[:,0]
+        aim_y=hst_aims[:,1]
+        aim_z=hst_aims[:,2]
+        num_hst=len(hst_x)
+    slices = 4 # slices for the envelop circle
+    pts_hst = [ [-hst_w*0.5, -hst_h*0.5], [-hst_w*0.5, hst_h*0.5], [hst_w*0.5, hst_h*0.5], [hst_w*0.5,-hst_h*0.5] ]
+    # CREATE a reflective facet (mirror)
+    for i in range(0,num_hst):
+        name_hst_g = 'hst_g_'+str(i)
+        iyaml+='- geometry: &%s\n' % name_hst_g 
+        iyaml+='  - material: *%s\n' % 'material_mirror' 
+        #iyaml+='    transform: { translation: %s, rotation: %s }\n' % ([hst_x[i], hst_y[i], hst_z[i]], [0, 0, 0]) )
+        iyaml+='    parabol: \n'
+        iyaml+='      focal: %s\n' % hst_foc[i]
+        iyaml+='      clip: \n'  
+        iyaml+='      - operation: AND \n'
+        iyaml+='        vertices: %s\n' % pts_hst
+        iyaml+='      slices: %d\n' % slices  
 
-	# CREATE the pylon "pylon_g" geometry cylindrical shape
-	h_pyl = 0.001 # pylon height
-	r_pyl = 0.2 # pylon radius
-	slices = 4 # slices for the envelop circle
-	iyaml+='- geometry: &%s\n' % 'pylon_g' 
-	iyaml+='  - material: *%s\n' % 'material_black' 
-	iyaml+='    transform: { translation: %s, rotation: %s }\n' % ([0, 0, -h_pyl*3], [0, 90, 0]) 
-	iyaml+='    cylinder: {height: %7.3f, radius: %7.3f, slices: %d }\n' % (h_pyl,r_pyl,slices) 
-	#   
+    # CREATE the pylon "pylon_g" geometry cylindrical shape
+    h_pyl = 0.001 # pylon height
+    r_pyl = 0.2 # pylon radius
+    slices = 4 # slices for the envelop circle
+    iyaml+='- geometry: &%s\n' % 'pylon_g' 
+    iyaml+='  - material: *%s\n' % 'material_black' 
+    iyaml+='    transform: { translation: %s, rotation: %s }\n' % ([0, 0, -h_pyl*3], [0, 90, 0]) 
+    iyaml+='    cylinder: {height: %7.3f, radius: %7.3f, slices: %d }\n' % (h_pyl,r_pyl,slices) 
+    #   
 
-	# 
-	### Section (5)
-	# set the templates
-	# (programming objects gathering geometries or pivot and geometries)
-	#------------------------------
-	# CREATE the heliostat templates
-	for i in range(0,num_hst):    
-		name_hst_t = 'hst_t_'+str(i)
-		iyaml+='- template: &%s\n' % name_hst_t 
-		name_hst_n = 'hst_'+ str(i)
-		iyaml+='    name: %s\n' % name_hst_n 
-		iyaml+='    primary: 0\n'   
-		iyaml+='    geometry: *pylon_g\n'
-		iyaml+='    children: \n' 
-		iyaml+='    - name: pivot\n'
-		iyaml+='      zx_pivot: {target: {position: %s}} \n' % ([aim_x[i],aim_y[i],aim_z[i]]) 
-		iyaml+='      children: \n'
-		iyaml+='      - name: reflect_surface\n'
-		iyaml+='        primary: 1\n'
-		iyaml+='        transform: {rotation: [-90,0,0]} \n'   
-		name_hst_g = 'hst_g_'+str(i)
-		iyaml+='        geometry: *%s\n' % name_hst_g 
+    # 
+    ### Section (5)
+    # set the templates
+    # (programming objects gathering geometries or pivot and geometries)
+    #------------------------------
+    # CREATE the heliostat templates
+    for i in range(0,num_hst):    
+        name_hst_t = 'hst_t_'+str(i)
+        iyaml+='- template: &%s\n' % name_hst_t 
+        name_hst_n = 'hst_'+ str(i)
+        iyaml+='    name: %s\n' % name_hst_n 
+        iyaml+='    primary: 0\n'   
+        iyaml+='    geometry: *pylon_g\n'
+        iyaml+='    children: \n' 
+        iyaml+='    - name: pivot\n'
+        iyaml+='      zx_pivot: {target: {position: %s}} \n' % ([aim_x[i],aim_y[i],aim_z[i]]) 
+        iyaml+='      children: \n'
+        iyaml+='      - name: reflect_surface\n'
+        iyaml+='        primary: 1\n'
+        iyaml+='        transform: {rotation: [-90,0,0]} \n'   
+        name_hst_g = 'hst_g_'+str(i)
+        iyaml+='        geometry: *%s\n' % name_hst_g 
 
-	# 
-	### Section (6)
-	# set the entities
-	# (gather templates to be created and active in the scene)
-	#------------------------------
-	#
-	# receiver entities
-	iyaml+=rec_entt
-	#
-	# tower entities
-	iyaml+='\n- entity:\n'
-	iyaml+='    name: tower_e\n'
-	iyaml+='    primary: 0\n' 
-	iyaml+='    transform: { translation: %s, rotation: %s }\n' % ([0, -tower_r, tower_h*0.5], [0, 0, 0]) 
-	iyaml+='    geometry: *%s\n' % 'tower_g'    
-	#
-	# heliostat entities from the template
-	for i in range(0,num_hst):
-		name_e ='H_'+str(i)
-		name_hst_t = 'hst_t_'+str(i)
-		iyaml+='\n- entity:\n'
-		iyaml+='    name: %s\n' % name_e
-		iyaml+='    transform: { translation: %s, rotation: %s }\n' % ([hst_x[i], hst_y[i], hst_z[i]], [0, 0, 0]) 
-		iyaml+='    children: [ *%s ]\n' % name_hst_t    
+    # 
+    ### Section (6)
+    # set the entities
+    # (gather templates to be created and active in the scene)
+    #------------------------------
+    #
+    # receiver entities
+    iyaml+=rec_entt
+    #
+    # tower entities
+    iyaml+='\n- entity:\n'
+    iyaml+='    name: tower_e\n'
+    iyaml+='    primary: 0\n' 
+    iyaml+='    transform: { translation: %s, rotation: %s }\n' % ([0, -tower_r, tower_h*0.5], [0, 0, 0]) 
+    iyaml+='    geometry: *%s\n' % 'tower_g'    
+    #
+    # heliostat entities from the template
+    for i in range(0,num_hst):
+        name_e ='H_'+str(i)
+        name_hst_t = 'hst_t_'+str(i)
+        iyaml+='\n- entity:\n'
+        iyaml+='    name: %s\n' % name_e
+        iyaml+='    transform: { translation: %s, rotation: %s }\n' % ([hst_x[i], hst_y[i], hst_z[i]], [0, 0, 0]) 
+        iyaml+='    children: [ *%s ]\n' % name_hst_t    
 
-	with open(outfile_yaml,'w') as f:
-		f.write(iyaml)
+    with open(outfile_yaml,'w') as f:
+        f.write(iyaml)
 
-	with open(outfile_recv,'w') as f:
-		f.write(rcv) 
+    with open(outfile_recv,'w') as f:
+        f.write(rcv) 
 
 
 def flat_receiver(rec_param, hemisphere='North'):
