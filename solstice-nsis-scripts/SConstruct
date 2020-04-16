@@ -1,0 +1,158 @@
+#!/usr/bin/env scons
+# Use this script to create a reusable installer for SOLSTICE.
+#
+# You must first download the MESO-STAR zip file of the binaries and unzip
+# To a folder in your MinGW home directory (see 'TEMPROOT' option,
+# default value is '~/Solstice-@VERSION@-Win64', which is the folder you'll get
+# if you unzip the Solstice binary zip package.
+#
+# Next you should enter the 'postproc' folder (../postproc) and run
+# 'scons install' to build the postprocessing scripts and place them in the 
+# above folder.
+#
+# Next you should enter the 'SolsticePy' folder and run 'scons' to install the
+# Python scripts into the above folder.
+#
+# Then change back to the directory containing this file and run:
+#
+# scons
+#
+# This should collect all the files from the TEMPROOT folder
+# and add them to the installer. When the installer is run, they
+# will be extracted to the location defined at runtime.
+#
+# The installer will store file locations in the Windows registry under
+# the location defined in installer.nsi.in.
+
+
+version = '0.9.0'
+
+import os
+import platform
+ 	
+if platform.machine()=="AMD64":
+	arch = "x64"
+elif platform.machine()=="i386":
+	arch = "i386"
+
+opts = Variables(['options.cache'])
+
+opts.Add(
+	'NAME'
+	,"What is the installer to be called?"
+	,"solstice"
+)
+
+opts.Add(
+	'PROPERNAME'
+	,"What is the installer title?"
+	,"$NAME"
+)
+
+opts.Add(
+	'ARCH'
+	,"What is the target architecture? (i386 or x64)"
+	,arch
+)
+
+opts.Add(
+	'VERSION'
+	,"What is the the version of the code being installed?"
+	,version
+)
+
+opts.Add(PackageVariable(
+	'TEMPROOT'
+	,"Where are files to be picked up from?"
+	,os.path.expanduser("~/Solstice-${VERSION}-Win64")
+))
+
+opts.Add(
+	'INSTALLER_NAME'
+	,'Name of the file created by NSIS'
+	,"${NAME}-${VERSION}-${ARCH}.exe"
+)
+
+env = Environment(
+	tools = ["nsis","substinfile"]
+	, toolpath=['scons']
+)
+
+opts.Update(env)
+
+opts.Save('options.cache',env)
+
+env['VERSION_SHORT'] = version
+env['SEARCHDIR'] = env.subst("$TEMPROOT")
+
+filelist = []
+dirlist = []
+d = os.path.normcase(env['SEARCHDIR'])
+
+if not os.path.exists(env['SEARCHDIR']):
+	print("SEARCHDIR path '%s' doesn't exist" % env['SEARCHDIR'])
+	Exit(1)
+
+import os
+l = len(d)
+olddir = os.getcwd()
+os.chdir(d)
+for root, dirs, files in os.walk("."):
+	for name in files:
+		filelist.append(os.path.normpath(os.path.join(root,name)))
+	dirlist.append(os.path.normpath(root))
+	if 'CVS' in dirs:
+		dirs.remove('CVS')
+	if '.svn' in dirs:
+		dirs.remove('.svn')
+os.chdir(olddir)
+
+#print "	 =",filelist
+#
+#import sys
+#sys.exit(1)
+
+def nsis_list_files(filelist,sourcedir="$$SEARCHDIR"):
+	s = ""
+	for f in filelist:
+		s += '\tFile "%s\%s"\n' % (sourcedir,f)
+	return s
+
+def nsis_list_delete(filelist,prefix="$$INSTDIR"):
+	s = ""
+	for f in filelist:
+		s += '\tDelete "%s\%s"\n' % (prefix,f)
+	return s
+
+def nsis_list_rmdir(dirlist):
+	s = ""
+	for d in reversed(dirlist):
+		s += '\tRmDir "$$INSTDIR\%s"\n' % d
+	return s
+
+#no extra DLLs required for COIN.
+dlls = []
+
+env.Append(SUBST_DICT={
+	"@NAME@":env['NAME']
+	,"@PROPERNAME@":env['PROPERNAME']
+	,"@VERSION@":env['VERSION']
+	,"@VERSION_SHORT@":env['VERSION_SHORT']
+	,"@DELETE@":nsis_list_delete(filelist)
+	,"@DELETEDIRS@":nsis_list_rmdir(dirlist)
+	,"@SEARCHDIR@":os.path.abspath(env['SEARCHDIR'])
+})
+
+nsisscript = env.SubstInFile('installer.nsi.in')
+
+env.Append(NSISDEFINES={
+	'ARCH':env['ARCH']
+	,'NAME':env['NAME']
+	,'PROPERNAME':env['PROPERNAME']
+	,'VERSION':env['VERSION']
+	,'VERSION_SHORT':env['VERSION_SHORT']
+	,"SEARCHDIR":os.path.abspath(env['SEARCHDIR'])
+})
+
+env.Installer(nsisscript)
+

@@ -1,9 +1,8 @@
 """
-Use this file to compile the solstice post-processing programs that are in this
-directory. You will need Python as well as the Python package called 'scons',
-as well as the gcc (MINGW-w64) compilers.
+This is a 'scons' script for compiling the Solstice post-processing programs
+that are also here in this directory. https://www.scons.org/. You will also
+need the GCC (Linux) / MINGW-w64 (Windows) compilers.
 """
-
 
 import platform, os
 if platform.system()=="Windows":
