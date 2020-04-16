@@ -9,7 +9,7 @@ def find_solstice_root(version_required=None,verbose=0):
 	if verbose: sys.stderr.write("Python is running from %s\n"%(sys.executable,))
 	if platform.system()=="Linux":
 		# assume that solstice will be in the PATH...
-		return "solstice"
+		return "~/Solstice-0.9.0-GNU-Linux64"
 	# otherwise...
 	if sys.version_info[0] < 3:
 		if verbose: sys.stderr.write("Python 2, ")
@@ -31,19 +31,24 @@ def find_solstice_root(version_required=None,verbose=0):
 	return dirn
 
 if __name__=="__main__":
-	dirn = find_solstice_root('0.9.0',verbose=1)
-	sys.stderr.write("Solstice is installed in %s\n\n" %(dirn,)) # works both python2+3 :o)
+    dirn = find_solstice_root('0.9.0',verbose=1)
+    sys.stderr.write("Solstice is installed in %s\n\n" %(dirn,)) # works both python2+3 :o)
 
-	import subprocess, os
+    import subprocess, os
+    if platform.system()=="Linux":
+        spath = os.path.join(dirn,"bin","solstice")
+        # output the help text from solstice:
+        os.system(spath+" -h")
 
-	spath = os.path.join(dirn,"bin","solstice.exe")
+    else:
+        spath = os.path.join(dirn,"bin","solstice.exe")
 
-	# check that installed version of solstice is 0.9.0:
-	ret = subprocess.check_output([spath,"--version"])
-	assert ret.decode('ascii').strip() == "Solstice 0.9.0"
+        # check that installed version of solstice is 0.9.0:
+        ret = subprocess.check_output([spath,"--version"])
+        assert ret.decode('ascii').strip() == "Solstice 0.9.0"
 
-	# output the help text from solstice:
-	subprocess.check_call([spath,"-h"])
+        # output the help text from solstice:
+        subprocess.check_call([spath,"-h"])
 
 # you should see the 'solstice -help' output shown in your console.
 
