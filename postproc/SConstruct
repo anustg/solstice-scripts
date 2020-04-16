@@ -1,0 +1,33 @@
+"""
+Use this file to compile the solstice post-processing programs that are in this
+directory. You will need Python as well as the Python package called 'scons',
+as well as the gcc (MINGW-w64) compilers.
+"""
+
+
+import platform, os
+if platform.system()=="Windows":
+	env=Environment(tools=['mingw'],ENV=os.environ)
+else:
+	env = Environment()
+
+progs = 'solpaths','solmaps','solpp','solppraw';
+exes = []
+
+env.Append(
+	CFLAGS=['-O2']
+)
+
+for p in progs:
+	exes.append( env.Program(p,['%s.c'%p]) )
+
+if platform.system()=="Windows":
+	# On windows, place the postprocessing programs into the 'bin' directory
+	# so that they are included with the NSIS installer
+
+	EXEPATH=os.path.expanduser("~/Solstice-0.9.0-Win64/bin")
+	
+	for e in exes:
+		env.Install(EXEPATH,e)
+	env.Alias('install',EXEPATH)
+
