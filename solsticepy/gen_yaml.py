@@ -1,6 +1,6 @@
 import numpy as N
 
-from data_spectral import SolarSpectrum, MirrorRhoSpectrum
+from .data_spectral import SolarSpectrum, MirrorRhoSpectrum
 import sys
 
 def gen_yaml(DNI, sunshape, sunsize, hst_pos, hst_foc, hst_aims,hst_w, hst_h

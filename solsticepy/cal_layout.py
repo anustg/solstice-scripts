@@ -1,8 +1,10 @@
 import numpy as np
+import matplotlib
+matplotlib.use("agg")
 import matplotlib.pyplot as plt
-from cal_field import *
-from cal_sun import *
-from gen_vtk import gen_vtk
+from .cal_field import *
+from .cal_sun import *
+from .gen_vtk import gen_vtk
 
 def radial_stagger(num_hst, width, height, hst_z, towerheight, R1, dsep=0., field='polar-half', savedir='.', plot=False):
     '''
@@ -47,8 +49,8 @@ def radial_stagger(num_hst, width, height, hst_z, towerheight, R1, dsep=0., fiel
 
     num=0
     i=0
-    print 'DM', DM
-    print 'dRm', delta_Rmin
+    print('DM', DM)
+    print('dRm', delta_Rmin)
 
     if field[-4:]=='half':
 
@@ -57,12 +59,12 @@ def radial_stagger(num_hst, width, height, hst_z, towerheight, R1, dsep=0., fiel
             Nhel=(2**(i))*Nhel1
             R=Nhel/2./np.pi*DM
             delta_az=2.*np.pi/Nhel
-            print ''
-            print 'zone', i
-            print 'R', R
-            print 'rows', Nrows
-            print 'hst', Nhel
-            print 'daz', delta_az
+            print('')
+            print('zone', i)
+            print('R', R)
+            print('rows', Nrows)
+            print('hst', Nhel)
+            print('daz', delta_az)
 
             for row in xrange(Nrows):
 
@@ -101,12 +103,12 @@ def radial_stagger(num_hst, width, height, hst_z, towerheight, R1, dsep=0., fiel
             Nhel=(2**(i))*Nhel1
             R=Nhel/2./np.pi*DM
             delta_az=2.*np.pi/Nhel
-            print ''
-            print 'zone', i
-            print 'R', R
-            print 'rows', Nrows
-            print 'hst', Nhel
-            print 'daz', delta_az
+            print('')
+            print('zone', i)
+            print('R', R)
+            print('rows', Nrows)
+            print('hst', Nhel)
+            print('daz', delta_az)
 
             for row in xrange(Nrows):
 
@@ -139,8 +141,8 @@ def radial_stagger(num_hst, width, height, hst_z, towerheight, R1, dsep=0., fiel
             i+=1
 
 
-    print ''
-    print 'total hst', num
+    print('')
+    print('total hst', num)
     hstpos=np.zeros(num*3).reshape(num, 3)
     hstpos[:, 0]=X
     hstpos[:, 1]=Y

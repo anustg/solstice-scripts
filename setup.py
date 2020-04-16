@@ -27,7 +27,7 @@ setuptools.setup(name='solsticepy'
 		,"Programming Language :: Python :: 3"
 		,"Topic :: Scientific/Engineering :: Physics"
 	]
-	,install_requires=['scipy','numpy','uncertainties']
+	,install_requires=['scipy','numpy','uncertainties','colorama', 'matplotlib']
 	,python_requires='>=2.7'
 )
 
