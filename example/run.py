@@ -81,11 +81,7 @@ elif receiver=='stl':
 
 import colorama
 colorama.init()
-import process_raw
-import find_solstice
-import gen_yaml
-
-dirn = find_solstice.find_solstice_root("0.9.0",verbose=1)
+import solsticepy
 
 snum = 0
 suffix = ""
@@ -112,7 +108,7 @@ while 1:
 		break
 
 def SPROG(n):
-	return os.path.join(dirn,'bin',n)
+	return solsticepy.find_prog(n)
 SOLSTICE = SPROG('solstice')
 
 def in_case(fn):
@@ -166,7 +162,7 @@ elif receiver =='stl':
 
 if not yaml:
 	sys.stderr.write("Generating YAML input files...\n");
-	gen_yaml.gen_yaml(DNI, sunshape, sunsize, hst_pos, hst_foc, hst_aims,hst_w, hst_h
+	solsticepy.gen_yaml(DNI, sunshape, sunsize, hst_pos, hst_foc, hst_aims,hst_w, hst_h
 		, rho_refl, slope_error, receiver, rec_param, rec_abs
 		, tower_h=tower_h, tower_r=tower_r, spectral=False, medium=0.
 		, one_heliostat=False
@@ -203,7 +199,7 @@ try:
 	run_prog(SPROG('solpaths'),[in_case('solpaths')])
 
 	# create summary data files 'result-raw.csv' and 'result-formatted.csv'
-	eta = process_raw.process_raw_results(in_case('simul'), case_dir,rho_refl)
+	eta = solsticepy.process_raw_results(in_case('simul'), case_dir,rho_refl)
 	sys.stderr.write('\n' + yellow("Total efficiency: %s\n"%(repr(eta),)))
 
 finally:

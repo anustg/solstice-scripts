@@ -7,9 +7,8 @@ import sys, platform
 
 def find_solstice_root(version_required=None,verbose=0):
 	if verbose: sys.stderr.write("Python is running from %s\n"%(sys.executable,))
-	if platform.system()=="Linux":
-		# assume that solstice will be in the PATH...
-		return "solstice"
+	if not platform.system()=="Wndows":
+		raise RuntimeError("This function is only for Windows")
 	# otherwise...
 	if sys.version_info[0] < 3:
 		if verbose: sys.stderr.write("Python 2, ")
@@ -29,6 +28,20 @@ def find_solstice_root(version_required=None,verbose=0):
 	if version_required:
 		assert ver == version_required
 	return dirn
+
+def find_prog(name,version_required=None):
+	if platform.system()=="Windows":
+		path = os.path.join(find_solstice_root(version_required),"bin",name);
+		if not os.path.exists(prog):
+			raise RuntimeError("Program '%s' was not found at path '%s'"%(name,path))
+		return path
+	else:
+		# assume all solstice programs are on the PATH
+		import subprocess
+		rc = subprocess.call(['which',name])
+		if rc:
+			raise RuntimeError("Program '%s' was not found in the PATH" %(name))
+		return name
 
 if __name__=="__main__":
 	dirn = find_solstice_root('0.9.0',verbose=1)

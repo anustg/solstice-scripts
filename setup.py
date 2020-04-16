@@ -5,7 +5,7 @@ import setuptools
 with open("README.md", "r") as f:
     long_description = f.read()
 
-setuptools.setup(name='solsticepy-pkg-jdpipe'
+setuptools.setup(name='solsticepy'
 	,version='0.1.5'
 	,author='Ye Wang'
 	,author_email='ye.wang@anu.edu.au'
