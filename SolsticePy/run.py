@@ -2,13 +2,11 @@
 # TODO
 # Suggested principle: the user should copy and modify this script. The script
 # Can start its life in the c:\Program Files\solstice-0.9.0\ folder, and then
-# be copied by the user to their home directory. All output files should be
-# placed in the same directory as the script. When the student wants to 
-# change the simulation, then can copy the 'run.py' script to a different
-# directory, and run it there instead. The student doesn't need to use the
-# command line, because they can jsut double-click the Python script.
-# The script should have a way of alerting the user in the case that the
-# script fails for any reason.
+# be copied by the user to their home directory. All output files will be
+# placed in a subdirectory in where the script is located, with a name that
+# includes the script name, plus the date/time. Students need only double-click
+# the script file to run it in Windows. We may need to add a way of
+# alerting the user before the script window closes.
 
 import os, sys, subprocess, glob, datetime
 import numpy as np
@@ -83,7 +81,7 @@ elif receiver=='stl':
 
 import colorama
 colorama.init()
-import get_raw
+import process_raw
 import find_solstice
 import gen_yaml
 
@@ -205,7 +203,7 @@ try:
 	run_prog(SPROG('solpaths'),[in_case('solpaths')])
 
 	# create summary data files 'result-raw.csv' and 'result-formatted.csv'
-	eta = get_raw.process_raw_results(in_case('simul'), case_dir,rho_refl)
+	eta = process_raw.process_raw_results(in_case('simul'), case_dir,rho_refl)
 	sys.stderr.write('\n' + yellow("Total efficiency: %s\n"%(repr(eta),)))
 
 finally:
