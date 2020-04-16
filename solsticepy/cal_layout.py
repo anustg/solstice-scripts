@@ -168,27 +168,14 @@ def radial_stagger(num_hst, width, height, hst_z, towerheight, R1, dsep=0., fiel
         plt.ylim(-1000, 1000)
         plt.xticks(fontsize=fts)
         plt.yticks(fontsize=fts)
-        plt.savefig(open('/media/yewang/Data/owncloud/Research/modelica/solstice-doc/field_design/%s.png'%field,'w'), bbox_inches='tight')
+        plt.savefig(open('%s.png'%field,'w'), bbox_inches='tight')
         plt.close()
 
     return pos_and_aiming
 
 
-
 if __name__=='__main__':
     
     pos_and_aim=radial_stagger(num_hst=4000, width=12.3, height=9.75, hst_z=1., towerheight=100, R1=87.5, dsep=0., field='polar', savedir='.', plot=True)
-
-    
-
-
-    
-
-
-
-
-
-
-
 
         
