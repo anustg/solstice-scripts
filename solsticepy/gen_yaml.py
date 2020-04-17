@@ -16,9 +16,7 @@ def gen_yaml(DNI, sunshape, sunsize, hst_pos, hst_foc, hst_aims,hst_w, hst_h
 	1. the sun
 	  * `DNI`: float, the direct normal irrandice of solar radiation (W/m2)
 	  * `sunshape`: str, 'buie' or ' pillbox
-	  * `sunsize`: float, pillbox half-angle (deg), or Buie CSR value 
-
-
+	  * `sunsize`: float, pillbox half-angle (deg), or Buie CSR value
 	2. the field
 	  * `hst_pos`: (n, 3) array, heliostat positions (x, y, z)
 	  * `hst_foc`: (n, 1) array, heliostat focal length
@@ -30,7 +28,6 @@ def gen_yaml(DNI, sunshape, sunsize, hst_pos, hst_foc, hst_aims,hst_w, hst_h
 	  * slope_error: float, reflector surface slope error rms, (rad)
 	  * tower_h: float, tower height
 	  * tower_r: float, tower radius (a cylindrical shape tower)
-
 	3. the receiver
 	  * receiver: str, 'flat', 'cylinder', or 'stl'
 	  * rec_abs: float, receiver absorptivity
@@ -38,14 +35,13 @@ def gen_yaml(DNI, sunshape, sunsize, hst_pos, hst_foc, hst_aims,hst_w, hst_h
 		1. flat receiver: index 0 is width, 1 is height, 2 is slices, 3- 6 is x, y, z and tilt angle (deg)
 		2. cylinder receiver: index 0 is radius, 1 is height, 2 is slices
 		3. stl: the directory of the stl file
-
 	4. others
 	  * spectral: bool, if investigate spectral dependent performance 
 	  * medium: float, if the atmosphere is surrounded by non-participant medium, 
 	    medium=0; otherwise it is the extinction coefficient in m-1
-
+	
 	Returns:
-
+	
 	* No return value (requested files are created and written)
 	"""
 
