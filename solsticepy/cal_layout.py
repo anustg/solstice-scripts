@@ -139,7 +139,6 @@ def radial_stagger(num_hst, width, height, hst_z, towerheight, R1, dsep=0., fiel
             i+=1
 
     sys.stderr.write("\ntotal hst %d\n"%(num,))
-
     hstpos=np.zeros(num*3).reshape(num, 3)
     hstpos[:, 0]=X
     hstpos[:, 1]=Y

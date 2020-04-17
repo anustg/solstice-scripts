@@ -172,7 +172,7 @@ def process_raw_results(rawfile, savedir,rho_mirror):
 	return efficiency_total
 
 if __name__=='__main__':
-	eta = proces_raw_results(sys.argv[1], sys.argv[2], sys.argv[3])
-	sys.stderr.write('\nTotal efficiency: %s\n'%(repr(eta),))
+    eta = proces_raw_results(sys.argv[1], sys.argv[2], sys.argv[3])
+    sys.stderr.write('\nTotal efficiency: %s\n'%(repr(eta),))
 
 
