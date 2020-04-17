@@ -54,7 +54,7 @@ class Master:
                 subprocess.check_call([prog]+args1)
 
 
-    def run(self, azimuth, elevation, num_rays, rho_mirror, dni):
+    def run(self, azimuth, elevation, num_rays, rho_mirror):
 
         SOLSTICE=self.SPROG("solstice")
 
@@ -90,22 +90,22 @@ class Master:
         else:
 
             # Read "simul" results and produce a text file with the raw results
-            run_prog(SPROG('solppraw'),[self.in_case('simul')])
+            self.run_prog(self.SPROG('solppraw'),[self.in_case('simul')])
 
             # Read "simul" results and produce receiver files (.vtk) of incoming and/or absorbed solar flux per-primitive
-            run_prog(SPROG('solmaps'),[self.in_case('simul')])
+            self.run_prog(self.SPROG('solmaps'),[self.in_case('simul')])
 
             # Read "geom" and "simul" file results and produce primaries and receivers files (.vtk), and .obj geometry files
-            run_prog(SPROG('solpp'),[self.in_case('geom'),self.in_case('simul')])
+            self.run_prog(self.SPROG('solpp'),[self.in_case('geom'),self.in_case('simul')])
 
             # Read "solpaths" file and produce readable file (.vtk) by paraview to visualize the ray paths
-            run_prog(SPROG('solpaths'),[self.in_case('solpaths')])
+            self.run_prog(self.SPROG('solpaths'),[self.in_case('solpaths')])
 
 	
             os.system('move *vtk %s >nul'%self.casedir)
             os.system('move *obj %s >nul'%self.casedir)
             os.system('move *txt %s >nul'%self.casedir)
 
-        eta=process_raw_results(self.in_case('simul'), self.casedir,rho_mirror, dni)
+        eta=process_raw_results(self.in_case('simul'), self.casedir,rho_mirror)
         sys.stderr.write('\n' + yellow("Total efficiency: %s\n"%(repr(eta),)))
         sys.stderr.write(green("Completed successfully.\n"))

@@ -89,7 +89,7 @@ if new_case:
 		, hemisphere='North', tower_h=tower_h, tower_r=tower_r,  spectral=False
 		, medium=0, one_heliostat=False)
 
-master.run(azimuth, elevation, num_rays, rho_refl, DNI)
+master.run(azimuth, elevation, num_rays, rho_refl)
 
 
 
