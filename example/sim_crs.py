@@ -4,8 +4,6 @@ from solsticepy.master import Master
 import numpy as N
 import os
 
-# set the folder for saving the output files
-casefolder='./test'
 # whether run a new case 
 # or load an existed yaml inputs in the casefolder
 new_case=True 
@@ -60,6 +58,11 @@ if receiver=='flat':
 elif receiver=='stl':
     stlfile='./demo_plane.stl'
 
+# set the folder for saving the output files
+# False or string-name of the user defined folder
+userdefinedfolder=False
+
+
 
 # NO NEED TO CHANGE THE CONTENT BELOW
 # ===============================================================
@@ -70,8 +73,28 @@ hst_pos=layout[:,:3]
 hst_foc=layout[:,3] # F2.5
 hst_aims=layout[:,4:] # F4.
 
+if userdefinedfolder:
+    casefolder=userdefinedfolder
+else:
+    snum = 0
+    suffix = ""
+    while 1:
+        import datetime,time
+        dt = datetime.datetime.now()
+        ds = dt.strftime("%a-%H:%M")
+        casefolder = os.path.join(os.getcwd(),'case-%s-%s%s'%(os.path.basename(__file__),ds,suffix))
+        if os.path.exists(casefolder):
+            snum+=1
+            suffix = "-%d"%(snum,)
+            if snum > 200:
+                raise RuntimeError("Some problem with creating casefolder")
+        else:
+            # good, we have a new case dir
+            break
+
 if not os.path.exists(casefolder):
     os.makedirs(casefolder) 
+    assert os.path.isdir(casefolder)
 
 if receiver =='flat':
     rec_param=N.r_[rec_w, rec_h, rec_mesh, loc_x, loc_y, loc_z, tilt]

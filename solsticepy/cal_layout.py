@@ -1,5 +1,7 @@
 import numpy as np
 import sys
+import matplotlib
+matplotlib.use("agg")
 import matplotlib.pyplot as plt
 from .cal_field import *
 from .cal_sun import *
