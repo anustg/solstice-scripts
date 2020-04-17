@@ -6,5 +6,4 @@ python-dateutil>=2.6.1
 pytz>=2018.3
 scipy>=0.19
 six>=1.11
-subprocess32==3.2.7
 uncertainties>=3.1.2
