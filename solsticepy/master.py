@@ -41,14 +41,14 @@ class Master:
         if output_file is not None:
 		    # any error will cause an exception (and we capture the output to a file)
             if platform.system()=='Linux':
-                os.system(" ".join(args1))
+                os.system(prog+" "+" ".join(args1)+" > "+output_file)
             else:
                 res = subprocess.check_output([prog]+args1)
                 with open(output_file,'w') as f:
                     f.write(res.decode('ascii'))
         else:
             if platform.system()=='Linux':
-                os.system(" ".join(args1))
+                os.system(prog+" "+" ".join(args1))
             else:
 		        # any error will cause an exception...
                 subprocess.check_call([prog]+args1)
@@ -65,43 +65,27 @@ class Master:
         self.run_prog(SOLSTICE,['-D%s,%s'%(azimuth,elevation),'-v','-n',num_rays,'-R',RECV_IN,'-fo',self.in_case('simul'),YAML_IN])
         # post processing
         self.run_prog(SOLSTICE,['-D%s,%s'%(azimuth,elevation),'-g','format=obj:split=geometry','-fo',self.in_case('geom'),YAML_IN])
+
         self.run_prog(SOLSTICE,['-D%s,%s'%(azimuth,elevation),'-q','-n','100','-R',RECV_IN,'-p','default',YAML_IN], output_file=self.in_case('solpaths'))
 
-        if platform.system()=='Linux':
+        # Read "simul" results and produce a text file with the raw results
+        self.run_prog(self.SPROG('solppraw'),[self.in_case('simul')])
+        # Read "simul" results and produce receiver files (.vtk) of incoming and/or absorbed solar flux per-primitive
+        self.run_prog(self.SPROG('solmaps'),[self.in_case('simul')])
 
-            os.system('gcc %s/postproc/solppraw.c -o %s/postproc/solppraw'%(self.root, self.root))
-            os.system('%s/postproc/solppraw %s'%(self.root, self.in_case('simul')))
-            #Read "simul" results and produce receiver files (.vtk) of incoming and/or absorbed solar flux per-primitive
-            os.system('gcc %s/postproc/solmaps.c -o %s/postproc/solmaps'%(self.root, self.root))
-            os.system('%s/postproc/solmaps %s'%(self.root, self.in_case('simul')))
+        # Read "geom" and "simul" file results and produce primaries and receivers files (.vtk), and .obj geometry files
+        self.run_prog(self.SPROG('solpp'),[self.in_case('geom'),self.in_case('simul')])
 
-            #Read "geom" and "simul" file results and produce primaries and receivers files (.vtk), and .obj geometry files
-            os.system('gcc %s/postproc/solpp.c -o %s/postproc/solpp'%(self.root, self.root))
-            os.system('%s/postproc/solpp %s %s'%(self.root, self.in_case('geom'), self.in_case('simul')))
+        # Read "solpaths" file and produce readable file (.vtk) by paraview to visualize the ray paths
+        self.run_prog(self.SPROG('solpaths'),[self.in_case('solpaths')])
 
-            #Read "solpaths" file and produce readable file (.vtk) by paraview to visualize the ray paths
-            os.system('gcc %s/postproc/solpaths.c -o %s/postproc/solpath'%(self.root, self.root))
-            os.system('%s/postproc/solpath %s'%(self.root, self.in_case('solpaths')))
-	
-            os.system('mv *vtk %s'%self.casedir)
-            os.system('mv *obj %s'%self.casedir)
-            os.system('mv *txt %s'%self.casedir)
+
+        if platform.system()=="Linux":
+            os.system('mv *vtk '+self.casedir)
+            os.system('mv *obj '+self.casedir)
+            os.system('mv *txt '+self.casedir)
 
         else:
-
-            # Read "simul" results and produce a text file with the raw results
-            self.run_prog(self.SPROG('solppraw'),[self.in_case('simul')])
-
-            # Read "simul" results and produce receiver files (.vtk) of incoming and/or absorbed solar flux per-primitive
-            self.run_prog(self.SPROG('solmaps'),[self.in_case('simul')])
-
-            # Read "geom" and "simul" file results and produce primaries and receivers files (.vtk), and .obj geometry files
-            self.run_prog(self.SPROG('solpp'),[self.in_case('geom'),self.in_case('simul')])
-
-            # Read "solpaths" file and produce readable file (.vtk) by paraview to visualize the ray paths
-            self.run_prog(self.SPROG('solpaths'),[self.in_case('solpaths')])
-
-	
             os.system('move *vtk %s >nul'%self.casedir)
             os.system('move *obj %s >nul'%self.casedir)
             os.system('move *txt %s >nul'%self.casedir)
