@@ -21,8 +21,15 @@ Create the YAML input file for Solstice
 
 .. autofunction:: solsticepy.gen_yaml
 
+Calculation sun position
+------------------------
+
+.. autoclass:: solsticepy.SunPosition
+   :members:
+   :undoc-members:
+
 Set up and run Solstice simulations
--------------------------------------------
+-----------------------------------
 
 .. autoclass:: solsticepy.Master
    :members:
@@ -33,13 +40,15 @@ Process the results from Solstice
 
 .. autofunction:: solsticepy.process_raw_results
 
+Generate 3D views of your system
+--------------------------------
 
-Find and run Solstice programs
--------------------------------------
+.. autofunction:: solsticepy.gen_vtk
 
-.. autofunction:: solsticepy.find_solstice_root
-.. autofunction:: solsticepy.find_prog
+Generate new heliostat field layouts
+------------------------------------
 
+.. autofunction:: solsticepy.radial_stagger
 
 Preliminary calculation of heliostat field performance
 ------------------------------------------------------
@@ -48,17 +57,12 @@ Preliminary calculation of heliostat field performance
    :members:
    :undoc-members:
 
-Calculation sun position
-------------------------
+Find and run Solstice programs
+-------------------------------------
 
-.. autoclass:: solsticepy.SunPosition
-   :members:
-   :undoc-members:
+.. autofunction:: solsticepy.find_solstice_root
+.. autofunction:: solsticepy.find_prog
 
-Generate 3D views of your system
-------------------------------------------------
-
-.. autofunction:: solsticepy.gen_vtk
 
 Indices and tables
 ==================

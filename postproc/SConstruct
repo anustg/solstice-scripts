@@ -5,10 +5,15 @@ need the GCC (Linux) / MINGW-w64 (Windows) compilers.
 """
 
 import platform, os
+
+vars = Variables()
+vars.Add('INSTALL_PREFIX', "Location where files will be installed", os.path.expanduser("~/Solstice-0.9.0-Win64/bin"))
+
 if platform.system()=="Windows":
-	env=Environment(tools=['mingw'],ENV=os.environ)
+	env=Environment(tools=['mingw'],ENV=os.environ,variables=vars)
 else:
-	env = Environment()
+	env = Environment(variables=vars)
+
 
 progs = 'solpaths','solmaps','solpp','solppraw';
 exes = []
@@ -20,13 +25,7 @@ env.Append(
 for p in progs:
 	exes.append( env.Program(p,['%s.c'%p]) )
 
-if platform.system()=="Windows":
-	# On windows, place the postprocessing programs into the 'bin' directory
-	# so that they are included with the NSIS installer
-
-	EXEPATH=os.path.expanduser("~/Solstice-0.9.0-Win64/bin")
-	
-	for e in exes:
-		env.Install(EXEPATH,e)
-	env.Alias('install',EXEPATH)
+for e in exes:
+	env.Install("$INSTALL_PREFIX",e)
+env.Alias('install',"$INSTALL_PREFIX")
 
