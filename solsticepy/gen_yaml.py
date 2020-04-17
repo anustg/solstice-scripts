@@ -1,6 +1,6 @@
-import numpy as N
+import numpy as np
 
-from data_spectral import SolarSpectrum, MirrorRhoSpectrum
+from .data_spectral import SolarSpectrum, MirrorRhoSpectrum
 import sys
 
 def gen_yaml(DNI, sunshape, sunsize, hst_pos, hst_foc, hst_aims,hst_w, hst_h
@@ -187,14 +187,14 @@ def gen_yaml(DNI, sunshape, sunsize, hst_pos, hst_foc, hst_aims,hst_w, hst_h
     # Heliostats Geometry
     #
     if one_heliostat:
-        hst_x=N.r_[hst_pos[0]]
-        hst_y=N.r_[hst_pos[1]]
-        hst_z=N.r_[hst_pos[2]]
-        aim_x=N.r_[hst_aims[0]] 
-        aim_y=N.r_[hst_aims[1]]
-        aim_z=N.r_[hst_aims[2]]
+        hst_x=np.r_[hst_pos[0]]
+        hst_y=np.r_[hst_pos[1]]
+        hst_z=np.r_[hst_pos[2]]
+        aim_x=np.r_[hst_aims[0]] 
+        aim_y=np.r_[hst_aims[1]]
+        aim_z=np.r_[hst_aims[2]]
         num_hst=1
-        hst_foc=N.r_[hst_foc]
+        hst_foc=np.r_[hst_foc]
     else:
         hst_x=hst_pos[:,0]
         hst_y=hst_pos[:,1]

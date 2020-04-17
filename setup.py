@@ -6,7 +6,7 @@ with open("README.md", "r") as f:
     long_description = f.read()
 
 setuptools.setup(name='solsticepy'
-	,version='0.1.5'
+	,version='0.1.8'
 	,author='Ye Wang'
 	,author_email='ye.wang@anu.edu.au'
 	,description="Scripts and wrappers for Solstice ray-tracing software"
@@ -27,7 +27,7 @@ setuptools.setup(name='solsticepy'
 		,"Programming Language :: Python :: 3"
 		,"Topic :: Scientific/Engineering :: Physics"
 	]
-	,install_requires=['scipy','numpy','uncertainties']
+	,install_requires=['scipy','numpy','uncertainties','matplotlib','colorama']
 	,python_requires='>=2.7'
 )
 

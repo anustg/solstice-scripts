@@ -154,19 +154,19 @@ def process_raw_results(rawfile, savedir,rho_mirror):
 	Qblock=Qtotal-Qcos-Qshade-Qfield_abs-Qspil-Qabs-Qrefl-Qatm
 
 	organised=N.array([
-		'Name', 'Value', '+/-Error', 
-		'Qall (kW)', Qtotal.n/1000., Qtotal.s/1000., 
-		'Qcos (kW)', Qcos.n/1000.,Qcos.s/1000.,
-		'Qshad (kW)', Qshade.n/1000., Qshade.s/1000.,
-		'Qfield_abs (kW)', Qfield_abs.n/1000., Qfield_abs.s/1000., 
-		'Qblcok (kW)', Qblock.n/1000.,  Qblock.s/1000., 
-		'Qatm (kW)',Qatm.n/1000., Qatm.s/1000., 
-		'Qspil (kW)', Qspil.n/1000., Qspil.s/1000., 
-		'Qrefl (kW)', Qrefl.n/1000.,Qrefl.s/1000., 
-		'Qabs (kW)', Qabs.n/1000., Qabs.s/1000., 
-		'rays', num_rays,'-'
+		['Name', 'Value', '+/-Error']
+		,['Qall (kW)', Qtotal.n/1000., Qtotal.s/1000.]
+		,['Qcos (kW)', Qcos.n/1000.,Qcos.s/1000.]
+		,['Qshad (kW)', Qshade.n/1000., Qshade.s/1000.]
+		,['Qfield_abs (kW)', Qfield_abs.n/1000., Qfield_abs.s/1000.]
+		,['Qblcok (kW)', Qblock.n/1000.,  Qblock.s/1000.]
+		,['Qatm (kW)',Qatm.n/1000., Qatm.s/1000.]
+		,['Qspil (kW)', Qspil.n/1000., Qspil.s/1000.]
+		,['Qrefl (kW)', Qrefl.n/1000.,Qrefl.s/1000.]
+		,['Qabs (kW)', Qabs.n/1000., Qabs.s/1000.]
+		,['rays', num_rays,'-']
 	])
-	N.savetxt(savedir+'/result-formatted.csv', organised.reshape(len(organised)/3,3), fmt='%s', delimiter=',')
+	N.savetxt(savedir+'/result-formatted.csv', organised, fmt='%s', delimiter=',')
 	efficiency_total=Qabs/Qtotal
 
 	return efficiency_total

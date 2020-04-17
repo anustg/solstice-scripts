@@ -1,4 +1,4 @@
-import numpy as N
+import numpy as np
 
 class SunPosition:
 
@@ -68,12 +68,12 @@ class SunPosition:
         delta - declination angle (deg)
         '''
         if form=='detail':
-            B=float(days-1)*360./365.*N.pi/180.
+            B=float(days-1)*360./365.*np.pi/180.
 
-            delta=(180./N.pi)*(0.006918 - 0.399912*N.cos(B) +0.070257*N.sin(B)- 0.006758*N.cos(2.*B) + 0.000907*N.sin(2.*B)- 0.002697*N.cos(3.*B) + 0.00148*N.sin(3.*B))
+            delta=(180./np.pi)*(0.006918 - 0.399912*np.cos(B) +0.070257*np.sin(B)- 0.006758*np.cos(2.*B) + 0.000907*np.sin(2.*B)- 0.002697*np.cos(3.*B) + 0.00148*np.sin(3.*B))
 
         else:
-            delta=23.45*N.sin(360.*float(284+days)/365.*N.pi/180.) # deg
+            delta=23.45*np.sin(360.*float(284+days)/365.*np.pi/180.) # deg
 
         return delta
 
@@ -93,7 +93,7 @@ class SunPosition:
 
         '''
 
-        sunset=N.arccos(-N.tan(latitude*N.pi/180.)*N.tan(delta*N.pi/180.))*180./N.pi # deg
+        sunset=np.arccos(-np.tan(latitude*np.pi/180.)*np.tan(delta*np.pi/180.))*180./np.pi # deg
 
         sunrise=-sunset
 
@@ -114,11 +114,11 @@ class SunPosition:
         theta: the zenith angle, float, deg
 
         '''             
-        latitude*=N.pi/180.
-        delta*=N.pi/180.
-        omega*=N.pi/180.
+        latitude*=np.pi/180.
+        delta*=np.pi/180.
+        omega*=np.pi/180.
 
-        theta=N.arccos(N.cos(latitude)*N.cos(delta)*N.cos(omega)+N.sin(latitude)*N.sin(delta))*180./N.pi
+        theta=np.arccos(np.cos(latitude)*np.cos(delta)*np.cos(omega)+np.sin(latitude)*np.sin(delta))*180./np.pi
 
         return theta
         
@@ -136,26 +136,26 @@ class SunPosition:
         return:
         phi: azimuth angle, deg, from South to West
         '''
-        latitude*=N.pi/180.
-        delta*=N.pi/180.
-        theta*=N.pi/180.
+        latitude*=np.pi/180.
+        delta*=np.pi/180.
+        theta*=np.pi/180.
     
-        a1=N.cos(theta)*N.sin(latitude)-N.sin(delta)
-        a2=N.sin(theta)*N.cos(latitude)
+        a1=np.cos(theta)*np.sin(latitude)-np.sin(delta)
+        a2=np.sin(theta)*np.cos(latitude)
         b=a1/a2
 
         if abs(b+1.)<1e-10:
-            phi=N.pi
+            phi=np.pi
 
         elif abs(b-1.)<1e-10:
             phi=0.
         else:
-            phi=abs(N.arccos((N.cos(theta)*N.sin(latitude)-N.sin(delta))/(N.sin(theta)*N.cos(latitude)))) # unit radian
+            phi=abs(np.arccos((np.cos(theta)*np.sin(latitude)-np.sin(delta))/(np.sin(theta)*np.cos(latitude)))) # unit radian
 
         if omega<0:
             phi=-phi
 
-        phi*=180./N.pi
+        phi*=180./np.pi
 
         return phi
 
@@ -171,18 +171,18 @@ class SunPosition:
         delta: declination angle, deg
         omega: solar hour angle, deg
         '''      
-        phi*=N.pi/180.
-        theta*=N.pi/180.
-        latitude*=N.pi/180.
+        phi*=np.pi/180.
+        theta*=np.pi/180.
+        latitude*=np.pi/180.
 
-        delta=N.arcsin(N.cos(theta)*N.sin(latitude)-N.cos(abs(phi))*N.sin(theta)*N.cos(latitude))
+        delta=np.arcsin(np.cos(theta)*np.sin(latitude)-np.cos(abs(phi))*np.sin(theta)*np.cos(latitude))
 
-        omega=N.arccos((N.cos(theta)-N.sin(latitude)*N.sin(delta))/(N.cos(latitude)*N.cos(delta)))
+        omega=np.arccos((np.cos(theta)-np.sin(latitude)*np.sin(delta))/(np.cos(latitude)*np.cos(delta)))
         if phi<0:
             omega=-omega
 
-        delta*=180./N.pi
-        omega*=180./N.pi
+        delta*=180./np.pi
+        omega*=180./np.pi
 
         return delta, omega
 
@@ -200,7 +200,7 @@ class SunPosition:
             sol_azi=180.+azimuth
             sol_ele=90.-zenith  
 
-        if isinstance(sol_azi, N.ndarray):
+        if isinstance(sol_azi, np.ndarray):
             for i in xrange(len(sol_azi)):
                 azi=sol_azi[i]
                 ele=sol_ele[i]
@@ -227,7 +227,7 @@ class SunPosition:
 
         # declination angle (deg)  
         # -23.45 ~ 23.45
-        DELTA=N.linspace(-23.45, 23.45, nd)
+        DELTA=np.linspace(-23.45, 23.45, nd)
         #print 'declination', delta
 
         # the maximum solar hour angle
@@ -240,14 +240,14 @@ class SunPosition:
             delta_summer=-23.45
         
         daymax, sunmax=self.solarhour(delta_summer, latitude)
-        solartime=N.linspace(sunmax, -sunmax, nh*2-1)
+        solartime=np.linspace(sunmax, -sunmax, nh*2-1)
         #print 'solar', solar
 
         # solar time
         time=12.+solartime/15
         #print time
 
-        table=N.zeros(((nh*2-1+3)*(nd+4)))
+        table=np.zeros(((nh*2-1+3)*(nd+4)))
         table=table.astype(str)
         for i in xrange(len(table)):
             table[i]=' '
@@ -255,19 +255,19 @@ class SunPosition:
         table=table.reshape(nh*2-1+3,nd+4)
         table[0,4]='Declination (deg)'
         table[1,0]='Lookup table'
-        table[1,4:]=N.arange(1,nd+1)
+        table[1,4:]=np.arange(1,nd+1)
         table[2,2]='Solar time (h)'
         table[2,3]='Hour angle (deg)'
         table[2,4:]=DELTA
-        table[3:,1]=N.arange(1,nh*2-1+1)
+        table[3:,1]=np.arange(1,nh*2-1+1)
         table[3:,2]=time
         table[3:,3]=solartime
 
         c=1 
-        AZI=N.array([])
-        ZENITH=N.array([])
+        AZI=np.array([])
+        ZENITH=np.array([])
 
-        case_list=N.array(['Case','declination (deg)','solar hour angle (deg)', 'azimuth (deg) S-to-W ', 'zenith (deg)'])
+        case_list=np.array(['Case','declination (deg)','solar hour angle (deg)', 'azimuth (deg) S-to-W ', 'zenith (deg)'])
         for i in xrange(len(DELTA)):
             delta=DELTA[i]
             hour, sunrise=self.solarhour(delta, latitude)
@@ -286,16 +286,16 @@ class SunPosition:
                         theta=self.zenith(latitude, delta, omega)
                         # azimuth        
                         phi=self.azimuth(latitude, theta, delta, omega)
-                        case_list=N.append(case_list, (c, delta, omega, phi, theta)) 
+                        case_list=np.append(case_list, (c, delta, omega, phi, theta)) 
 
-                        AZI=N.append(AZI, phi)
-                        ZENITH=N.append(ZENITH, theta)
+                        AZI=np.append(AZI, phi)
+                        ZENITH=np.append(ZENITH, theta)
 
                         #zenith angle (afternoon)
                         theta=self.zenith(latitude, delta, -omega)
                         # azimuth        
                         phi=self.azimuth(latitude, theta, delta, -omega)
-                        case_list=N.append(case_list, (c, delta, -omega, phi, theta)) 
+                        case_list=np.append(case_list, (c, delta, -omega, phi, theta)) 
 
                         c+=1
                     elif omega==0:
@@ -306,10 +306,10 @@ class SunPosition:
                         theta=self.zenith(latitude, delta, omega)
                         # azimuth        
                         phi=self.azimuth(latitude, theta, delta, omega)
-                        AZI=N.append(AZI, phi)
-                        ZENITH=N.append(ZENITH, theta)
+                        AZI=np.append(AZI, phi)
+                        ZENITH=np.append(ZENITH, theta)
 
-                        case_list=N.append(case_list, (c, delta, omega, phi, theta)) 
+                        case_list=np.append(case_list, (c, delta, omega, phi, theta)) 
                         c+=1
                         
                                              
@@ -318,8 +318,8 @@ class SunPosition:
         #zenith=case_list[1:,-1].astype(float)
 
         if casefolder!='NOTSAVE':    
-            N.savetxt(casefolder+'/table_view.csv', table, fmt='%s', delimiter=',')  
-            N.savetxt(casefolder+'/annual_simulation_list.csv', case_list, fmt='%s', delimiter=',')          
+            np.savetxt(casefolder+'/table_view.csv', table, fmt='%s', delimiter=',')  
+            np.savetxt(casefolder+'/annual_simulation_list.csv', case_list, fmt='%s', delimiter=',')          
 
         return AZI, ZENITH,table,case_list
 
@@ -333,7 +333,7 @@ class SunPosition:
 
         # declination angle (deg)  
         # -23.45 ~ 23.45
-        DELTA=N.linspace(-23.45, 23.45, nd)
+        DELTA=np.linspace(-23.45, 23.45, nd)
         #print 'declination', delta
 
         # the maximum solar hour angle
@@ -346,14 +346,14 @@ class SunPosition:
             delta_summer=-23.45
         
         daymax, sunmax=self.solarhour(delta_summer, latitude)
-        solartime=N.linspace(sunmax, -sunmax, nh*2-1)
+        solartime=np.linspace(sunmax, -sunmax, nh*2-1)
         #print 'solar', solar
 
         # solar time
         time=12.+solartime/15
         #print time
 
-        table=N.zeros(((nh*2-1+3)*(nd+4)))
+        table=np.zeros(((nh*2-1+3)*(nd+4)))
         table=table.astype(str)
         for i in xrange(len(table)):
             table[i]=' '
@@ -361,19 +361,19 @@ class SunPosition:
         table=table.reshape(nh*2-1+3,nd+4)
         table[0,4]='Declination (deg)'
         table[1,0]='Lookup table'
-        table[1,4:]=N.arange(1,nd+1)
+        table[1,4:]=np.arange(1,nd+1)
         table[2,2]='Solar time (h)'
         table[2,3]='Hour angle (deg)'
         table[2,4:]=DELTA
-        table[3:,1]=N.arange(1,nh*2-1+1)
+        table[3:,1]=np.arange(1,nh*2-1+1)
         table[3:,2]=time
         table[3:,3]=solartime
 
         c=1 
-        AZI=N.array([])
-        ZENITH=N.array([])
+        AZI=np.array([])
+        ZENITH=np.array([])
 
-        case_list=N.array(['Case','declination (deg)','solar hour angle (deg)', 'azimuth (deg) S-to-W ', 'zenith (deg)'])
+        case_list=np.array(['Case','declination (deg)','solar hour angle (deg)', 'azimuth (deg) S-to-W ', 'zenith (deg)'])
         for i in xrange(len(DELTA)):
             delta=DELTA[i]
             hour, sunrise=self.solarhour(delta, latitude)
@@ -390,10 +390,10 @@ class SunPosition:
                     theta=self.zenith(latitude, delta, omega)
                     # azimuth        
                     phi=self.azimuth(latitude, theta, delta, omega)
-                    AZI=N.append(AZI, phi)
-                    ZENITH=N.append(ZENITH, theta)
+                    AZI=np.append(AZI, phi)
+                    ZENITH=np.append(ZENITH, theta)
 
-                    case_list=N.append(case_list, (c, delta, omega, phi, theta)) 
+                    case_list=np.append(case_list, (c, delta, omega, phi, theta)) 
                     c+=1
                         
                         
@@ -403,8 +403,8 @@ class SunPosition:
         #zenith=case_list[1:,-1].astype(float)
 
         if casefolder!='NOTSAVE':    
-            N.savetxt(casefolder+'/table_view.csv', table, fmt='%s', delimiter=',')  
-            N.savetxt(casefolder+'/annual_simulation_list.csv', case_list, fmt='%s', delimiter=',')          
+            np.savetxt(casefolder+'/table_view.csv', table, fmt='%s', delimiter=',')  
+            np.savetxt(casefolder+'/annual_simulation_list.csv', case_list, fmt='%s', delimiter=',')          
 
         return AZI, ZENITH,table,case_list[1:]
         

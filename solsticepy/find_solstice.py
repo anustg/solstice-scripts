@@ -3,11 +3,11 @@
 # Python 3.8, with both 32 and 64-bit versions, on both Windows 7 and Windows 10
 # -- John Pye, April 2020
 
-import sys, platform
+import sys, platform, os
 
 def find_solstice_root(version_required=None,verbose=0):
 	if verbose: sys.stderr.write("Python is running from %s\n"%(sys.executable,))
-	if not platform.system()=="Wndows":
+	if not platform.system()=="Windows":
 		raise RuntimeError("This function is only for Windows")
 	# otherwise...
 	if sys.version_info[0] < 3:
@@ -31,8 +31,8 @@ def find_solstice_root(version_required=None,verbose=0):
 
 def find_prog(name,version_required=None):
 	if platform.system()=="Windows":
-		path = os.path.join(find_solstice_root(version_required),"bin",name);
-		if not os.path.exists(prog):
+		path = os.path.join(find_solstice_root(version_required),"bin","%s.exe"%(name,));
+		if not os.path.exists(path):
 			raise RuntimeError("Program '%s' was not found at path '%s'"%(name,path))
 		return path
 	else:

@@ -2,7 +2,7 @@ import numpy as np
 #from tracer.models.heliostat_field import solar_vector
 #import matplotlib.pyplot as plt
 from scipy.spatial import Delaunay
-from gen_vtk import gen_vtk
+from .gen_vtk import gen_vtk
 
 class FieldPF:
 

@@ -1,4 +1,3 @@
-#import numpy as N
 
 def gen_vtk(savedir, points, indices, norms, colormap=True, DATA=None):
     '''
