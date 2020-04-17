@@ -34,15 +34,15 @@ Process the results from Solstice
 .. autofunction:: solsticepy.process_raw_results
 
 
-Find and runn Solstice programs
+Find and run Solstice programs
 -------------------------------------
 
 .. autofunction:: solsticepy.find_solstice_root
 .. autofunction:: solsticepy.find_prog
 
 
-Create heliostat field layouts
---------------------------------
+Preliminary calculation of heliostat field performance
+------------------------------------------------------
 
 .. autoclass:: solsticepy.FieldPF
    :members:

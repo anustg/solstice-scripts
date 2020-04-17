@@ -5,7 +5,7 @@ from scipy.spatial import Delaunay
 from .gen_vtk import gen_vtk
 
 class FieldPF:
-	"""Heliostat field performance estimation
+	"""Preliminary calculation of heliostat field performance.
 
 	1. cosine factors: sun - heliostat
 	2. another cosine factors: receiver -heliostat

@@ -110,7 +110,7 @@ class SunPosition:
 	def zenith(self, latitude, delta, omega):
 		'''
 		ref. eq.1.6.5
-		Arguement:
+		Argument:
 		latitude: latitude angle, float, deg
 		delta:  declination angle, float, deg
 		omega: solar hour angle, float, deg
@@ -128,19 +128,19 @@ class SunPosition:
 		return theta
 		
 	def azimuth(self, latitude, theta, delta, omega):
+		"""Calculate azimuth angle for specified location and sun position.
 
-		'''
-		ref: eq. 1.6.6
-		from South to West
-		Arguement:
+		Ref: eq. 1.6.6 (Duffie and Beckman)
+
+		Argument:
 		latitude: latitude angle, deg
 		delta: declination angle ,deg
-		theta: zenith angle, deg
+		theta: zenith angle, deg (used to ensure correct angular range)
 		omega: solar hour angle, deg
 
-		return:
-		phi: azimuth angle, deg, from South to West
-		'''
+		Return: 
+		* phi: azimuth angle, deg, counted from South towards West
+		"""
 		latitude*=np.pi/180.
 		delta*=np.pi/180.
 		theta*=np.pi/180.
@@ -165,16 +165,15 @@ class SunPosition:
 		return phi
 
 	def convert_AZEL_to_declination_hour(self, theta, phi, latitude):
-
 		'''
-		Arguement:
-		theta: zenith angle, deg
-		phi: azimuth angle deg
-		latitude: latitude latitude , deg
+		Argument:
+		* theta: zenith angle, deg
+		* phi: azimuth angle deg
+		* latitude: latitude latitude , deg
 
-		return:
-		delta: declination angle, deg
-		omega: solar hour angle, deg
+		Returns:
+		* delta: declination angle, deg
+		* omega: solar hour angle, deg
 		'''      
 		phi*=np.pi/180.
 		theta*=np.pi/180.
@@ -192,9 +191,14 @@ class SunPosition:
 		return delta, omega
 
 	def convert_convention(self, tool, azimuth, zenith):
-		'''
-		tool: str, 'tracer', 'solstice', 'solartherm' or else TBD
-		'''
+		"""Return azimuth, elevation using the angle convention of different tools.
+
+		Arguments:
+		* tool -- Can be 'tracer', 'solstice' or 'solartherm'.
+		Returns:
+		* sol_azi -- azimuth angle
+		* sol_ele -- elevation angle
+		"""
 		if tool=='solstice':
 		    # azimuth: from East to North 
 		    sol_azi=-(90.+azimuth)
