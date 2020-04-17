@@ -1,5 +1,13 @@
-# copied from https://github.com/github/gitignore/blob/master/Python.gitignore
 
+postproc/solpaths
+postproc/solpp
+postproc/solppraw
+postproc/solmaps
+postproc/.scons*
+
+.scons*
+
+# copied from https://github.com/github/gitignore/blob/master/Python.gitignore
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -7,6 +15,7 @@ __pycache__/
 
 # C extensions
 *.so
+*.o
 
 # Distribution / packaging
 .Python
