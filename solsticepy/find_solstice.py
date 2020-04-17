@@ -6,6 +6,13 @@
 import sys, platform, os
 
 def find_solstice_root(version_required=None,verbose=0):
+	"""Locate the place where Solstice files are installed on Windows.
+
+	Arguments:
+	version_required -- if not None, then enforce this specified version of Solstice (eg '0.9.0')
+	verbose -- if True, output file locations to stderr.
+	"""
+
 	if verbose: sys.stderr.write("Python is running from %s\n"%(sys.executable,))
 	if not platform.system()=="Windows":
 		raise RuntimeError("This function is only for Windows")
@@ -30,6 +37,13 @@ def find_solstice_root(version_required=None,verbose=0):
 	return dirn
 
 def find_prog(name,version_required=None):
+	"""Find the path to any required Solstice executable program.
+
+	Arguments:
+	name -- stem-name (eg 'solpp') of the program (eg 'solpp.exe') required
+	version_required -- if not None, then enforce this specified version of Solstice (eg '0.9.0')
+	"""
+	
 	if platform.system()=="Windows":
 		path = os.path.join(find_solstice_root(version_required),"bin","%s.exe"%(name,));
 		if not os.path.exists(path):

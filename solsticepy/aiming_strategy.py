@@ -7,6 +7,11 @@ from sys import path
 #from numpy import *
 
 def aiming_flat(folder,h_rec,l_rec,C_aiming,csv,tower_h,Exp):
+	"""Aiming strategy for a flat receiver
+
+	TODO add details here.
+	"""
+
 	title=np.array(['x', 'y', 'z', 'foc', 'aim x', 'aim y', 'aim z', 'm', 'm', 'm', 'm', 'm', 'm', 'm'])
 	hst_info=np.loadtxt(csv,delimiter=',', skiprows=2) 
 	num_hst=hst_info.size/7
