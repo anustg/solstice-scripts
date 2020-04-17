@@ -45,7 +45,7 @@ scons
 scons INSTALL_PREFIX=~/Solstice-0.9.0-GNU-Linux64 install
 ```
 
-# Installating `solsticepy` wrapper scripts
+# Installing `solsticepy` wrapper scripts
 
 ## Windows
 
