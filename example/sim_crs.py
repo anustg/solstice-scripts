@@ -81,7 +81,7 @@ else:
     while 1:
         import datetime,time
         dt = datetime.datetime.now()
-        ds = dt.strftime("%a-%H:%M")
+        ds = dt.strftime("%a-%H-%M")
         casefolder = os.path.join(os.getcwd(),'case-%s-%s%s'%(os.path.basename(__file__),ds,suffix))
         if os.path.exists(casefolder):
             snum+=1
