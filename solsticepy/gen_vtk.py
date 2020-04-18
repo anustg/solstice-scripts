@@ -14,13 +14,13 @@ def gen_vtk(savedir, points, indices, norms, colormap=True, DATA=None):
     f.write('ASCII\n')
     f.write('DATASET POLYDATA\n')
     f.write('POINTS %s double\n'%num_points)
-    for i in xrange(num_points):
+    for i in range(num_points):
         x=points[0,i]
         y=points[1,i]
         z=points[2,i]
         f.write('%.8f %.8f %.8f\n'%(x, y, z))
     f.write('POLYGONS %s %s\n'%(num_tri, num_tri*4))
-    for i in xrange(num_tri):
+    for i in range(num_tri):
         id1=indices[i,0]
         id2=indices[i,1]
         id3=indices[i,2]
@@ -28,7 +28,7 @@ def gen_vtk(savedir, points, indices, norms, colormap=True, DATA=None):
     f.write('CELL_DATA %s\n'%(num_tri))
     f.write('NORMALS cell_normals float\n')
 
-    for i in xrange(num_tri):
+    for i in range(num_tri):
         nx=norms[i,0]
         ny=norms[i,1]
         nz=norms[i,2]
@@ -43,7 +43,7 @@ def gen_vtk(savedir, points, indices, norms, colormap=True, DATA=None):
         interest=DATA.keys()
         for m in interest:
             f.write('%s 1 %s double\n'%(m, num_tri))
-            for i in xrange(num_tri):
+            for i in range(num_tri):
                 f.write('%.8f\n'%(DATA[m][i]))            
 
        

@@ -258,7 +258,7 @@ class SunPosition:
 
 		table=np.zeros(((nh*2-1+3)*(nd+4)))
 		table=table.astype(str)
-		for i in xrange(len(table)):
+		for i in range(len(table)):
 		    table[i]=' '
 
 		table=table.reshape(nh*2-1+3,nd+4)
@@ -277,11 +277,11 @@ class SunPosition:
 		ZENITH=np.array([])
 
 		case_list=np.array(['Case','declination (deg)','solar hour angle (deg)', 'azimuth (deg) S-to-W ', 'zenith (deg)'])
-		for i in xrange(len(DELTA)):
+		for i in range(len(DELTA)):
 		    delta=DELTA[i]
 		    hour, sunrise=self.solarhour(delta, latitude)
 		    sunset=-sunrise
-		    for j in xrange(len(solartime)):
+		    for j in range(len(solartime)):
 		        omega=solartime[j]
 		        if (omega>sunset or omega<sunrise):
 		            table[3+j,4+i]='-' 
@@ -322,7 +322,7 @@ class SunPosition:
 		                c+=1
 		                
 		                                     
-		case_list=case_list.reshape(len(case_list)/5,5)
+		case_list=case_list.reshape(int(len(case_list)/5),5)
 		#azimuth=case_list[1:,-2].astype(float)
 		#zenith=case_list[1:,-1].astype(float)
 
