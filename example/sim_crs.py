@@ -127,8 +127,8 @@ if new_case:
 		, hemisphere='North', tower_h=tower_h, tower_r=tower_r,  spectral=False
 		, medium=0, one_heliostat=one_heliostat)
 
-#master.run(azimuth, elevation, num_rays, rho_refl,DNI)
-master.run_annual(nd=5, nh=5, latitude=latitude, num_rays=num_rays, num_hst=len(hst_pos),rho_mirror=rho_refl, dni=DNI)
+master.run(azimuth, elevation, num_rays, rho_refl,DNI)
+#master.run_annual(nd=5, nh=5, latitude=latitude, num_rays=num_rays, num_hst=len(hst_pos),rho_mirror=rho_refl, dni=DNI)
 
 
 
