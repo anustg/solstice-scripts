@@ -52,7 +52,7 @@ def find_prog(name,version_required=None):
 	else:
 		# assume all solstice programs are on the PATH
 		import subprocess
-		rc = subprocess.call(['which',name])
+		rc = subprocess.call(['which',name],stdout=subprocess.DEVNULL)
 		if rc:
 			raise RuntimeError("Program '%s' was not found in the PATH" %(name))
 		return name

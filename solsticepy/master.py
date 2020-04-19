@@ -15,70 +15,60 @@ def yellow(text):
 def green(text):
     return colorama.Fore.GREEN + colorama.Style.BRIGHT + text + colorama.Style.RESET_ALL
 
+def SPROG(name):
+    return find_prog(name)
+
+def run_prog(name,args,output_file=None,verbose=True):
+	prog = SPROG(name)
+	args1 = [str(a) for a in args]
+	if verbose: 
+		sys.stderr.write("Running '%s' with args: %s\n" % (name," ".join(args1)))
+	if output_file is not None:
+		# any error will cause an exception (and we capture the output to a file)
+		res = subprocess.check_output([prog]+args1)
+		with open(output_file,'w') as f:
+			f.write(res.decode('ascii'))
+	else:
+		# any error will cause an exception...
+		subprocess.check_call([prog]+args1)
 
 class Master:
 
     def __init__(self, casedir='.'):
-        if platform.system()=='Linux':
-            self.root="~/Solstice-0.9.0-GNU-Linux64"
-        else:
-            self.root=find_solstice_root()
         self.casedir=casedir
         if not os.path.exists(self.casedir):
 	        os.makedirs(self.casedir)
 	        assert os.path.isdir(casedir)
         sys.stderr.write("Case directory is '%s'\n" % (yellow(self.casedir),))
 
-    def SPROG(self, n):
-        return os.path.join(self.root,'bin',n)
 
     def in_case(self, fn):
         return os.path.join(self.casedir,fn)
 
-
-    def run_prog(self, prog, args, output_file=None):
-        args1 = [str(a) for a in args]
-        sys.stderr.write("Running '%s' with args: %s\n" % (prog," ".join(args1)))
-        if output_file is not None:
-		    # any error will cause an exception (and we capture the output to a file)
-            if platform.system()=='Linux':
-                os.system(prog+" "+" ".join(args1)+" > "+output_file)
-            else:
-                res = subprocess.check_output([prog]+args1)
-                with open(output_file,'w') as f:
-                    f.write(res.decode('ascii'))
-        else:
-            if platform.system()=='Linux':
-                os.system(prog+" "+" ".join(args1))
-            else:
-		        # any error will cause an exception...
-                subprocess.check_call([prog]+args1)
-
-
     def run(self, azimuth, elevation, num_rays, rho_mirror,dni):
 
-        SOLSTICE=self.SPROG("solstice")
+        SOLSTICE=SPROG("solstice")
 
         YAML_IN = self.in_case('input.yaml')
         RECV_IN = self.in_case('input-rcv.yaml')
 
         # main raytrace
-        self.run_prog(SOLSTICE,['-D%s,%s'%(azimuth,elevation),'-v','-n',num_rays,'-R',RECV_IN,'-fo',self.in_case('simul'),YAML_IN])
+        run_prog("solstice",['-D%s,%s'%(azimuth,elevation),'-v','-n',num_rays,'-R',RECV_IN,'-fo',self.in_case('simul'),YAML_IN])
         # post processing
-        self.run_prog(SOLSTICE,['-D%s,%s'%(azimuth,elevation),'-g','format=obj:split=geometry','-fo',self.in_case('geom'),YAML_IN])
+        run_prog("solstice",['-D%s,%s'%(azimuth,elevation),'-g','format=obj:split=geometry','-fo',self.in_case('geom'),YAML_IN])
 
-        self.run_prog(SOLSTICE,['-D%s,%s'%(azimuth,elevation),'-q','-n','100','-R',RECV_IN,'-p','default',YAML_IN], output_file=self.in_case('solpaths'))
+        run_prog("solstice",['-D%s,%s'%(azimuth,elevation),'-q','-n','100','-R',RECV_IN,'-p','default',YAML_IN], output_file=self.in_case('solpaths'))
 
         # Read "simul" results and produce a text file with the raw results
-        self.run_prog(self.SPROG('solppraw'),[self.in_case('simul')])
+        run_prog('solppraw',[self.in_case('simul')])
         # Read "simul" results and produce receiver files (.vtk) of incoming and/or absorbed solar flux per-primitive
-        self.run_prog(self.SPROG('solmaps'),[self.in_case('simul')])
+        run_prog('solmaps',[self.in_case('simul')])
 
         # Read "geom" and "simul" file results and produce primaries and receivers files (.vtk), and .obj geometry files
-        self.run_prog(self.SPROG('solpp'),[self.in_case('geom'),self.in_case('simul')])
+        run_prog('solpp',[self.in_case('geom'),self.in_case('simul')])
 
         # Read "solpaths" file and produce readable file (.vtk) by paraview to visualize the ray paths
-        self.run_prog(self.SPROG('solpaths'),[self.in_case('solpaths')])
+        run_prog('solpaths',[self.in_case('solpaths')])
 
 
         if platform.system()=="Linux":
@@ -92,14 +82,14 @@ class Master:
             os.system('move *txt %s >nul'%self.casedir)
 
         eta, performance_hst=process_raw_results(self.in_case('simul'), self.casedir,rho_mirror,dni)
-        sys.stderr.write('\n' + yellow("Total efficiency: %s\n"%(repr(eta),)))
+        sys.stderr.write('\n' + yellow("Total efficiency: {:f}\n".format(eta)))
         sys.stderr.write(green("Completed successfully.\n"))
 
 
 
     def run_annual(self, nd, nh, latitude, num_rays, num_hst,rho_mirror,dni,gen_vtk=False):
 
-        SOLSTICE=self.SPROG("solstice")
+        SOLSTICE=SPROG("solstice")
         YAML_IN = self.in_case('input.yaml')
         RECV_IN = self.in_case('input-rcv.yaml')
 
@@ -128,40 +118,37 @@ class Master:
                 sys.stderr.write("\n"+green('Sun position: %s \n'%c))
                 print('azimuth:',  azimuth, ', elevation:',elevation)
 
-                onesunfolder=self.casedir+'/sunpos_%s'%(c)
+                onesunfolder=os.path.join(self.casedir,'sunpos_%s'%(c))
+
                 if not os.path.exists(onesunfolder):
                     os.makedirs(onesunfolder) 
                 # run solstice
-                if elevation<1.:
+                if elevation<1.: # 1 degree
                     efficiency_total=ufloat(0,0)
                     performance_hst=np.zeros((num_hst, 9))  
                 else:
 
                     # main raytrace
-                    if platform.system()=="Linux":
-                        os.system("%s -D%s,%s -v -n %s -R %s -fo %s %s"%(SOLSTICE, azimuth, elevation, num_rays, RECV_IN, self.in_case('simul'), YAML_IN))
-                    else:
-                        self.run_prog(SOLSTICE,['-D%s,%s'%(azimuth,elevation),'-v','-n',num_rays,'-R',RECV_IN,'-fo',self.in_case('simul'),YAML_IN])
+                    run_prog('solstice',['-D%s,%s'%(azimuth,elevation),'-v','-n',num_rays,'-R',RECV_IN,'-fo',self.in_case('simul'),YAML_IN],verbose=False)
 						
                     if gen_vtk:
-
                         # post processing
-                        self.run_prog(SOLSTICE,['-D%s,%s'%(azimuth,elevation),'-g','format=obj:split=geometry','-fo',self.in_case('geom'),YAML_IN])
+                        run_prog('solstice',['-D%s,%s'%(azimuth,elevation),'-g','format=obj:split=geometry','-fo',self.in_case('geom'),YAML_IN])
 
-                        self.run_prog(SOLSTICE,['-D%s,%s'%(azimuth,elevation),'-q','-n','100','-R',RECV_IN,'-p','default',YAML_IN], output_file=self.in_case('solpaths'))
+                        run_prog('solstice',['-D%s,%s'%(azimuth,elevation),'-q','-n','100','-R',RECV_IN,'-p','default',YAML_IN], output_file=self.in_case('solpaths'))
                         # Read "simul" results and produce a text file with the raw results
-                        self.run_prog(self.SPROG('solppraw'),[self.in_case('simul')])
+                        run_prog('solppraw',[self.in_case('simul')])
                         # Read "simul" results and produce receiver files (.vtk) of incoming and/or absorbed solar flux per-primitive
-                        self.run_prog(self.SPROG('solmaps'),[self.in_case('simul')])
+                        run_prog('solmaps',[self.in_case('simul')])
 
                         # Read "geom" and "simul" file results and produce primaries and receivers files (.vtk), and .obj geometry files
-                        self.run_prog(self.SPROG('solpp'),[self.in_case('geom'),self.in_case('simul')])
+                        run_prog('solpp',[self.in_case('geom'),self.in_case('simul')])
 
                         # Read "solpaths" file and produce readable file (.vtk) by paraview to visualize the ray paths
-                        self.run_prog(self.SPROG('solpaths'),[self.in_case('solpaths')])
+                        run_prog('solpaths',[self.in_case('solpaths')])
 
                     efficiency_total, performance_hst=process_raw_results(self.in_case('simul'), self.casedir,rho_mirror,dni)
-                    sys.stderr.write(yellow("Total efficiency: %s\n"%(repr(efficiency_total),)))
+                    sys.stderr.write(yellow("Total efficiency: {:f}\n".format(efficiency_total)))
            
                     if platform.system()=="Linux":
                         os.system('mv %s/simul %s'%(self.casedir,onesunfolder))
