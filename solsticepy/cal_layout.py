@@ -3,11 +3,8 @@ import sys
 import matplotlib
 matplotlib.use("agg")
 import matplotlib.pyplot as plt
-from .cal_field import *
-from .cal_sun import *
-from .gen_vtk import gen_vtk
 
-def radial_stagger(num_hst, width, height, hst_z, towerheight, R1, dsep=0., field='polar-half', savedir='.', plot=False):
+def radial_stagger(num_hst, width, height, hst_z, towerheight, R1, dsep=0., field='polar', savedir='.', plot=False):
 	'''
 	Ref. (Collado and Guallar, 2012), Campo: Generation of regular heliostat field.
 
@@ -62,15 +59,15 @@ def radial_stagger(num_hst, width, height, hst_z, towerheight, R1, dsep=0., fiel
 		    delta_az=2.*np.pi/Nhel
 		    sys.stderr.write('\nzone %d\n' % (i,))
 		    sys.stderr.write("R %f\n"%(R,))
-		    sys.stderr.write("rows %d\n"%(nrows,))
+		    sys.stderr.write("rows %d\n"%(Nrows,))
 		    sys.stderr.write("hst %d\n"%(Nhel,))
 		    sys.stderr.write("daz %f\n"%(delta_az,))
 
-		    for row in xrange(Nrows):
+		    for row in range(Nrows):
 
 		        r=R+float(row)*delta_Rmin
 
-		        for nh in xrange(Nhel):
+		        for nh in range(Nhel):
 
 		            if num<num_hst/2:   
 		       
@@ -106,15 +103,15 @@ def radial_stagger(num_hst, width, height, hst_z, towerheight, R1, dsep=0., fiel
 		    
 		    sys.stderr.write("\nzone %d"%(i,))
 		    sys.stderr.write("R %f\n"%(R,))
-		    sys.stderr.write("rows %d\n"%(nrows,))
+		    sys.stderr.write("rows %d\n"%(Nrows,))
 		    sys.stderr.write("hst %d\n"%(Nhel,))
 		    sys.stderr.write("daz %f\n"%(delta_az,))		
 
-		    for row in xrange(Nrows):
+		    for row in range(Nrows):
 
 		        r=R+float(row)*delta_Rmin
 
-		        for nh in xrange(Nhel):
+		        for nh in range(Nhel):
 		      
 		            if num<num_hst:
 
@@ -154,9 +151,9 @@ def radial_stagger(num_hst, width, height, hst_z, towerheight, R1, dsep=0., fiel
 
 	pos_and_aiming=np.append(X, (Y, hstpos[:,2], foc, aim_x, aim_y, aim_z))
 	title=np.array(['x', 'y', 'z', 'foc', 'aim x', 'aim y', 'aim z', 'm', 'm', 'm', 'm', 'm', 'm', 'm'])
-	pos_and_aiming=pos_and_aiming.reshape(7,len(pos_and_aiming)/7)
+	pos_and_aiming=pos_and_aiming.reshape(7,int(len(pos_and_aiming)/7))
 	pos_and_aiming=np.append(title, pos_and_aiming.T)
-	pos_and_aiming=pos_and_aiming.reshape(len(pos_and_aiming)/7, 7)
+	pos_and_aiming=pos_and_aiming.reshape(int(len(pos_and_aiming)/7), 7)
 
 	np.savetxt('%s/pos_and_aiming.csv'%savedir, pos_and_aiming, fmt='%s', delimiter=',')
 
@@ -164,11 +161,13 @@ def radial_stagger(num_hst, width, height, hst_z, towerheight, R1, dsep=0., fiel
 		fts=24
 		plt.figure(dpi=100.,figsize=(12,9))
 		plt.plot(X, Y, '.')
-		plt.xlim(-1000, 1000)
-		plt.ylim(-1000, 1000)
+		#plt.xlim(-1000, 1000)
+		#plt.ylim(-1000, 1000)
 		plt.xticks(fontsize=fts)
 		plt.yticks(fontsize=fts)
-		plt.savefig(open('%s.png'%field,'w'), bbox_inches='tight')
+		plt.xlabel('x (m)', fontsize=fts)
+		plt.ylabel('y (m)', fontsize=fts)
+		plt.savefig(savedir+'/field_layout.png', bbox_inches='tight')
 		plt.close()
 
 	return pos_and_aiming

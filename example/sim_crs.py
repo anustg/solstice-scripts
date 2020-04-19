@@ -1,8 +1,12 @@
+#
+# This is an example script to simulate a central receiver system (CRS)
+#
 import solsticepy
 from solsticepy.master import Master
-
-import numpy as N
+import numpy as np
 import os
+#==================================================
+
 
 # whether run a new case 
 # or load an existed yaml inputs in the casefolder
@@ -20,6 +24,7 @@ sunsize=0.2664 # the half angle of the pillbox sunshape distribution, in degree
 # e.g. summer solstice, solar noon
 azimuth=270.   # from East to North, deg
 elevation =78. # 0 is horizontal, deg
+latitude=34.   # latitude of the crs plant
 # S4. number of rays for the ray-tracing simulation
 num_rays=2000000
 #
@@ -27,6 +32,8 @@ num_rays=2000000
 # ==========
 # F1.Layout
 layoutfile='./demo_layout.csv'
+hst_field=True # simulate the full heliostat field
+
 # F2. Heliostat
 hst_w=10. # m
 hst_h=10. # m
@@ -39,7 +46,7 @@ tower_r=0.01 # tower radius
 # the receiver
 # ============
 # R1. shape
-receiver='flat' # 'flat', 'cylinder' or 'stl'
+receiver='flat' # 'flat' or 'stl'
 # R2. Size
 rec_w=8. # width, m
 rec_h=6. # height, m
@@ -58,8 +65,10 @@ if receiver=='flat':
 elif receiver=='stl':
     stlfile='./demo_plane.stl'
 
-# set the folder for saving the output files
-# False or string-name of the user defined folder
+# set the folder name for saving the output files
+# False: an automatically generated name  
+# or
+# string: name of the user defined folder
 userdefinedfolder=False
 
 
@@ -68,10 +77,16 @@ userdefinedfolder=False
 # ===============================================================
 # the ray-tracing scene will be generated 
 # based on the settings above
-layout=N.loadtxt(layoutfile, delimiter=',', skiprows=2)
-hst_pos=layout[:,:3]
-hst_foc=layout[:,3] # F2.5
-hst_aims=layout[:,4:] # F4.
+
+if hst_field:
+    layout=np.loadtxt(layoutfile, delimiter=',', skiprows=2)
+    hst_pos=layout[:,:3]
+    hst_foc=layout[:,3] # F2.5
+    hst_aims=layout[:,4:] # F4.
+    one_heliostat=False
+else:
+    one_heliostat=True
+
 
 if userdefinedfolder:
     casefolder=userdefinedfolder
@@ -81,7 +96,7 @@ else:
     while 1:
         import datetime,time
         dt = datetime.datetime.now()
-        ds = dt.strftime("%a-%H:%M")
+        ds = dt.strftime("%a-%H-%M")
         casefolder = os.path.join(os.getcwd(),'case-%s-%s%s'%(os.path.basename(__file__),ds,suffix))
         if os.path.exists(casefolder):
             snum+=1
@@ -97,9 +112,9 @@ if not os.path.exists(casefolder):
     assert os.path.isdir(casefolder)
 
 if receiver =='flat':
-    rec_param=N.r_[rec_w, rec_h, rec_mesh, loc_x, loc_y, loc_z, tilt]
+    rec_param=np.r_[rec_w, rec_h, rec_mesh, loc_x, loc_y, loc_z, tilt]
 elif receiver =='stl':
-    rec_param=N.array([rec_w, rec_h, stlfile, loc_x, loc_y, loc_z, tilt])
+    rec_param=np.array([rec_w, rec_h, stlfile, loc_x, loc_y, loc_z, tilt])
 
 master=Master(casedir=casefolder)
 outfile_yaml = master.in_case('input.yaml')
@@ -110,10 +125,10 @@ if new_case:
 		, rho_refl, slope_error, receiver, rec_param, rec_abs
 		, outfile_yaml=outfile_yaml, outfile_recv=outfile_recv
 		, hemisphere='North', tower_h=tower_h, tower_r=tower_r,  spectral=False
-		, medium=0, one_heliostat=False)
+		, medium=0, one_heliostat=one_heliostat)
 
-master.run(azimuth, elevation, num_rays, rho_refl)
-
+master.run(azimuth, elevation, num_rays, rho_refl,DNI)
+#master.run_annual(nd=5, nh=5, latitude=latitude, num_rays=num_rays, num_hst=len(hst_pos),rho_mirror=rho_refl, dni=DNI)
 
 
 

@@ -210,7 +210,7 @@ class SunPosition:
 		    sol_ele=90.-zenith  
 
 		if isinstance(sol_azi, np.ndarray):
-		    for i in xrange(len(sol_azi)):
+		    for i in range(len(sol_azi)):
 		        azi=sol_azi[i]
 		        ele=sol_ele[i]
 		        if (azi>=360. or azi<0.):
@@ -237,92 +237,79 @@ class SunPosition:
 		# declination angle (deg)  
 		# -23.45 ~ 23.45
 		DELTA=np.linspace(-23.45, 23.45, nd)
-		#print 'declination', delta
-
-		# the maximum solar hour angle
-		# summer solstice
-		if latitude>=0:
-		    # North hemisphere
-		    delta_summer=23.45
-		else:
-		    # South hemishpere
-		    delta_summer=-23.45
-		
-		daymax, sunmax=self.solarhour(delta_summer, latitude)
-		solartime=np.linspace(sunmax, -sunmax, nh*2-1)
-		#print 'solar', solar
 
 		# solar time
-		time=12.+solartime/15
-		#print time
+		solartime=np.linspace(-180., 180., nh) # deg
 
-		table=np.zeros(((nh*2-1+3)*(nd+4)))
+		table=np.zeros(((nh+3)*(nd+3)))
 		table=table.astype(str)
-		for i in xrange(len(table)):
-		    table[i]=' '
+		for i in range(len(table)):
+			table[i]=''
 
-		table=table.reshape(nh*2-1+3,nd+4)
-		table[0,4]='Declination (deg)'
-		table[1,0]='Lookup table'
-		table[1,4:]=np.arange(1,nd+1)
-		table[2,2]='Solar time (h)'
-		table[2,3]='Hour angle (deg)'
-		table[2,4:]=DELTA
-		table[3:,1]=np.arange(1,nh*2-1+1)
-		table[3:,2]=time
-		table[3:,3]=solartime
+		table=table.reshape(nd+3, nh+3)
+		table[0,0]='Lookup table'
+		table[3,0]='Declination (deg)'
+		table[0,3]='Hour angle (deg)'
 
-		c=1 
+		table[3:,1 ]=np.arange(1,nd+1)
+		table[1 ,3:]=np.arange(1,nh+1)
+
+		table[3:,2 ]=DELTA   
+		table[2 ,3:]=solartime
+
+		c=1
 		AZI=np.array([])
 		ZENITH=np.array([])
 
 		case_list=np.array(['Case','declination (deg)','solar hour angle (deg)', 'azimuth (deg) S-to-W ', 'zenith (deg)'])
-		for i in xrange(len(DELTA)):
-		    delta=DELTA[i]
-		    hour, sunrise=self.solarhour(delta, latitude)
-		    sunset=-sunrise
-		    for j in xrange(len(solartime)):
-		        omega=solartime[j]
-		        if (omega>sunset or omega<sunrise):
-		            table[3+j,4+i]='-' 
-		        else:
-		            if omega<0:
 
-		                table[3+j, 4+i]=' case %s'%(c)
-		                table[-(1+j), 4+i]='***%s'%(c)
+		for i in range(nd):
+			delta=DELTA[i]
+			hour, sunrise=self.solarhour(delta, latitude)
+			sunset=-sunrise
+			for j in range(nh):
+				omega=solartime[j]
+				if (omega>sunset or omega<sunrise):
+					table[3+i,3+j]='-' 
 
-		                #zenith angle (morning)
-		                theta=self.zenith(latitude, delta, omega)
-		                # azimuth        
-		                phi=self.azimuth(latitude, theta, delta, omega)
-		                case_list=np.append(case_list, (c, delta, omega, phi, theta)) 
+				else:
+					if omega<0:
 
-		                AZI=np.append(AZI, phi)
-		                ZENITH=np.append(ZENITH, theta)
+						table[3+i, 3+j]=' case %s'%(c)
+						table[3+i, -(1+j)]='***%s'%(c)
 
-		                #zenith angle (afternoon)
-		                theta=self.zenith(latitude, delta, -omega)
-		                # azimuth        
-		                phi=self.azimuth(latitude, theta, delta, -omega)
-		                case_list=np.append(case_list, (c, delta, -omega, phi, theta)) 
+						#zenith angle
+						theta=self.zenith(latitude, delta, omega)
+						# azimuth        
+						phi=self.azimuth(latitude, theta, delta, omega)
+						AZI=np.append(AZI, phi)
+						ZENITH=np.append(ZENITH, theta)
 
-		                c+=1
-		            elif omega==0:
+						case_list=np.append(case_list, (c, delta, omega, phi, theta)) 
 
-		                table[3+j, 4+i]=' case %s'%(c)
+						#zenith angle (afternoon)
+						theta=self.zenith(latitude, delta, -omega)
+						# azimuth        
+						phi=self.azimuth(latitude, theta, delta, -omega)    
+						case_list=np.append(case_list, (c, delta, -omega, phi, theta))                 
 
-		                #zenith angle
-		                theta=self.zenith(latitude, delta, omega)
-		                # azimuth        
-		                phi=self.azimuth(latitude, theta, delta, omega)
-		                AZI=np.append(AZI, phi)
-		                ZENITH=np.append(ZENITH, theta)
+						c+=1
 
-		                case_list=np.append(case_list, (c, delta, omega, phi, theta)) 
-		                c+=1
-		                
-		                                     
-		case_list=case_list.reshape(len(case_list)/5,5)
+					elif omega==0:
+						table[3+i, 3+j]=' case %s'%(c)
+
+						#zenith angle
+						theta=self.zenith(latitude, delta, omega)
+						# azimuth        
+						phi=self.azimuth(latitude, theta, delta, omega)
+						AZI=np.append(AZI, phi)
+						ZENITH=np.append(ZENITH, theta)
+
+						case_list=np.append(case_list, (c, delta, omega, phi, theta)) 
+						c+=1
+
+		              	                                     
+		case_list=case_list.reshape(int(len(case_list)/5),5)
 		#azimuth=case_list[1:,-2].astype(float)
 		#zenith=case_list[1:,-1].astype(float)
 
@@ -364,7 +351,7 @@ class SunPosition:
 
 		table=np.zeros(((nh*2-1+3)*(nd+4)))
 		table=table.astype(str)
-		for i in xrange(len(table)):
+		for i in range(len(table)):
 		    table[i]=' '
 
 		table=table.reshape(nh*2-1+3,nd+4)
@@ -383,11 +370,11 @@ class SunPosition:
 		ZENITH=np.array([])
 
 		case_list=np.array(['Case','declination (deg)','solar hour angle (deg)', 'azimuth (deg) S-to-W ', 'zenith (deg)'])
-		for i in xrange(len(DELTA)):
+		for i in range(len(DELTA)):
 		    delta=DELTA[i]
 		    hour, sunrise=self.solarhour(delta, latitude)
 		    sunset=-sunrise
-		    for j in xrange(len(solartime)):
+		    for j in range(len(solartime)):
 		        omega=solartime[j]
 		        if (omega>sunset or omega<sunrise):
 		            table[3+j,4+i]='-' 

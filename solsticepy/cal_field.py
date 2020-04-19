@@ -21,7 +21,6 @@ class FieldPF:
 		Arguments:
 		* receiver_normal -- A numpy 3-vector with unit normal direction of the receiver aperature (default: [0,1,0])
 		"""
-		#self.sun_vec=self.get_solar_vector(azimuth, zenith)
 		self.rec_norm=receiver_norm.reshape(3,1)
 
 
@@ -44,7 +43,6 @@ class FieldPF:
 		sun_y=-np.sin(zenith)*np.cos(azimuth)
 		sun_x=-np.sin(zenith)*np.sin(azimuth)
 		sun_vec = np.r_[sun_x, sun_y,sun_z] 
-
 
 		return sun_vec
 
@@ -113,7 +111,7 @@ class FieldPF:
 		norm_y=normals[:,1]
 		norm_z=normals[:,2]          
 
-		for i in xrange(num_hst):            
+		for i in range(num_hst):            
 		 
 		    TRI[i*ele: (i+1)*ele]=tri1+i*nc
 
@@ -220,12 +218,12 @@ if __name__=='__main__':
     aim=pos_and_aiming[:,4:]
     azimuth=np.r_[0.]
     zenith=np.r_[12.]
-    field=FieldPF(azimuth, zenith,np.r_[0,1,0])
+    field=FieldPF(np.r_[0,1,0])
     sun_vec=field.get_solar_vector(azimuth, zenith)
     norms=field.get_normals(towerheight=70., hstpos=pos, sun_vec=sun_vec)
     #field.heliostat(10, 8)
-    COORD, TRI, ele, nc=field.view_heliostats(10., 8., norms, pos)
-    cos=field.get_cosine(towerheight=70., hstpos=pos)
+    COORD, TRI, ele, nc=field.view_heliostats(width=10., height=8., normals=norms, hstpos=pos)
+    cos=field.get_cosine(hst_norms=norms, sun_vec=sun_vec)
     savedir='./field.vtk'
     COS=np.repeat(cos, ele)
     DATA={'cos':COS}
