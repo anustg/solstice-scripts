@@ -124,8 +124,8 @@ class Master:
                 #else:
                 #	dni=0.
 
-                print('')
-                print('sun position:', (c))
+               
+                sys.stderr.write("\n"+green('Sun position: %s \n'%c))
                 print('azimuth:',  azimuth, ', elevation:',elevation)
 
                 onesunfolder=self.casedir+'/sunpos_%s'%(c)
@@ -138,8 +138,11 @@ class Master:
                 else:
 
                     # main raytrace
-                    os.system("%s -D%s,%s -v -n %s -R %s -fo %s %s"%(SOLSTICE, azimuth, elevation, num_rays, RECV_IN, self.in_case('simul'), YAML_IN))
-
+                    if platform.system()=="Linux":
+                        os.system("%s -D%s,%s -v -n %s -R %s -fo %s %s"%(SOLSTICE, azimuth, elevation, num_rays, RECV_IN, self.in_case('simul'), YAML_IN))
+                    else:
+                        self.run_prog(SOLSTICE,['-D%s,%s'%(azimuth,elevation),'-v','-n',num_rays,'-R',RECV_IN,'-fo',self.in_case('simul'),YAML_IN])
+						
                     if gen_vtk:
 
                         # post processing
@@ -172,13 +175,13 @@ class Master:
 
 
                     else:
-                        os.system('move %s/simul %s >nul'%(self.casedir,onesunfolder))
+                        #os.system('move %s/simul %s >nul'%(self.casedir,onesunfolder))
                         if gen_vtk:
                             os.system('move *vtk %s >nul'%onesunfolder)
                             os.system('move *obj %s >nul'%onesunfolder)
                             os.system('move *txt %s >nul'%onesunfolder)
-                            os.system('move %s/geom %s >nul'%(self.casedir,onesunfolder))
-                            os.system('move %s/solpaths %s >nul'%(self.casedir,onesunfolder))
+                            #os.system('move %s/geom %s >nul'%(self.casedir,onesunfolder))
+                            #os.system('move %s/solpaths %s >nul'%(self.casedir,onesunfolder))
 
                 ANNUAL+=performance_hst
             else:
@@ -199,7 +202,7 @@ class Master:
         annual_title=N.array(['Q_solar','Q_cosine', 'Q_shade', 'Q_hst_abs', 'Q_block', 'Q_atm', 'Q_spil', 'Q_refl', 'Q_rcv_abs']) 
         ANNUAL=N.vstack((annual_title, ANNUAL))
         np.savetxt(self.casedir+'/lookup_table.csv', table, fmt='%s', delimiter=',')
-        np.savetxt(self.casedir+'/heliostats_annual_performance.csv', ANNUAL, fmt='%s', delimiter=',')
+        np.savetxt(self.casedir+'/result-heliostats-annual-performance.csv', ANNUAL, fmt='%s', delimiter=',')
         sys.stderr.write("\n"+green("Lookup table saved.\n"))
         sys.stderr.write(green("Completed successfully.\n"+"\n"))
 

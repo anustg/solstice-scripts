@@ -255,7 +255,7 @@ def process_raw_results(rawfile, savedir,rho_mirror,dni):
 		heliostats[i+1,26]=hst_rec_refl
 		heliostats[i+1,27]=hst_rec_abs
 
-	N.savetxt(savedir+'/results-heliostats.csv', heliostats, fmt='%s', delimiter=',')
+	#N.savetxt(savedir+'/results-heliostats.csv', heliostats, fmt='%s', delimiter=',')
 
 	performance_hst=N.zeros((num_hst, 10))
 	performance_hst[:,0]=heliostats[1:, 0].astype(float)
