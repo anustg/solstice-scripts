@@ -24,6 +24,7 @@ sunsize=0.2664 # the half angle of the pillbox sunshape distribution, in degree
 # e.g. summer solstice, solar noon
 azimuth=270.   # from East to North, deg
 elevation =78. # 0 is horizontal, deg
+latitude=34.   # latitude of the crs plant
 # S4. number of rays for the ray-tracing simulation
 num_rays=2000000
 #
@@ -126,8 +127,8 @@ if new_case:
 		, hemisphere='North', tower_h=tower_h, tower_r=tower_r,  spectral=False
 		, medium=0, one_heliostat=one_heliostat)
 
-master.run(azimuth, elevation, num_rays, rho_refl)
-
+master.run(azimuth, elevation, num_rays, rho_refl,DNI)
+#master.run_annual(nd=5, nh=5, latitude=latitude, num_rays=num_rays, num_hst=len(hst_pos),rho_mirror=rho_refl, dni=DNI)
 
 
 
