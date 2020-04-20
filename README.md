@@ -2,7 +2,7 @@
 
 This repository contains Python wrappers for running the  [Solstice](https://www.meso-star.com/projects/solstice/solstice.html) ray-tracing software, which can be used for the simulation of concentrating solar-thermal power (CSP) systems. The repository also contains copies of the [post-processing tools](https://www.meso-star.com/projects/solstice/solstice-resources.html) for Solstice, which are required by our Python wrappers. Finally, this repository contains code to generate an easy-to-use Windows installer for Solstice.
 
-|docs|
+[![github](https://readthedocs.org/projects/solsticepy/badge/?version=latest)][1]
 
 # solsticepy
 
@@ -90,9 +90,7 @@ run.py
 * **Solstice**: https://www.meso-star.com/projects/solstice/solstice.html
 * Wang, Y., Potter, D., Asselineau, C.-A., Corsi, C., Wagner, M., Caliot, C., Piaud, B., Blanco, M., Kim, J.-S., Pye, J., 2019. [Verification of Optical Modeling on Sunshape and Surface Slope Error](https://www.researchgate.net/publication/337636543). Solar Energy 195. doi:10.1016/j.solener.2019.11.035
 
-.. |docs| image:: https://readthedocs.org/projects/solsticepy/badge/?version=latest
-    :alt: Documentation Status
-    :scale: 100%
-    :target: https://solsticepy.readthedocs.io/en/latest/?badge=latest
+[1]: https://solsticepy.readthedocs.io/en/latest/?badge=latest
+
 
 
