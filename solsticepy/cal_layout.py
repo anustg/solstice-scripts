@@ -5,25 +5,24 @@ matplotlib.use("agg")
 import matplotlib.pyplot as plt
 
 def radial_stagger(num_hst, width, height, hst_z, towerheight, R1, dsep=0., field='polar', savedir='.', plot=False):
-	'''
-	Ref. (Collado and Guallar, 2012), Campo: Generation of regular heliostat field.
+	'''Generate a radial-stagger heliostat field, ref. Collado and Guallar, 2012, Campo: Generation of regular heliostat field.
 
-	Generate a rather large field
+	``Arguements``
+	  * num_hst (int) : number of heliostats
+	  * width (float) : mirror width (m)
+	  * height (float): mirror height (m)
+	  * hst_z (float) : the vertical location of each heliostat (m)
+	  * towerheight (float): tower height (m)
+	  * R1 (float)    : distance from the first row to the bottom of the tower, i.e. (0, 0, 0)
+	  * dsep (float)  : separation distance (m)
+	  * field (str)   : 'polar-half' or 'surround-half' or 'polar' or 'surround' field, the 'half' option is for simulation a symmetric field
+	  * savedir (str) : directory of saving the pos_and_aiming.csv
+	  * plot (bool): True - plot the layout by Matplotlib
 
-	Arguements:
-	num_hst    : int, number of heliostats
-	width      : float, mirror width (m)
-	height     : float, mirror height (m)
-	hst_z      : float, the vertical location of each heliostat (m)
-	towerheight: float, tower height (m)
-	R1         : float, distance from the first row to the bottom of the tower (0, 0, 0)
-	dsep       : float, separation distance (m)
-	field      : str, 'polar-half' or 'surround-half' or 'polar' or 'surround' field, 
-		               the 'half' option is for simulation a symmetric field
-	savedir    : str, directory of saving the pos_and_aiming.csv
+	``Returns``
 
-	Return:
-	pos_and_aiming: (n, 7) array, position, focal length and aiming point of each generated heliostat
+	  * pos_and_aiming (nx7 numpy array): position, focal length and aiming point of each generated heliostat
+	  * a pos_and_aiming.csv file is created and written to the savedir
 	'''
 
 	# heliostat diagonal distantce

@@ -1,10 +1,19 @@
 
 def gen_vtk(savedir, points, indices, norms, colormap=True, DATA=None):
-    '''
-    points - x, y, z
-    indices - vertices of the triangle mesh
-    DATA - dic, key is 'cosine' or 'atm' or others
-    num - number of cell data 
+    '''Generate 3D views of a heliostat field with traingular mesh in the VTK format that can be visualised in ParaView software
+    
+    ``Arguements``
+    
+      * savedir (str): directory to save the VTK file
+      * points (nx3 numpy array): the vertices of the objects, each colum of the array is X, Y, Z coordinates respectively
+      * indices (nx3 numpy array): the indices of the triangle mesh
+      * norms (nx3 numpy array): the normal vectors of the trangle mesh
+      * colormap (bool): True - show the data of each heliostat (e.g. cosine factor), False - not show the data results, but only show the geometry of the heliostats
+      * DATA (dic): key is 'cosine' or 'atm' or others performance parameter to be visualised
+
+    ``Return``
+
+      * No return value (a VTK file is created and written in the `savedir`)    
     '''
     num_points=len(points.T)
     num_tri=len(indices)
@@ -47,7 +56,7 @@ def gen_vtk(savedir, points, indices, norms, colormap=True, DATA=None):
                 f.write('%.8f\n'%(DATA[m][i]))            
 
        
-        f.close()
+    f.close()
 
 
 if __name__=='__main__':

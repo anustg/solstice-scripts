@@ -3,19 +3,23 @@ import numpy as np
 class SunPosition:
 
 	def __init__(self):
+		""" Calculate sun position according to a certain location, date and time. Reference: John A. Duffie and William A. Beckman. Solar Engineering of Thermal Processes, 4th edition.
+		"""		
 		pass
 
 
 	def days(self, dd, mm):
-		"""Day of the year for specified date, month
+		"""Calculate the day-of-the-year for specified date and month, ref. J Duffie page 14, Table 1.6.1
 
-		Arguments:
-		dd - int, the day in the month
-		mm - str, the month
+		``Arguments``
 
-		Returns: day of the year, starting with 1.
+			* dd (int): the day in the month
+			* mm (str): the month, e.g. 'Jan', 'Feb', Mar' etc
 
-		reference: J Duffie pp14, Table 1.6.1
+		``Return`` 
+
+			* days (int): the-day-of-the year for the specified dd-mm, e.g. 1 Jan is day 1
+
 		"""
 
 		if mm=='Jan':
@@ -58,18 +62,16 @@ class SunPosition:
 
 
 	def declination(self, days, form='detail'):
-		"""Calculate the solar declination angle for a specified day-of-the-year.
+		"""Calculate the solar declination angle for a specified day-of-the-year, ref. J Duffie page 13, declination angle: delta=23.45*sin(360*(284+day)/365)
 
-		Reference: Solar Engineering of Thermal Processes, 4th edition, John A. Duffie and William A. Beckman, page 13
+		``Arguements``
 
-		declination angle: delta=23.45*sin(360*(284+day)/365)
+		  * day (int): day of the year, i.e from 1 to 365
+		  * form (str): 'detail' or simple' model
 
-		Arguement:
-		day - int, day of the year (1-365)
-		form - str, 'detail' or simple' model
+		``Return``
 
-		Return:
-		delta - declination angle (deg)
+		  * delta (float): declination angle (deg)
 		"""
 
 		if form=='detail':
@@ -84,17 +86,17 @@ class SunPosition:
 
 
 	def solarhour(self, delta, latitude):
-		"""Calculate day length and sunrise hour-angle.
+		"""Calculate day length and sunrise hour-angle, ref. J Duffie page 17
 
-		Reference: Solar Engineering of Thermal Processes, 4th edition, John A. Duffie and William A. Beckman, page 17
+		``Arguments``
 
-		Argument:
-		delta: declination angle- float, deg
-		latitude: latitude angle: float, deg
+		  * delta (float): declination angle (deg)
+		  * latitude (float): latitude angle (deg)
 
-		Returns:
-		hour: length of the daylight hour
-		sunrise: the solar hour angle of the sunrise, deg
+		``Returns``
+
+		  * hour (float): length of the daylight hour (h)
+		  * sunrise (float): the solar hour angle at sunrise (deg)
 
 		"""
 
@@ -108,17 +110,19 @@ class SunPosition:
 
 
 	def zenith(self, latitude, delta, omega):
-		'''
-		ref. eq.1.6.5
-		Argument:
-		latitude: latitude angle, float, deg
-		delta:  declination angle, float, deg
-		omega: solar hour angle, float, deg
+		"""Calculate the zenith angle, ref. J Duffie eq.1.6.5
 
-		return:
-		theta: the zenith angle, float, deg
+		``Arguments``
 
-		'''             
+		  * latitude (float): latitude angle at the location (deg)
+		  * delta (float):  declination angle (deg)
+		  * omega (float): solar hour angle (deg)
+
+		``Return``
+
+		  * theta (float): the zenith angle (deg)
+
+		"""            
 		latitude*=np.pi/180.
 		delta*=np.pi/180.
 		omega*=np.pi/180.
@@ -128,18 +132,18 @@ class SunPosition:
 		return theta
 		
 	def azimuth(self, latitude, theta, delta, omega):
-		"""Calculate azimuth angle for specified location and sun position.
+		"""Calculate azimuth angle at specified location and sun position, ref. J Duffie eq. 1.6.6
 
-		Ref: eq. 1.6.6 (Duffie and Beckman)
+		``Arguments``
 
-		Argument:
-		latitude: latitude angle, deg
-		delta: declination angle ,deg
-		theta: zenith angle, deg (used to ensure correct angular range)
-		omega: solar hour angle, deg
+		  * latitude (float): latitude angle (deg)
+		  * delta (float): declination angle (deg)
+		  * theta (float): zenith angle (deg)
+		  * omega (float): solar hour angle (deg)
 
-		Return: 
-		* phi: azimuth angle, deg, counted from South towards West
+		``Return``
+ 
+		  * phi (float): azimuth angle (deg), counted from South towards to West 
 		"""
 		latitude*=np.pi/180.
 		delta*=np.pi/180.
@@ -165,16 +169,20 @@ class SunPosition:
 		return phi
 
 	def convert_AZEL_to_declination_hour(self, theta, phi, latitude):
-		'''
-		Argument:
-		* theta: zenith angle, deg
-		* phi: azimuth angle deg
-		* latitude: latitude latitude , deg
+		""" Convert azimuth-elevation angle to declination-hour angle
 
-		Returns:
-		* delta: declination angle, deg
-		* omega: solar hour angle, deg
-		'''      
+		``Arguments``
+
+		  * theta (float): zenith angle (deg)
+		  * phi (float): azimuth angle (deg), counted from South towards to West
+		  * latitude (float): latitude latitude (deg)
+
+		``Returns``
+
+		  * delta: declination angle (deg)
+		  * omega: solar hour angle (deg)
+		"""
+     
 		phi*=np.pi/180.
 		theta*=np.pi/180.
 		latitude*=np.pi/180.
@@ -191,18 +199,25 @@ class SunPosition:
 		return delta, omega
 
 	def convert_convention(self, tool, azimuth, zenith):
-		"""Return azimuth, elevation using the angle convention of different tools.
+		"""Return azimuth-elevation angle using the angle convention of Solstice or SolarTherm
 
-		Arguments:
-		* tool -- Can be 'tracer', 'solstice' or 'solartherm'.
-		Returns:
-		* sol_azi -- azimuth angle
-		* sol_ele -- elevation angle
+		``Arguments``
+
+		  * tool (str): 'solstice' or 'solartherm'
+		  * azimuth (float): azimuth angle (deg), counted from South towards to West
+		  * zenith (float): zenith angle (deg)
+
+
+		``Returns``
+
+		  * sol_azi (float): azimuth angle 
+		  * sol_ele (float): elevation angle
 		"""
 		if tool=='solstice':
 		    # azimuth: from East to North 
 		    sol_azi=-(90.+azimuth)
 		    sol_ele=90.-zenith 
+
 		elif tool=='solartherm':
 		    # azimuth: from North to Ease (clockwise)
 		    # ref Ali email (20/3/18)
@@ -227,17 +242,27 @@ class SunPosition:
 		                   
 
 	def annual_angles(self, latitude, casefolder='NOTSAVE', nd=5, nh=5):
-		'''
-		Arguements:
-		latitude: latitude of the location, deg
-		nd: number of points in the declination movement ( -- suggest nd>=5)
-		nh: number of points in the solar hours (half of the day)
-		'''
+		"""Generate a range of sun positions (azimuth-zenith angles and declination-solarhour angles) for annual optical lookup table simulation. Automatically detect the time when the sun is below the horrizon (elevation<0), where a ray-tracing simulation is not required.
+		
+		``Arguments``
+
+		  * latitude (float): latitude of the location (deg)
+		  * casefolder (str): directory to save the table and case_list in .csv files, or 'NOTSAVE' (by default) to not write the output to files
+		  * nd (int): number of rows of the lookup table (points in the declination movement, suggest nd>=5)
+		  * nh (int): number of columns of the lookup table (hours in a day, i.e. 24h)
+
+		``Returns``
+
+		  * AZI (1 D numpy array): a list of azimuth angles (deg), counted from South towards to West
+		  * ZENITH (1D numpy array): a list of zenith angles (deg)
+		  * table (numpy array): declination (row) - solarhour (column) lookup table to be simulated 
+		  * case_list (numpy array): a flatten list of cases to be simulated, with the correspondence between declination-solarhour angles and azimuth-zenith angles for each case
+		"""
 
 		# declination angle (deg)  
 		# -23.45 ~ 23.45
 		DELTA=np.linspace(-23.45, 23.45, nd)
-
+ 
 		# solar time
 		solartime=np.linspace(-180., 180., nh) # deg
 
@@ -317,93 +342,8 @@ class SunPosition:
 		    np.savetxt(casefolder+'/table_view.csv', table, fmt='%s', delimiter=',')  
 		    np.savetxt(casefolder+'/annual_simulation_list.csv', case_list, fmt='%s', delimiter=',')          
 
-		return AZI, ZENITH,table,case_list
+		return AZI, ZENITH, table,case_list
 
-	def annual_angles_field(self, latitude, casefolder='NOTSAVE', nd=5, nh=5):
-		'''
-		Arguements:
-		latitude: latitude of the location, deg
-		nd: number of points in the declination movement ( -- suggest nd>=5)
-		nh: number of points in the solar hours (half of the day)
-		'''
-
-		# declination angle (deg)  
-		# -23.45 ~ 23.45
-		DELTA=np.linspace(-23.45, 23.45, nd)
-		#print 'declination', delta
-
-		# the maximum solar hour angle
-		# summer solstice
-		if latitude>=0:
-		    # North hemisphere
-		    delta_summer=23.45
-		else:
-		    # South hemishpere
-		    delta_summer=-23.45
-		
-		daymax, sunmax=self.solarhour(delta_summer, latitude)
-		solartime=np.linspace(sunmax, -sunmax, nh*2-1)
-		#print 'solar', solar
-
-		# solar time
-		time=12.+solartime/15
-		#print time
-
-		table=np.zeros(((nh*2-1+3)*(nd+4)))
-		table=table.astype(str)
-		for i in range(len(table)):
-		    table[i]=' '
-
-		table=table.reshape(nh*2-1+3,nd+4)
-		table[0,4]='Declination (deg)'
-		table[1,0]='Lookup table'
-		table[1,4:]=np.arange(1,nd+1)
-		table[2,2]='Solar time (h)'
-		table[2,3]='Hour angle (deg)'
-		table[2,4:]=DELTA
-		table[3:,1]=np.arange(1,nh*2-1+1)
-		table[3:,2]=time
-		table[3:,3]=solartime
-
-		c=1 
-		AZI=np.array([])
-		ZENITH=np.array([])
-
-		case_list=np.array(['Case','declination (deg)','solar hour angle (deg)', 'azimuth (deg) S-to-W ', 'zenith (deg)'])
-		for i in range(len(DELTA)):
-		    delta=DELTA[i]
-		    hour, sunrise=self.solarhour(delta, latitude)
-		    sunset=-sunrise
-		    for j in range(len(solartime)):
-		        omega=solartime[j]
-		        if (omega>sunset or omega<sunrise):
-		            table[3+j,4+i]='-' 
-		        else:
-
-		            table[3+j, 4+i]=' case %s'%(c)
-
-		            #zenith angle
-		            theta=self.zenith(latitude, delta, omega)
-		            # azimuth        
-		            phi=self.azimuth(latitude, theta, delta, omega)
-		            AZI=np.append(AZI, phi)
-		            ZENITH=np.append(ZENITH, theta)
-
-		            case_list=np.append(case_list, (c, delta, omega, phi, theta)) 
-		            c+=1
-		                
-		                
-		               
-		case_list=case_list.reshape(len(case_list)/5,5)
-		#azimuth=case_list[1:,-2].astype(float)
-		#zenith=case_list[1:,-1].astype(float)
-
-		if casefolder!='NOTSAVE':    
-		    np.savetxt(casefolder+'/table_view.csv', table, fmt='%s', delimiter=',')  
-		    np.savetxt(casefolder+'/annual_simulation_list.csv', case_list, fmt='%s', delimiter=',')          
-
-		return AZI, ZENITH,table,case_list[1:]
-        
 
 
 if __name__=='__main__':

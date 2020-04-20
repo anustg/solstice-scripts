@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import numpy as np
 
 from .data_spectral import SolarSpectrum, MirrorRhoSpectrum
@@ -10,38 +9,38 @@ def gen_yaml(DNI, sunshape, sunsize, hst_pos, hst_foc, hst_aims,hst_w, hst_h
 		, hemisphere='North', tower_h=0.01, tower_r=0.01,  spectral=False
 		, medium=0, one_heliostat=False
 ):
-	"""Generate the heliostat field and receiver YAML input files for Solstice ray-tracing simulation
+	"""Generate the heliostat field and receiver YAML input files for Solstice ray-tracing simulation.
 
-	* ``Arguements``
+	``Arguements``
 
 		1. the sun
-		  * `DNI` (float): the direct normal irrandice of solar radiation, W/m2
-		  * `sunshape` (str): 'buie' or ' pillbox
-		  * `sunsize` (float): pillbox half-angle (deg), or Buie CSR value
+		  * DNI (float): the direct normal irrandice of solar radiation (W/m2)
+		  * sunshape (str): 'buie' or ' pillbox
+		  * sunsize (float): pillbox half-angle (deg), or Buie CSR value
 		2. the field
-		  * `hst_pos` (nx3 numpy array): heliostat positions (x, y, z)
-		  * `hst_foc` (nx1 numpy array): heliostat focal length
-		  * `hst_aims`(nx3 numpy array): heliostat aiming point (ax, ay, az)
-		  * `hst_w` (float): heliostat mirror width  (in x direction)
-		  * `hst_h` (float): heliostat mirror height (in y direction)
-		  * `hst_z` (float): heliostat center height (in z direction)
-		  * `rho_refl` (float): reflector reflectivity
-		  * `slope_error` (float): reflector surface slope error rms, radians
-		  * `tower_h` (float): tower height, m
-		  * `tower_r` (float): tower radius (a cylindrical shape tower), m
+		  * hst_pos (nx3 numpy array): heliostat positions (x, y, z)
+		  * hst_foc (nx1 numpy array): heliostat focal length
+		  * hst_aims (nx3 numpy array): heliostat aiming point (ax, ay, az)
+		  * hst_w (float): heliostat mirror width  (in x direction)
+		  * hst_h (float): heliostat mirror height (in y direction)
+		  * hst_z (float): heliostat center height (in z direction)
+		  * rho_refl (float): reflector reflectivity
+		  * slope_error (float): reflector surface slope error rms, radians
+		  * tower_h (float): tower height (m)
+		  * tower_r (float): tower radius (a cylindrical shape tower) (m)
 		3. the receiver
-		  * `receiver` (str): 'flat', 'cylinder', or 'stl'
-		  * `rec_abs` (float): receiver absorptivity
-		  * `rec_param` (numpy array or str): each element contain the geometrical parameter of the correpsonding receiver:
+		  * receiver (str): 'flat', 'cylinder', or 'stl'
+		  * rec_abs (float): receiver absorptivity
+		  * rec_param (numpy array or str): each element contain the geometrical parameter of the correpsonding receiver:
 
-			* if `receiver` == 'flat': np.array([width, height, slices, x, y, z, tilt angle (deg))]
-			* if `receiver` == 'cylinder': np.array([radius, height, slices])
-			* if `receiver` == 'stl': the directory of the stl file
+			* if receiver == 'flat': np.array([width, height, slices, x, y, z, tilt angle (deg))]
+			* if receiver == 'cylinder': np.array([radius, height, slices])
+			* if receiver == 'stl': the directory of the stl file
 		4. others
 		  * spectral (bool): True - simulate the spectral dependent performance 
 		  * medium (float): if the atmosphere is surrounded by non-participant medium, medium=0; otherwise it is the extinction coefficient in m-1
 	
-	* ``Returns``
+	``Returns``
 
 		No return value (requested files are created and written)
 	"""

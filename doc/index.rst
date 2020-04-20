@@ -15,16 +15,17 @@ up and running a Solstice ray-tracing simulation of a CSP system a little easier
 
 .. Introduction:: As of Sphinx 1.3, the napoleon extension will come packaged with
 
-Create the YAML input file for Solstice
----------------------------------------
+Create YAML input files for Solstice
+-------------------------------------
 .. autofunction:: solsticepy.gen_yaml
 
-Calculation sun position
-------------------------
+Calculate sun position
+-----------------------
 
 .. autoclass:: solsticepy.SunPosition
    :members:
    :undoc-members:
+
 
 Set up and run Solstice simulations
 -----------------------------------
@@ -33,15 +34,11 @@ Set up and run Solstice simulations
    :members:
    :undoc-members:
 
-Process the results from Solstice
+Process the results
 ---------------------------------
 
 .. autofunction:: solsticepy.process_raw_results
 
-Generate 3D views of your system
---------------------------------
-
-.. autofunction:: solsticepy.gen_vtk
 
 Generate new heliostat field layouts
 ------------------------------------
@@ -55,7 +52,12 @@ Preliminary calculation of heliostat field performance
    :members:
    :undoc-members:
 
-Find and run Solstice programs
+Generate 3D views of a heliostat field
+--------------------------------------
+
+.. autofunction:: solsticepy.gen_vtk
+
+Find Solstice programs in Windows
 -------------------------------------
 
 .. autofunction:: solsticepy.find_solstice_root

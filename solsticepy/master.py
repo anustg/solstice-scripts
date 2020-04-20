@@ -35,6 +35,11 @@ def run_prog(name,args,output_file=None,verbose=True):
 class Master:
 
     def __init__(self, casedir='.'):
+        """Set up the Solstice simulation, i.e. establishing the case folder, calling the Solstice program and post-processing the results
+
+        ``Arguement``
+          * casedir (str): the case directory
+        """
         self.casedir=casedir
         if not os.path.exists(self.casedir):
 	        os.makedirs(self.casedir)
@@ -43,9 +48,36 @@ class Master:
 
 
     def in_case(self, fn):
+        """Joinning a file name with the case directory
+
+        ``Arguement``
+
+          * fn (str): file name
+    
+        ``Return``
+
+          * a joining directory of the file in the case directory
+        """
+
         return os.path.join(self.casedir,fn)
 
     def run(self, azimuth, elevation, num_rays, rho_mirror,dni):
+
+        """Run an optical simulation (one sun position) using Solstice 
+
+        ``Arguements``
+
+          * azimuth (float): the azimuth angle of the ray-tracing simulation in Solstice, counted from East towards to North
+          * elevation (float): the elevation angle of the ray-tracing simulation in Solstice
+          * num_rays (int): number of rays to be casted in the ray-tracing simulation
+          * rho_mirror (float): reflectivity of mirrors, required for results post-processing 
+          * dni (float): the direct normal irradiance (W/m2), required to obtain performance of individual heliostat
+
+        
+        ``Return``
+
+          * No return value (results files are created and written)
+        """
 
         SOLSTICE=SPROG("solstice")
 
@@ -89,6 +121,25 @@ class Master:
 
     def run_annual(self, nd, nh, latitude, num_rays, num_hst,rho_mirror,dni,gen_vtk=False):
 
+        """Run a list of optical simulations to obtain annual performance (lookup table) using Solstice 
+
+        ``Arguements``
+
+          * nd (int): number of rows in the lookup table (discretisation of the declination angle)
+          * nh (int): number of columns in the lookup table (discritisation of the solar hour angle)
+          * latitude (float): the latitude angle of the plan location (deg)
+          * num_rays (int): number of rays to be casted in the ray-tracing simulation
+          * num_hst (int): number of heliostats 
+          * rho_mirror (float): reflectivity of mirrors, required for results post-processing 
+          * dni (float): the direct normal irradiance (W/m2), required to obtain performance of individual heliostat
+          * gen_vtk (bool): True - perform postprocessing for visualisation of  each individual ray-tracing scene (each sun position), False - no postprocessing for visualisation 
+
+        
+        ``Return``
+
+          * No return value (results files are created and written)
+        """
+
         SOLSTICE=SPROG("solstice")
         YAML_IN = self.in_case('input.yaml')
         RECV_IN = self.in_case('input-rcv.yaml')
@@ -116,7 +167,7 @@ class Master:
 
                
                 sys.stderr.write("\n"+green('Sun position: %s \n'%c))
-                print('azimuth:',  azimuth, ', elevation:',elevation)
+                print('azimuth: %.2f'% azimuth, ', elevation: %.2f'%elevation)
 
                 onesunfolder=os.path.join(self.casedir,'sunpos_%s'%(c))
 

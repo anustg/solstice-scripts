@@ -10,28 +10,34 @@ class FieldPF:
 	1. cosine factors: sun - heliostat
 	2. another cosine factors: receiver -heliostat
 
-	Note these angle conventions:
-	* azimuth: float, the solar azimuth angle, from South to West
-	* zenith: float, the solar zenith angle, 0 from vertical
+	Note the angle conventions in this program:
+
+	  * azimuth: the solar azimuth angle, from South to West
+	  * zenith: the solar zenith angle, 0 from vertical
 	"""
 
 	def __init__(self, receiver_norm=np.r_[0,1,0]):
-		"""Create a new FieldPF object
+		"""
 
-		Arguments:
-		* receiver_normal -- A numpy 3-vector with unit normal direction of the receiver aperature (default: [0,1,0])
+		``Argument``
+
+		  * receiver_normal (numpy array): A numpy 3-vector with unit normal direction of the receiver aperature (default: [0,1,0])
+
 		"""
 		self.rec_norm=receiver_norm.reshape(3,1)
 
 
 	def get_solar_vector(self, azimuth, zenith):
-		"""Calculate the solar vector using elevation and azimuth.
+		"""Calculate the solar vector using azimuth and zenith angles.
 
-		Arguments:
-		* azimuth -- the sun's azimuth, in deg, from South increasing towards to the West
-		* zenith -- angle created between the solar vector and the Z axis, in deg.
+		``Arguments``
 
-		Returns: a 3-component 1D array with the solar vector.
+		  * azimuth (float): the sun's azimuth (deg), from South increasing towards to the West
+		  * zenith (float): angle created between the solar vector and the Z axis (deg)
+
+		``Return``
+
+		  * sun_vec (numpy array): a 3-component 1D array with the solar vector
 		"""
 		#copied from tracer.models.heliostat_field import solar_vector
 		#TODO change it to Solstice convetion if necessary
@@ -47,6 +53,19 @@ class FieldPF:
 		return sun_vec
 
 	def get_normals(self, towerheight, hstpos, sun_vec):
+		"""Calculate the normal vectors of each heliostat
+
+		``Arguments``
+
+		  * towerheight (float): tower height
+		  * hstpos (nx3 numpy array): heliostat positions
+		  * sun_vec (numpy array): the solar vector
+
+		``Return``
+
+		  * hst_norms (numpy array): normal vectors of each heliostat
+
+		"""
 
 		tower_vec=-hstpos
 		tower_vec[:,-1]+=towerheight
@@ -57,6 +76,19 @@ class FieldPF:
 		return hst_norms
 
 	def get_rec_view(self, towerheight, hstpos):
+		"""Check the visibility of each heliostat from the view of the receiver
+	
+		``Arguments``
+	
+		  * towerheight (float): tower height 
+		  * hstpos (numpy array): position of each heliostat
+
+		``Return``
+
+		  * vis_idx (numpy array): the indices of the heliostats that can be seen by the receiver 
+		
+		"""
+
 		# angle between normal of the receiver apterture and the RH
 		# RH is the vector from the receiver to the heliostat (i.e. -tower_vec)
 
@@ -73,16 +105,35 @@ class FieldPF:
 
 	def get_cosine(self,hst_norms, sun_vec):
 
+		"""Calculate the cosine factor between the sun and the heliostats
+
+		``Arguments``
+
+		  * hst_norms (numpy array): normal vectors of the heliostats
+		  * sun_vec (numpy array): solar vector
+
+		``Return``
+
+		  * cos_factor (numpy array): the cosine factor between the sun and the heliostats
+		
+		"""
+
 		cos_factor=np.sum(hst_norms*sun_vec, axis=1)
 
 		return cos_factor
 
-	def heliostat(self, width, height ):
-		"""The local coordinate of the heliostat
+	def mesh_heliostat(self, width, height):
+		"""The local coordinate of the triangular mesh of a heliostat 
 
-		Arguments:
-		* width
-		* height
+		``Arguments``
+		  * width (float): width of the heliostat
+		  * height (float): height of the heliostat
+
+		``Returns``
+
+		  * coords (numpy array): coordinates of the vertices
+		  * tri (numpy array): the indices of the triangular mesh
+
 		"""
 		x=np.linspace(-width/2., width/2., 2)
 		y=np.linspace(-height/2., height/2., 2)
@@ -95,9 +146,25 @@ class FieldPF:
 		#plt.show()
 		return coords, tri
 
-	def view_heliostats(self, width, height, normals, hstpos):
-		
-		coord1, tri1=self.heliostat(width, height)
+	def mesh_heliostat_field(self, width, height, normals, hstpos):
+		"""Generate the necessary elements to create the VTK file to view the heliostat layout 
+
+		``Arguments``
+		  * width (float): width of the heliostat
+		  * height (float): height of the heliostat
+		  * normals (numpy array): normal vectors of the heliostats
+		  * hstpos (numpy array): the positions of the heliostats
+
+		``Returns``
+
+		  * COORD (numpy array): the coordinates of the indices of the helisotat field
+		  * TRI (numpy array): the indices of the trangular mesh of the heliostat field
+		  * ele (int): number of element of the triangular mesh
+		  * nc (int): number of indices
+		"""		
+
+
+		coord1, tri1=self.mesh_heliostat(width, height)
 
 		ele=len(tri1)
 		nc=len(coord1)
@@ -138,7 +205,18 @@ class FieldPF:
 		#plt.show()        
 		return COORD, TRI, ele, nc
 
-	def plot_cosine(self, savename,pm):
+	def plot_cosine(self, savename):
+		"""Plot the cosine factors of heliostats in Matplotlib
+
+		``Argument``
+
+		  * savename (str): the directory to save the figure, with suffix, e.g. '.png' or '.jpg'
+
+		``Return``
+
+		  * No return value (a figure is written in the specified path)
+
+		"""
 		x=self.hstpos[:,0]
 		y=self.hstpos[:,1]
 		z=self.hstpos[:,2]
@@ -147,12 +225,25 @@ class FieldPF:
 		cm = plt.cm.get_cmap('rainbow')
 		cs=plt.scatter(x[av], y[av], c=self.cosine_factor[av], cmap=cm,s=30)
 		plt.colorbar(cs)
-		plt.title('Cosine factors\n Tower height %s m'%pm )
+		plt.title('Cosine factors')
 		plt.savefig(open(savename, 'w'),dpi=500, bbox_inches='tight')
 		plt.close()	
 
 
-	def plot_select(self, savename,pm):
+	def plot_select(self, savename, tilt):
+		"""Plot the heliostats that can be seen by the receiver in Matplotlib
+
+		``Argument``
+
+		  * savename (str): the directory to save the figure, with suffix, e.g. '.png' or '.jpg'
+		  * savename (float): receiver tilted angle
+
+		``Return``
+
+		  * No return value (a figure is written in the specified path)
+
+		"""
+
 		x=self.hstpos[:,0]
 		y=self.hstpos[:,1]
 		z=self.hstpos[:,2]

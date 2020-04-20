@@ -6,11 +6,16 @@
 import sys, platform, os
 
 def find_solstice_root(version_required=None,verbose=0):
-	"""Locate the place where Solstice files are installed on Windows.
+	"""Locate the place where Solstice files are installed on Windows
 
-	Arguments:
-	version_required -- if not None, then enforce this specified version of Solstice (eg '0.9.0')
-	verbose -- if True, output file locations to stderr.
+	``Arguments``
+
+	  * version_required (None or str): if not None, then enforce this specified version of Solstice (eg '0.9.0')
+	  * verbose (bool): if True, output file locations to stderr
+
+	``Return``
+
+	  * dirn (str): the directory where Solstice is installed in the Windows system
 	"""
 
 	if verbose: sys.stderr.write("Python is running from %s\n"%(sys.executable,))
@@ -37,11 +42,16 @@ def find_solstice_root(version_required=None,verbose=0):
 	return dirn
 
 def find_prog(name,version_required=None):
-	"""Find the path to any required Solstice executable program.
+	"""Find the path to any required Solstice executable program
 
-	Arguments:
-	name -- stem-name (eg 'solpp') of the program (eg 'solpp.exe') required
-	version_required -- if not None, then enforce this specified version of Solstice (eg '0.9.0')
+	``Arguments``
+
+	  * name (str): stem-name (eg 'solpp') of the program (eg 'solpp.exe') required
+	  * version_required (None or str): if not None, then enforce this specified version of Solstice (eg '0.9.0')
+
+	``Return``
+
+	  * path (str): path of the required Solstice executable program
 	"""
 	
 	if platform.system()=="Windows":
