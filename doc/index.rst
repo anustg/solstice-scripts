@@ -7,18 +7,16 @@ solsticepy
 ==========
 
 `solsticepy` provides a set of Python functions that make the task of setting
-up and running a Solstice simulation of a CSP system a little easier. At this
-stage it has been primarily used for simulations of central-tower CSP systems, 
-even though Solstice itself is capable of simulating a wider range of system
-types.
+up and running a Solstice ray-tracing simulation of a CSP system a little easier. At this stage it has been primarily used for simulations of central-tower CSP systems,  even though Solstice itself is capable of simulating a wider range of system types.
 
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
 
+.. Introduction:: As of Sphinx 1.3, the napoleon extension will come packaged with
+
 Create the YAML input file for Solstice
 ---------------------------------------
-
 .. autofunction:: solsticepy.gen_yaml
 
 Calculation sun position
