@@ -8,7 +8,7 @@ class FieldPF:
 	"""Preliminary calculation of heliostat field performance.
 
 	1. cosine factors: sun - heliostat
-	2. another cosine factors: receiver -heliostat
+	2. another cosine factors: receiver - heliostat
 
 	Note the angle conventions in this program:
 
@@ -158,7 +158,7 @@ class FieldPF:
 		``Returns``
 
 		  * COORD (numpy array): the coordinates of the indices of the helisotat field
-		  * TRI (numpy array): the indices of the trangular mesh of the heliostat field
+		  * TRI (numpy array): the indices of the triangular mesh of the heliostat field
 		  * ele (int): number of element of the triangular mesh
 		  * nc (int): number of indices
 		"""		

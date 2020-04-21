@@ -37,7 +37,7 @@ class Master:
     def __init__(self, casedir='.'):
         """Set up the Solstice simulation, i.e. establishing the case folder, calling the Solstice program and post-processing the results
 
-        ``Arguement``
+        ``Argument``
           * casedir (str): the case directory
         """
         self.casedir=casedir
@@ -48,9 +48,9 @@ class Master:
 
 
     def in_case(self, fn):
-        """Joinning a file name with the case directory
+        """Joining a file name with the case directory
 
-        ``Arguement``
+        ``Argument``
 
           * fn (str): file name
     
@@ -65,11 +65,11 @@ class Master:
 
         """Run an optical simulation (one sun position) using Solstice 
 
-        ``Arguements``
+        ``Arguments``
 
           * azimuth (float): the azimuth angle of the ray-tracing simulation in Solstice, counted from East towards to North
           * elevation (float): the elevation angle of the ray-tracing simulation in Solstice
-          * num_rays (int): number of rays to be casted in the ray-tracing simulation
+          * num_rays (int): number of rays to be cast in the ray-tracing simulation
           * rho_mirror (float): reflectivity of mirrors, required for results post-processing 
           * dni (float): the direct normal irradiance (W/m2), required to obtain performance of individual heliostat
 
@@ -123,12 +123,12 @@ class Master:
 
         """Run a list of optical simulations to obtain annual performance (lookup table) using Solstice 
 
-        ``Arguements``
+        ``Arguments``
 
           * nd (int): number of rows in the lookup table (discretisation of the declination angle)
-          * nh (int): number of columns in the lookup table (discritisation of the solar hour angle)
+          * nh (int): number of columns in the lookup table (discretisation of the solar hour angle)
           * latitude (float): the latitude angle of the plan location (deg)
-          * num_rays (int): number of rays to be casted in the ray-tracing simulation
+          * num_rays (int): number of rays to be cast in the ray-tracing simulation
           * num_hst (int): number of heliostats 
           * rho_mirror (float): reflectivity of mirrors, required for results post-processing 
           * dni (float): the direct normal irradiance (W/m2), required to obtain performance of individual heliostat

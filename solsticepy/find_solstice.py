@@ -47,7 +47,7 @@ def find_prog(name,version_required=None):
 	``Arguments``
 
 	  * name (str): stem-name (eg 'solpp') of the program (eg 'solpp.exe') required
-	  * version_required (None or str): if not None, then enforce this specified version of Solstice (eg '0.9.0')
+	  * version_required (None or str): if not None, then enforce this specified version of Solstice (e.g. '0.9.0')
 
 	``Return``
 

@@ -64,7 +64,7 @@ class SunPosition:
 	def declination(self, days, form='detail'):
 		"""Calculate the solar declination angle for a specified day-of-the-year, ref. J Duffie page 13, declination angle: delta=23.45*sin(360*(284+day)/365)
 
-		``Arguements``
+		``Arguments``
 
 		  * day (int): day of the year, i.e from 1 to 365
 		  * form (str): 'detail' or simple' model
@@ -242,7 +242,7 @@ class SunPosition:
 		                   
 
 	def annual_angles(self, latitude, casefolder='NOTSAVE', nd=5, nh=5):
-		"""Generate a range of sun positions (azimuth-zenith angles and declination-solarhour angles) for annual optical lookup table simulation. Automatically detect the time when the sun is below the horrizon (elevation<0), where a ray-tracing simulation is not required.
+		"""Generate a range of sun positions (azimuth-zenith angles and declination-solarhour angles) for annual optical lookup table simulation. Automatically detect the time when the sun is below the horizon (elevation<0), where a ray-tracing simulation is not required.
 		
 		``Arguments``
 
