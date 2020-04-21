@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 def radial_stagger(num_hst, width, height, hst_z, towerheight, R1, dsep=0., field='polar', savedir='.', plot=False):
 	'''Generate a radial-stagger heliostat field, ref. Collado and Guallar, 2012, Campo: Generation of regular heliostat field.
 
-	``Arguements``
+	``Arguments``
 	  * num_hst (int) : number of heliostats
 	  * width (float) : mirror width (m)
 	  * height (float): mirror height (m)
