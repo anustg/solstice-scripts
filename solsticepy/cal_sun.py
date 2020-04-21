@@ -4,6 +4,40 @@ class SunPosition:
 
 	def __init__(self):
 		""" Calculate sun position according to a certain location, date and time. Reference: John A. Duffie and William A. Beckman. Solar Engineering of Thermal Processes, 4th edition.
+		
+		``Example``
+
+		  * Location: latitude = 37.44
+		  * Date    : 21 Jun
+		  * Time    : solar noon or two hours after sunrise
+									
+			>>> from solsticepy.cal_sun import *
+			>>> sun=SunPosition()
+			>>> day=sun.days(21, 'Jun')
+			>>> latitude=37.44
+			>>> delta=sun.declination(day)
+
+			Solar noon
+
+			>>> omega=0.
+			>>> theta=sun.zenith(latitude, delta, omega)
+			>>> phi=sun.azimuth(latitude, theta, delta, omega)
+			>>> print(theta)
+			13.987953925483858
+			>>> print(phi)
+			0.0
+
+			Two hours after sunrise
+
+			>>> daytime, sunrise=sun.solarhour(delta, latitude)
+			>>> omega=sunrise+15.*2. # solar noon
+			>>> theta=sun.zenith(latitude, delta, omega)
+			>>> phi=sun.azimuth(latitude, theta, delta, omega)
+			>>> print(theta)
+			67.91774797592434
+			>>> print(phi)
+			-103.31434583806747 
+
 		"""		
 		pass
 
@@ -257,6 +291,41 @@ class SunPosition:
 		  * ZENITH (1D numpy array): a list of zenith angles (deg)
 		  * table (numpy array): declination (row) - solarhour (column) lookup table to be simulated 
 		  * case_list (numpy array): a flatten list of cases to be simulated, with the correspondence between declination-solarhour angles and azimuth-zenith angles for each case
+
+
+		``Example``
+
+			>>> from solsticepy.cal_sun import *
+			>>> sun=SunPosition()
+			>>> latitude=37.44
+			>>> casefolder='.'
+			>>> nd=5
+			>>> nh=9
+			>>> sun.annual_angles(latitude, casefolder, nd, nh)
+
+			A 5x9 lookup table will be generated to the current directory:
+
+			+--------------+----+-------+-------+--------+--------+--------+--------+--------+--------+--------+--------+
+			| Lookup table |    |       |                      Solar hour angles (deg)                                  | 
+			+==============+====+=======+=======+========+========+========+========+========+========+========+========+
+			|              |    |       |   1   |    2   |   3    |    4   |    5   |    6   |   7    |    8   |    9   |
+			+              +----+-------+-------+--------+--------+--------+--------+--------+--------+--------+--------+
+			|              |    |       | -180  |  -135  |  -90   |  -45   |    0   |   45   |   90   |   135  |  180   |
+			+              +----+-------+-------+--------+--------+--------+--------+--------+--------+--------+--------+
+			|              | 1  |-23.45 |  `-`  |   `-`  |   `-`  | case 1 | case 2 | ***1   |   `-`  |   `-`  |   `-`  |
+			+ Declination  +----+-------+-------+--------+--------+--------+--------+--------+--------+--------+--------+
+			|              | 2  |-11.73 |  `-`  |   `-`  |   `-`  | case 3 | case 4 | ***3   |   `-`  |   `-`  |   `-`  |
+			+ angles       +----+-------+-------+--------+--------+--------+--------+--------+--------+--------+--------+
+			|              | 3  |   0   |  `-`  |   `-`  | case 5 | case 6 | case 7 | ***6   | ***5   |   `-`  |   `-`  |
+			+ (deg)        +----+-------+-------+--------+--------+--------+--------+--------+--------+--------+--------+
+			|              | 4  | 11.73 |  `-`  |   `-`  | case 8 | case 9 | case 10| ***8   | ***9   |   `-`  |   `-`  |
+			+              +----+-------+-------+--------+--------+--------+--------+--------+--------+--------+--------+
+			|              | 5  | 23.45 |  `-`  |   `-`  | case 11| case 12| case 13| ***11  | ***12  |   `-`  |   `-`  |
+			+--------------+----+-------+-------+--------+--------+--------+--------+--------+--------+--------+--------+
+
+			  * case `n`: this sun position is the `n`-th case to be simulated
+			  * ***`n`  : it is the symmetric case with the case `n`, no re-simulation is required
+			  * `-`     : the sun is below the horizon, no simulation is required
 		"""
 
 		# declination angle (deg)  

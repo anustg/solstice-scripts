@@ -23,6 +23,24 @@ def radial_stagger(num_hst, width, height, hst_z, towerheight, R1, dsep=0., fiel
 
 	  * pos_and_aiming (nx7 numpy array): position, focal length and aiming point of each generated heliostat
 	  * a pos_and_aiming.csv file is created and written to the savedir
+
+
+	``Example``
+
+		>>> from solsticepy.cal_layout import *
+		>>> hst_width=13.
+		>>> hst_height=10.
+		>>> hst_z=5.
+		>>> target_area=75715.
+		>>> hst_num=target_area/hst_width/hst_height*2 # create a twice large field, so that the inefficient heliostat can be trimmed-off after optical simulations
+		>>> tower_height=110.
+		>>> R1=40. # the distance from the first row to the bottom of the tower
+		>>> casefolder='.' # replace it as the directory of your case folder
+		>>> plot=False # if you want to plot the field layout, set it as True
+		>>> pos_and_aim=radial_stagger(hst_num, hst_width, hst_height, hst_z, tower_height, R1, savedir=casefolder,plot=plot)
+
+		An nx7 array is returned, and the pos_and_aim.csv file is saved in the local directory
+
 	'''
 
 	# heliostat diagonal distantce

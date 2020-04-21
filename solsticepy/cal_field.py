@@ -14,6 +14,30 @@ class FieldPF:
 
 	  * azimuth: the solar azimuth angle, from South to West
 	  * zenith: the solar zenith angle, 0 from vertical
+
+
+	``Example``
+
+		>>> from solsticepy.cal_field import *
+		>>> pos_and_aiming=np.loadtxt('./pos_and_aiming.csv', delimiter=',', skiprows=2) #load the field layout file (refer to cal_layout.py)
+		>>> pos=pos_and_aiming[:,:3]
+		>>> aim=pos_and_aiming[:,4:]
+		>>> azimuth=np.r_[0.]
+		>>> zenith=np.r_[12.]
+		>>> field=FieldPF(np.r_[0,1,0])
+		>>> sun_vec=field.get_solar_vector(azimuth, zenith)
+		>>> norms=field.get_normals(towerheight=70., hstpos=pos, sun_vec=sun_vec)
+		>>> COORD, TRI, ele, nc=field.mesh_heliostat_field(width=10., height=8., normals=norms, hstpos=pos)
+		>>> cos=field.get_cosine(hst_norms=norms, sun_vec=sun_vec)
+		>>> savedir='./field.vtk'
+		>>> COS=np.repeat(cos, ele)
+		>>> DATA={'cos':COS}
+		>>> NORMS=np.repeat(norms, ele, axis=0)
+		>>> gen_vtk(savedir, COORD.T, TRI, NORMS, True, DATA)
+
+		The field.vtk file is saved in the local directory and can be open in ParaView to visualise the cosine factor of each individual heliostat. See more details in the 'gen_vtk.py' in the next section.
+
+
 	"""
 
 	def __init__(self, receiver_norm=np.r_[0,1,0]):
