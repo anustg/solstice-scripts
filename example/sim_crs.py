@@ -18,9 +18,10 @@ new_case=True
 # S1. DNI
 DNI=1000 # W/m2
 # S2. sunshape
-sunshape='pillbox' # or 'buie'
-sunsize=0.2664 # the half angle of the pillbox sunshape distribution, in degree 
-               # or CSR value of Buie sunshape
+sunshape='buie' # or 'buie' or 'gaussian'
+sunsize=0.2664 # the half angle of the pillbox sunshape distribution, in degree
+               # or CSR value of Buie sunshape in [1e-6, 0.849]
+			   # or standard deviation of Gaussian sunshape
 # S3. sun position
 # e.g. summer solstice, solar noon
 azimuth=270.   # from East to North, deg

@@ -15,7 +15,7 @@ def gen_yaml(DNI, sunshape, sunsize, hst_pos, hst_foc, hst_aims,hst_w, hst_h
 
 		1. the sun
 		  * DNI (float): the direct normal irradiance of solar radiation (W/m2)
-		  * sunshape (str): 'buie' or ' pillbox
+		  * sunshape (str): 'buie' or ' pillbox or 'gaussian'
 		  * sunsize (float): pillbox half-angle (deg), or Buie CSR value
 		2. the field
 		  * hst_pos (nx3 numpy array): heliostat positions (x, y, z)
@@ -99,9 +99,23 @@ def gen_yaml(DNI, sunshape, sunsize, hst_pos, hst_foc, hst_aims,hst_w, hst_h
 		# Creation of the sun and atmosphere
 		#
 	if spectral:
-		iyaml+='- sun: {dni: %15.8e, spectrum: *solar_spectrum, %s: {half_angle: %6.4f}}\n' % (DNI, sunshape,sunsize) 
+		if sunshape=='pillbox':
+			iyaml+='- sun: {dni: %15.8e, spectrum: *solar_spectrum, %s: {half_angle: %6.4f}}\n' % (DNI, sunshape,sunsize) 
+		elif sunshape=='buie':
+			iyaml+='- sun: {dni: %15.8e, spectrum: *solar_spectrum, %s: {csr: %6.4f}}\n' % (DNI, sunshape,sunsize) 
+		elif sunshape=='gaussian':
+			iyaml+='- sun: {dni: %15.8e, spectrum: *solar_spectrum, %s: {std_dev: %6.4f}}\n' % (DNI, sunshape,sunsize) 
 	else:
-		iyaml+='- sun: {dni: %15.8e, %s: {half_angle: %6.4f}}\n' % (DNI, sunshape,sunsize)  
+		
+		if sunshape=='pillbox':
+			iyaml+='- sun: {dni: %15.8e, %s: {half_angle: %6.4f}}\n' % (DNI, sunshape,sunsize)   
+		elif sunshape=='buie':
+			iyaml+='- sun: {dni: %15.8e, %s: {csr: %6.4f}}\n' % (DNI, sunshape,sunsize) 
+		elif sunshape=='gaussian':
+			iyaml+='- sun: {dni: %15.8e, %s: {std_dev: %6.4f}}\n' % (DNI, sunshape,sunsize) 
+
+
+
 	if medium>1e-99:
 		iyaml+='- atmosphere: {extinction: *airkext}\n' 
 		iyaml+='\n'
