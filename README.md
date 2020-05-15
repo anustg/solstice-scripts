@@ -10,8 +10,6 @@ See the [documentation](https://solsticepy.readthedocs.io/en/latest/?badge=lates
 
 # Installing Solstice
 
-The instructions below give easy instructions for end-users. If you are interested in hacking/developing/changing `solsticepy`, see [HACKING](HACKING.md)
-
 ## Windows
 
 * For Windows (Windows 10, 64-bit), use our 64-bit [binary installer](https://github.com/anustg/solstice-scripts/releases) to install Solstice. The resulting files will be located in `c:\Program Files\solstice-0.9.0` (with the appropriate version number). Note that the Windows installer **also includes** the post-processing tools.
@@ -48,6 +46,8 @@ scons INSTALL_PREFIX=~/Solstice-0.9.0-GNU-Linux64 install
 ```
 
 # Installing `solsticepy` wrapper scripts
+
+The instructions below give easy instructions for end-users. If you are interested in hacking/developing/changing `solsticepy` code, see [HACKING](HACKING.md) instead.
 
 ## Windows
 
