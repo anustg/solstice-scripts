@@ -28,6 +28,16 @@ python3 -m twine upload
 
 This should also work with `python`, but it's probably best to upload a binary distribution for Python3 rather than Python2.
 
+## To build a local copy of the documentation
+
+You will need Sphinx and the `sphinx_rtd_theme` (`pip instal sphinx_rtd_theme`).
+
+```bash
+cd ~/solstice-scripts/doc
+make html
+xdg-open _build/html/index.html
+```
+
 ## To update the documentation on `readthedocs`
 
 This should happen automatically, every time you commit code to Github.

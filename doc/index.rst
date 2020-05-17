@@ -10,17 +10,15 @@ solsticepy
 up and running a Solstice ray-tracing simulation of a CSP system a little easier. At this stage it has been primarily used for simulations of central-tower CSP systems,  even though Solstice itself is capable of simulating a wider range of system types.
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 3
    :caption: Contents:
 
-.. Introduction:: As of Sphinx 1.3, the napoleon extension will come packaged with
-
 Create YAML input files for Solstice
--------------------------------------
+====================================
 .. autofunction:: solsticepy.gen_yaml
 
 Calculate sun position
------------------------
+======================
 
 .. autoclass:: solsticepy.SunPosition
    :members:
@@ -28,37 +26,37 @@ Calculate sun position
 
 
 Set up and run Solstice simulations
------------------------------------
+===================================
 
 .. autoclass:: solsticepy.Master
    :members:
    :undoc-members:
 
 Process the results
----------------------------------
+===================
 
 .. autofunction:: solsticepy.process_raw_results
 
 
 Generate new heliostat field layouts
-------------------------------------
+====================================
 
 .. autofunction:: solsticepy.radial_stagger
 
 Preliminary calculation of heliostat field performance
-------------------------------------------------------
+======================================================
 
 .. autoclass:: solsticepy.FieldPF
    :members:
    :undoc-members:
 
 Generate 3D views of a heliostat field
---------------------------------------
+======================================
 
 .. autofunction:: solsticepy.gen_vtk
 
 Find Solstice programs in Windows
--------------------------------------
+=================================
 
 .. autofunction:: solsticepy.find_solstice_root
 .. autofunction:: solsticepy.find_prog
@@ -68,5 +66,4 @@ Indices and tables
 ==================
 
 * :ref:`genindex`
-* :ref:`modindex`
 * :ref:`search`
