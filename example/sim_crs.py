@@ -15,13 +15,12 @@ new_case=True
 
 # the sun
 # =========
-# S1. DNI
-DNI=1000 # W/m2
-# S2. sunshape
-sunshape='buie' # or 'buie' or 'gaussian'
-sunsize=0.2664 # the half angle of the pillbox sunshape distribution, in degree
-               # or CSR value of Buie sunshape in [1e-6, 0.849]
-			   # or standard deviation of Gaussian sunshape
+
+DNI = 1000 # W/m2
+sunshape = 'pillbox'
+half_angle_deg = 0.2664
+sun = solsticepy.Sun(dni=DNI, sunshape=sunshape, half_angle_deg=half_angle_deg)
+
 # S3. sun position
 # e.g. summer solstice, solar noon
 azimuth=270.   # from East to North, deg
@@ -124,14 +123,14 @@ outfile_recv = master.in_case('input-rcv.yaml')
 
 if new_case:
 	# generate the YAML file from the input parameters specified above
-    solsticepy.gen_yaml(DNI, sunshape, sunsize, hst_pos, hst_foc, hst_aims,hst_w, hst_h
+    solsticepy.gen_yaml(sun, hst_pos, hst_foc, hst_aims,hst_w, hst_h
 		, rho_refl, slope_error, receiver, rec_param, rec_abs
 		, outfile_yaml=outfile_yaml, outfile_recv=outfile_recv
 		, hemisphere='North', tower_h=tower_h, tower_r=tower_r,  spectral=False
 		, medium=0, one_heliostat=one_heliostat)
 
 # run Solstice using the generate inputs, and run all required post-processing
-master.run(azimuth, elevation, num_rays, rho_refl,DNI)
+master.run(azimuth, elevation, num_rays, rho_refl,sun.dni, gen_vtk=True)
 
 # annual solution (see instructions)
 #master.run_annual(nd=5, nh=5, latitude=latitude, num_rays=num_rays, num_hst=len(hst_pos),rho_mirror=rho_refl, dni=DNI)

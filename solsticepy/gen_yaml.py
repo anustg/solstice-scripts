@@ -1,9 +1,61 @@
+from __future__ import print_function
 import numpy as np
+
+#for python 2:
+from builtins import super
 
 from .data_spectral import SolarSpectrum, MirrorRhoSpectrum
 import sys
 
-def gen_yaml(DNI, sunshape, sunsize, hst_pos, hst_foc, hst_aims,hst_w, hst_h
+class Sun:
+	"""Sun parameters for solstice-input
+
+	Example:
+	>>> sun = Sun(dni=1000, sunshape='buie', csr=0.2)
+	>>> print(sun.yaml(spectrum = "*solar_spectrum"))
+
+	"""
+	def __init__(self,dni=1000,sunshape=None,csr=0.01,half_angle_deg=0.2664,std_dev=0.2):
+		"""Define sun parameters for Solstice input file.
+
+		`dni`: Direct normal irradance (W/m2)
+		`sunshape`: Sunshape: can be None, ``'pillbox'``,``'gaussian'`` or ``'buie'``
+		`half_angle_deg`: sun angular size (in DEGREES, half-angle) (ONLY in case of ``'pillbox'``)
+		`csr`: circumsolar ratio (ONLY in case of ``'buie'``)
+		`std_dev`: standard deviation of the angular dsn ratio (ONLY in case of ``'gaussian'``)
+		"""
+		self.dni = dni
+		self.sunshape = sunshape
+		if sunshape is not None:
+			assert sunshape in ['buie','pillbox','gaussian']
+			self.sunshape = sunshape
+			if sunshape == "pillbox":
+				self.half_angle_deg = half_angle_deg
+			elif sunshape == "buie":
+				self.csr = csr
+			elif sunshape == "gaussian":
+				self.std_dev = std_dev
+	def yaml(self,spectrum = None):
+		"""YAML representation of the sun for solstice-input.
+
+		`spectrum`: YAML value of the solar spectrum. Would normally be set to the string ``"*solar_spectrum"``.
+		"""
+		# FIXME surely we find a smarter way to do this serialization AND deseralization with YAML?
+		s = "{dni: %15.8e" % (self.dni,)
+		if spectrum is not None:
+			s += ", spectrum = %s" % (spectrum,)
+		if self.sunshape is not None:
+			if self.sunshape=='pillbox':
+				s += ", pillbox: {half_angle: %6.4f}" % (self.half_angle_deg,)   
+			elif self.sunshape=='buie':
+				s += ", buie: {csr: %6.4f}" % (self.csr,) 
+			elif self.sunshape=='gaussian':
+				s += ", gaussian: {std_dev: %6.4f}" % (self.std_dev,)
+		s += "}"
+		return s
+
+
+def gen_yaml(sun, hst_pos, hst_foc, hst_aims,hst_w, hst_h
 		, rho_refl, slope_error, receiver, rec_param, rec_abs
 		, outfile_yaml, outfile_recv
 		, hemisphere='North', tower_h=0.01, tower_r=0.01,  spectral=False
@@ -11,39 +63,42 @@ def gen_yaml(DNI, sunshape, sunsize, hst_pos, hst_foc, hst_aims,hst_w, hst_h
 ):
 	"""Generate the heliostat field and receiver YAML input files for Solstice ray-tracing simulation.
 
-	``Arguments``
+	1. the sun
+	  * `sun` (`Sun` object): parameters relating to the solar source
 
-		1. the sun
-		  * DNI (float): the direct normal irradiance of solar radiation (W/m2)
-		  * sunshape (str): 'buie' or ' pillbox or 'gaussian'
-		  * sunsize (float): pillbox half-angle (deg), or Buie CSR value
-		2. the field
-		  * hst_pos (nx3 numpy array): heliostat positions (x, y, z)
-		  * hst_foc (nx1 numpy array): heliostat focal length
-		  * hst_aims (nx3 numpy array): heliostat aiming point (ax, ay, az)
-		  * hst_w (float): heliostat mirror width  (in x direction)
-		  * hst_h (float): heliostat mirror height (in y direction)
-		  * hst_z (float): heliostat center height (in z direction)
-		  * rho_refl (float): reflector reflectivity
-		  * slope_error (float): reflector surface slope error rms, radians
-		  * tower_h (float): tower height (m)
-		  * tower_r (float): tower radius (a cylindrical shape tower) (m)
-		3. the receiver
-		  * receiver (str): 'flat', 'cylinder', or 'stl'
-		  * rec_abs (float): receiver absorptivity
-		  * rec_param (numpy array or str): each element contain the geometrical parameter of the corresponding receiver:
+	2. the field
+	  * `hst_pos` (nx3 numpy array): heliostat positions (x, y, z) (first of the 'field' parameters)
+	  * `hst_foc` (nx1 numpy array): heliostat focal length
+	  * `hst_aims` (nx3 numpy array): heliostat aiming point (ax, ay, az)
+	  * `hst_w` (float): heliostat mirror width  (in x direction)
+	  * `hst_h` (float): heliostat mirror height (in y direction)
+	  * `hst_z` (float): heliostat center height (in z direction)
+	  * `rho_refl` (float): reflector reflectivity
+	  * `slope_error` (float): reflector surface slope error rms, radians
+	  * `tower_h` (float): tower height (m)
+	  * `tower_r` (float): tower radius (a cylindrical shape tower) (m)
+	3. the receiver
+	  * `receiver` (str): ``'flat'``, ``'cylinder'``, or ``'stl'`` (first of the 'receiver' parameters)
+	  * `rec_abs` (float): receiver absorptivity
+	  * `rec_param` (numpy array or str): each element contains the geometrical parameter of the corresponding receiver.
+	4. others
+	  * `spectral` (bool): True - simulate the spectral dependent performance (first of the 'other' parameters)
+	  * `medium` (float): if the atmosphere is surrounded by non-participant medium, medium=0; otherwise it is the extinction coefficient in m-1
+	  * `one_heliosat` (boolean): if `True`, implements ray tracing from just one heliostat.
+	  	
+	Returns: nothing (requested files are created and written)
 
-			* if receiver == 'flat': np.array([width, height, slices, x, y, z, tilt angle (deg))]
-			* if receiver == 'cylinder': np.array([radius, height, slices])
-			* if receiver == 'stl': the directory of the stl file
-		4. others
-		  * spectral (bool): True - simulate the spectral dependent performance 
-		  * medium (float): if the atmosphere is surrounded by non-participant medium, medium=0; otherwise it is the extinction coefficient in m-1
-	
-	``Returns``
+	Note that the parameters are in groups that relate to the `sun`, the `field` and the `receiver` then `others`. 
 
-		No return value (requested files are created and written)
+	Note also the type for `rec_param` should be as follows.
+	  * if ``receiver == 'flat'``: np.array([width, height, slices, x, y, z, tilt angle (deg))]
+	  * if ``receiver == 'cylinder'``: np.array([radius, height, slices])
+	  * if ``receiver == 'stl'``: the directory of the stl file
 	"""
+	# FIXME Parameters should be named according to what they are, eg
+	# the parameter should be called 'csr', not 'sunsize', to avoid confusion.
+	# We can still improve our calling convention, to make this library easier
+	# to use and more maintainable.
 
 	sys.stderr.write("Generating YAML file...\n")
 
@@ -95,26 +150,15 @@ def gen_yaml(DNI, sunshape, sunsize, hst_pos, hst_foc, hst_aims,hst_w, hst_h
 		i = len(ke_air)-1
 		iyaml+='  - {wavelength: %s, data: %s }\n' % (ke_air[i][0], ke_air[i][1])
 		iyaml+='\n'
-		#
-		# Creation of the sun and atmosphere
-		#
+	#
+	# Creation of the sun and atmosphere
+	#
 	if spectral:
-		if sunshape=='pillbox':
-			iyaml+='- sun: {dni: %15.8e, spectrum: *solar_spectrum, %s: {half_angle: %6.4f}}\n' % (DNI, sunshape,sunsize) 
-		elif sunshape=='buie':
-			iyaml+='- sun: {dni: %15.8e, spectrum: *solar_spectrum, %s: {csr: %6.4f}}\n' % (DNI, sunshape,sunsize) 
-		elif sunshape=='gaussian':
-			iyaml+='- sun: {dni: %15.8e, spectrum: *solar_spectrum, %s: {std_dev: %6.4f}}\n' % (DNI, sunshape,sunsize) 
+		spectrum = "*solar_spectrum"
 	else:
-		
-		if sunshape=='pillbox':
-			iyaml+='- sun: {dni: %15.8e, %s: {half_angle: %6.4f}}\n' % (DNI, sunshape,sunsize)   
-		elif sunshape=='buie':
-			iyaml+='- sun: {dni: %15.8e, %s: {csr: %6.4f}}\n' % (DNI, sunshape,sunsize) 
-		elif sunshape=='gaussian':
-			iyaml+='- sun: {dni: %15.8e, %s: {std_dev: %6.4f}}\n' % (DNI, sunshape,sunsize) 
-
-
+		spectrum = None
+	
+	iyaml += "- sun: %s\n" % (sun.yaml(spectrum),)
 
 	if medium>1e-99:
 		iyaml+='- atmosphere: {extinction: *airkext}\n' 
@@ -502,13 +546,5 @@ def STL_receiver(rec_param, hemisphere='North'):
 
     return entt, rcv
 
+#------------------------------
 
-
-
-
-
-
-
-
-
-    #------------------------------
