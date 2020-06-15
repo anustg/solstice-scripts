@@ -64,6 +64,7 @@ def find_prog(name,version_required=None):
 		import subprocess
 		DEVNULL = open(os.devnull, 'wb')
 		rc = subprocess.call(['which',name],stdout=DEVNULL)
+		DEVNULL.close()
 		if rc:
 			raise RuntimeError("Program '%s' was not found in the PATH" %(name))
 		return name
