@@ -342,7 +342,7 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims,hst_w, hst_h
 
 
 def flat_receiver(rec_param, hemisphere='North'):
-    """y
+    """
     hemisphere : 'North' or 'South' hemisphere of the earth where the field located
                 if North: the field is in the positive y direction
                 if South: the field is in the negtive y direction
@@ -431,7 +431,7 @@ def cylindrical_receiver(rec_param, hemisphere='North'):
     slices=rec_param[2]
     x=rec_param[3]
     y=rec_param[4]
-    z=rec_param[5]
+    z=rec_param[5]-rec_r
 
     geom=''
     geom+='- geometry: &%s\n' % 'target_g'

@@ -1,5 +1,4 @@
-import os
-import numpy as N
+import numpy as np
 import platform
 import os, sys, subprocess, glob, datetime
 import colorama
@@ -61,7 +60,7 @@ class Master:
 
 		return os.path.join(self.casedir,fn)
 
-	def run(self, azimuth, elevation, num_rays, rho_mirror,dni,gen_vtk=True):
+	def run(self, azimuth, elevation, num_rays, rho_mirror,dni, gen_vtk=True, printresult=True):
 
 		"""Run an optical simulation (one sun position) using Solstice 
 
@@ -81,13 +80,14 @@ class Master:
 		# main raytrace
 		run_prog("solstice",['-D%s,%s'%(azimuth,elevation),'-v','-n',num_rays,'-R',RECV_IN,'-fo',self.in_case('simul'),YAML_IN])
 
-		# Read "simul" results and produce a text file with the raw results
-		run_prog('solppraw',[self.in_case('simul')])
 
 		if gen_vtk:
 			dirn = os.getcwd()
 			try:
 				os.chdir(self.casedir)
+
+				# Read "simul" results and produce a text file with the raw results
+				run_prog('solppraw',[self.in_case('simul')])
 
 				# post processing
 				run_prog("solstice",['-D%s,%s'%(azimuth,elevation),'-g','format=obj:split=geometry','-fo',self.in_case('geom'),YAML_IN])
@@ -108,10 +108,11 @@ class Master:
 
 		eta, performance_hst=process_raw_results(self.in_case('simul'), self.casedir,rho_mirror,dni)
 
-		sys.stderr.write('\n' + yellow("Total efficiency: {:f}\n".format(eta)))
-		sys.stderr.write(green("Completed successfully.\n"))
+		if printresult:
+			sys.stderr.write('\n' + yellow("Total efficiency: {:f}\n".format(eta)))
+			sys.stderr.write(green("Completed successfully.\n"))
 
-		return eta
+		return eta, performance_hst
 
 	def run_annual(self, nd, nh, latitude, num_rays, num_hst,rho_mirror,dni,gen_vtk=False):
 
@@ -146,7 +147,7 @@ class Master:
 		# TODO note, DNI is not varied in the simulation, 
 		# i.e. performance is not dni-weighted
 		ANNUAL=np.zeros((num_hst, 9))    
-		run=N.r_[0]
+		run=np.r_[0]
 
 		for i in range(len(case_list)):     
 			c=int(case_list[i,0].astype(float))
@@ -171,31 +172,7 @@ class Master:
 				    efficiency_total=ufloat(0,0)
 				    performance_hst=np.zeros((num_hst, 9))  
 				else:
-					# main raytrace
-					run_prog('solstice',['-D%s,%s'%(azimuth,elevation),'-v','-n',num_rays,'-R',RECV_IN,'-fo',self.in_case('simul'),YAML_IN],verbose=False)
-						
-					if gen_vtk:
-						dirn = os.getcwd()
-						try:
-							os.chdir(onesunfolder)
-							# post processing
-							run_prog('solstice',['-D%s,%s'%(azimuth,elevation),'-g','format=obj:split=geometry','-fo',self.in_case('geom'),YAML_IN])
-
-							run_prog('solstice',['-D%s,%s'%(azimuth,elevation),'-q','-n','100','-R',RECV_IN,'-p','default',YAML_IN], output_file=self.in_case('solpaths'))
-							# Read "simul" results and produce a text file with the raw results
-							run_prog('solppraw',[self.in_case('simul')])
-							# Read "simul" results and produce receiver files (.vtk) of incoming and/or absorbed solar flux per-primitive
-							run_prog('solmaps',[self.in_case('simul')])
-
-							# Read "geom" and "simul" file results and produce primaries and receivers files (.vtk), and .obj geometry files
-							run_prog('solpp',[self.in_case('geom'),self.in_case('simul')])
-
-							# Read "solpaths" file and produce readable file (.vtk) by paraview to visualize the ray paths
-							run_prog('solpaths',[self.in_case('solpaths')])
-						finally:
-							os.chdir(dirn)
-
-					efficiency_total, performance_hst=process_raw_results(self.in_case('simul'), self.casedir,rho_mirror,dni)
+					efficiency_total, performance_hst=self.run(azimuth, elevation, num_rays, rho_mirror, dni, gen_vtk=False, printresult=False)
 
 					sys.stderr.write(yellow("Total efficiency: {:f}\n".format(efficiency_total)))
 
@@ -215,11 +192,12 @@ class Master:
 
 			run=np.append(run,c)   
 
-		annual_title=N.array(['Q_solar','Q_cosine', 'Q_shade', 'Q_hst_abs', 'Q_block', 'Q_atm', 'Q_spil', 'Q_refl', 'Q_rcv_abs']) 
-		ANNUAL=N.vstack((annual_title, ANNUAL))
+		annual_title=np.array(['Q_solar','Q_cosine', 'Q_shade', 'Q_hst_abs', 'Q_block', 'Q_atm', 'Q_spil', 'Q_refl', 'Q_rcv_abs']) 
+		ANNUAL=np.vstack((annual_title, ANNUAL))
 		np.savetxt(self.casedir+'/lookup_table.csv', table, fmt='%s', delimiter=',')
 		np.savetxt(self.casedir+'/result-heliostats-annual-performance.csv', ANNUAL, fmt='%s', delimiter=',')
 		sys.stderr.write("\n"+green("Lookup table saved.\n"))
 		sys.stderr.write(green("Completed successfully.\n"+"\n"))
+		return table, ANNUAL
 
 

@@ -187,6 +187,8 @@ def process_raw_results(rawfile, savedir,rho_mirror,dni):
 	heliostats=N.zeros((num_hst+1,28)).astype(str)
 	heliostats[:, :]='-'
 	heliostats[0]=N.array(['hst_idx', 'area', 'sample', 'cos', 'shade', 'incoming', 'in-mat-loss','in-atm-loss', 'absorbed', 'abs-mat-loss', 'abs-atm-loss', 'vir_incoming', 'vir_in-mat-loss','vir_in-atm-loss', 'vir_absorbed', 'vir_abs-mat-loss', 'vir_abs-atm-loss', '', '', 'total', 'cos', 'shad', 'hst_abs', 'block', 'atm', 'spil', 'rec_refl', 'rec_abs' ]) 
+
+	# TODO why the rawfile be read, again?
 	with open(rawfile) as f:
 		content = f.read().splitlines()
 		# content is a list with lots of string
