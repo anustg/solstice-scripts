@@ -139,17 +139,7 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims,hst_w, hst_h
 	# air, glass, vacuum, etc. gathering spectral data
 	#------------------------------
 	#
-	if medium>1e-99:
-		#TODO need data/info of extinction coefficient as a function of spectral
-		ke_air = I_sun
-		for i in range(0,len(I_sun)):
-		    ke_air[i][1] = medium
-		iyaml+='- spectrum: &%s  \n' % 'airkext'
-		for i in range(0,len(ke_air)-1):
-		    iyaml+='  - {wavelength: %s, data: %s }\n' % (ke_air[i][0],ke_air[i][1])
-		i = len(ke_air)-1
-		iyaml+='  - {wavelength: %s, data: %s }\n' % (ke_air[i][0], ke_air[i][1])
-		iyaml+='\n'
+
 	#
 	# Creation of the sun and atmosphere
 	#
@@ -161,7 +151,7 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims,hst_w, hst_h
 	iyaml += "- sun: %s\n" % (sun.yaml(spectrum),)
 
 	if medium>1e-99:
-		iyaml+='- atmosphere: {extinction: *airkext}\n' 
+		iyaml+='- atmosphere: {extinction: %s}\n'%medium 
 		iyaml+='\n'
 
 		   
