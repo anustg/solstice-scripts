@@ -46,7 +46,7 @@ class Master:
 		sys.stderr.write("Case directory is '%s'\n" % (yellow(self.casedir),))
 
 
-	def in_case(self, fn):
+	def in_case(self, folder, fn):
 		"""Joining a file name with the case directory
 
 		``Argument``
@@ -57,10 +57,14 @@ class Master:
 
 		  * a joining directory of the file in the case directory
 		"""
+		
+		if not os.path.exists(folder):
+		    os.makedirs(folder)
+		    assert os.path.isdir(folder)
 
-		return os.path.join(self.casedir,fn)
+		return os.path.join(folder,fn)
 
-	def run(self, azimuth, elevation, num_rays, rho_mirror,dni, gen_vtk=True, printresult=True):
+	def run(self, azimuth, elevation, num_rays, rho_mirror, dni, folder, gen_vtk=True, printresult=True):
 
 		"""Run an optical simulation (one sun position) using Solstice 
 
@@ -74,39 +78,39 @@ class Master:
 		Returns: no return value (results files are created and written)
 		"""
 
-		YAML_IN = self.in_case('input.yaml')
-		RECV_IN = self.in_case('input-rcv.yaml')
+		YAML_IN = self.in_case(self.casedir, 'input.yaml')
+		RECV_IN = self.in_case(self.casedir, 'input-rcv.yaml')
 
 		# main raytrace
-		run_prog("solstice",['-D%s,%s'%(azimuth,elevation),'-v','-n',num_rays,'-R',RECV_IN,'-fo',self.in_case('simul'),YAML_IN])
+		run_prog("solstice",['-D%s,%s'%(azimuth,elevation),'-v','-n',num_rays,'-R',RECV_IN,'-fo',self.in_case(folder, 'simul'),YAML_IN])
 
 
 		if gen_vtk:
 			dirn = os.getcwd()
 			try:
-				os.chdir(self.casedir)
+				os.chdir(folder)
 
 				# Read "simul" results and produce a text file with the raw results
-				run_prog('solppraw',[self.in_case('simul')])
+				run_prog('solppraw',[self.in_case(folder, 'simul')])
 
 				# post processing
-				run_prog("solstice",['-D%s,%s'%(azimuth,elevation),'-g','format=obj:split=geometry','-fo',self.in_case('geom'),YAML_IN])
+				run_prog("solstice",['-D%s,%s'%(azimuth,elevation),'-g','format=obj:split=geometry','-fo',self.in_case(folder, 'geom'),YAML_IN])
 
 				# run a short raytrace to produce some ray paths
-				run_prog("solstice",['-D%s,%s'%(azimuth,elevation),'-q','-n','100','-R',RECV_IN,'-p','default',YAML_IN], output_file=self.in_case('solpaths'))
+				run_prog("solstice",['-D%s,%s'%(azimuth,elevation),'-q','-n','100','-R',RECV_IN,'-p','default',YAML_IN], output_file=self.in_case(folder, 'solpaths'))
 
 				# Read "simul" results and produce receiver files (.vtk) of incoming and/or absorbed solar flux per-primitive
-				run_prog('solmaps',[self.in_case('simul')])
+				run_prog('solmaps',[self.in_case(folder, 'simul')])
 
 				# Read "geom" and "simul" file results and produce primaries and receivers files (.vtk), and .obj geometry files
-				run_prog('solpp',[self.in_case('geom'),self.in_case('simul')])
+				run_prog('solpp',[self.in_case(folder, 'geom'),self.in_case(folder, 'simul')])
 
 				# Read "solpaths" file and produce readable file (.vtk) by paraview to visualize the ray paths
-				run_prog('solpaths',[self.in_case('solpaths')])
+				run_prog('solpaths',[self.in_case(folder, 'solpaths')])
 			finally:
 				os.chdir(dirn)
 
-		eta, performance_hst=process_raw_results(self.in_case('simul'), self.casedir,rho_mirror,dni)
+		eta, performance_hst=process_raw_results(self.in_case(folder, 'simul'), folder,rho_mirror,dni)
 
 		if printresult:
 			sys.stderr.write('\n' + yellow("Total efficiency: {:f}\n".format(eta)))
@@ -135,8 +139,8 @@ class Master:
 		  * No return value (results files are created and written)
 		"""
 
-		YAML_IN = self.in_case('input.yaml')
-		RECV_IN = self.in_case('input-rcv.yaml')
+		YAML_IN = self.in_case(self.casedir, 'input.yaml')
+		RECV_IN = self.in_case(self.casedir, 'input-rcv.yaml')
 
 		sun=SunPosition()
 		AZI, ZENITH,table,case_list=sun.annual_angles(latitude, casefolder=self.casedir, nd=nd, nh=nh)
@@ -165,14 +169,12 @@ class Master:
 
 				onesunfolder=os.path.join(self.casedir,'sunpos_%s'%(c))
 
-				if not os.path.exists(onesunfolder):
-				    os.makedirs(onesunfolder) 
 				# run solstice
 				if elevation<1.: # 1 degree
 				    efficiency_total=ufloat(0,0)
 				    performance_hst=np.zeros((num_hst, 9))  
 				else:
-					efficiency_total, performance_hst=self.run(azimuth, elevation, num_rays, rho_mirror, dni, gen_vtk=False, printresult=False)
+					efficiency_total, performance_hst=self.run(azimuth, elevation, num_rays, rho_mirror, dni, folder=onesunfolder, gen_vtk=False, printresult=False)
 
 					sys.stderr.write(yellow("Total efficiency: {:f}\n".format(efficiency_total)))
 

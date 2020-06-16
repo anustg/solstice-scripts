@@ -57,9 +57,10 @@ class TestMaster(unittest.TestCase):
 		rec_mesh=100
 		rec_param=np.r_[rec_w, rec_h, rec_mesh, loc_x, loc_y, loc_z, tilt]
 
-		master=Master(casedir='.')
-		outfile_yaml = master.in_case('input.yaml')
-		outfile_recv = master.in_case('input-rcv.yaml')
+		casedir='.'
+		master=Master(casedir)
+		outfile_yaml = master.in_case(casedir, 'input.yaml')
+		outfile_recv = master.in_case(casedir, 'input-rcv.yaml')
 
 		solsticepy.gen_yaml(sun, hst_pos, hst_foc, hst_aims, hst_w, hst_h
 		, rho_refl, slope_error, receiver, rec_param, rec_abs
@@ -67,7 +68,7 @@ class TestMaster(unittest.TestCase):
 		, hemisphere='North', tower_h=tower_h, tower_r=tower_r,  spectral=False
 		, medium=0, one_heliostat=False)
 
-		self.eta, self.performance_hst=master.run(azimuth, elevation, num_rays, rho_refl,sun.dni, gen_vtk=False)
+		self.eta, self.performance_hst=master.run(azimuth, elevation, num_rays, rho_refl,sun.dni, folder=casedir, gen_vtk=False)
 
 		self.table, self.ANNUAL=master.run_annual(nd=5, nh=5, latitude=latitude, num_rays=num_rays, num_hst=len(hst_pos),rho_mirror=rho_refl, dni=DNI)
 
