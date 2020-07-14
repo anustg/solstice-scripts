@@ -246,10 +246,11 @@ def process_raw_results(rawfile, savedir,rho_mirror,dni):
 		heliostats[i+1,16]=hst_abs_atm
 
 
-		hst_tot=float(hst_area)*dni
+		hst_tot=float(hst_area)*1000.
 		hst_cos=hst_tot*(1.-float(hst_cos))
 		hst_shad=float(hst_shad)
 		hst_abs=(hst_tot-hst_cos-hst_shad)*(1.-rho_mirror)
+
 		hst_atm=float(heliostats[i+1,16])
 		hst_spil=float(heliostats[i+1,11])
 		hst_rec_abs=float(heliostats[i+1,8])
@@ -266,14 +267,16 @@ def process_raw_results(rawfile, savedir,rho_mirror,dni):
 		heliostats[i+1,26]=hst_rec_refl
 		heliostats[i+1,27]=hst_rec_abs
 
-	#N.savetxt(savedir+'/results-heliostats.csv', heliostats, fmt='%s', delimiter=',')
 
-	performance_hst=N.zeros((num_hst, 10))
-	performance_hst[:,0]=heliostats[1:, 0].astype(float)
-	performance_hst[:,1:]=heliostats[1:, 19:].astype(float)
-	performance_hst=performance_hst[performance_hst[:,0].argsort()]
+	N.savetxt(savedir+'/heliostats.csv', heliostats, fmt='%s', delimiter=',')
 
-	return efficiency_total, performance_hst[:,1:]
+	performance_hst=N.zeros((num_hst, 9))
+	#performance_hst[:,0]=heliostats[1:, 0].astype(float)
+	performance_hst=heliostats[1:, 19:].astype(float)
+	performance_hst=performance_hst[heliostats[1:, 0].argsort()]
+	N.savetxt(savedir+'/performance-heliostats.csv', performance_hst, fmt='%s', delimiter=',')
+
+	return efficiency_total, performance_hst
 
 if __name__=='__main__':
     eta,pf_hst = proces_raw_results(sys.argv[1], sys.argv[2], sys.argv[3])

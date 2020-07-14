@@ -15,7 +15,7 @@ from .cal_sun import *
 from .gen_yaml import gen_yaml, Sun
 from .gen_vtk import *
 from .input import Parameters
-from .output_motab import *
+from .output_motab import output_matadata_motab, output_motab
 from .master import *
 
 
@@ -126,6 +126,10 @@ class CRS:
 		print('attenuation', att_factor)
 		sun = Sun(sunshape=sunshape, csr=csr, half_angle_deg=half_angle_deg, std_dev=std_dev)
 
+		if self.latitude>0:
+			hemisphere='North'
+		else:
+			hemisphere='South'
 		gen_yaml(sun, self.hst_pos, self.hst_foc, self.hst_aims, self.hst_w
 		, self.hst_h, self.hst_rho, self.slope, self.receiver, self.rec_param
 		, self.rec_abs, outfile_yaml=outfile_yaml, outfile_recv=outfile_recv
@@ -173,9 +177,9 @@ class CRS:
 				    performance_hst=np.zeros((nhst, 9))  
 				    efficiency_hst=np.zeros(nhst)
 				else:
-					efficiency_total, performance_hst=self.master.run(azimuth, elevation, num_rays, dni, self.hst_rho, folder=onesunfolder, gen_vtk=False, printresult=False)
+					efficiency_total, performance_hst=self.master.run(azimuth, elevation, num_rays, self.hst_rho, dni, folder=onesunfolder, gen_vtk=False, printresult=False)
 
-					efficiency_hst=performance_hst[:,1]/performance_hst[:,0]
+					efficiency_hst=performance_hst[:,-1]/performance_hst[:,0]
 					np.savetxt(onesunfolder+'/results-heliostats.csv', performance_hst, fmt='%.2f', delimiter=',')   
 
 				hst_annual[c]=performance_hst
@@ -206,14 +210,15 @@ class CRS:
 		azi_des, ele_des=self.sun.convert_convention('solstice', azi, zen) 
 
 		sys.stderr.write("\n"+green('Design case: \n'))		
-		efficiency_total, performance_hst_des=self.master.run(azi_des, ele_des, num_rays, dni_des, self.hst_rho, folder=designfolder, gen_vtk=False, printresult=False)
+		efficiency_total, performance_hst_des=self.master.run(azi_des, ele_des, num_rays, self.hst_rho, dni_des, folder=designfolder, gen_vtk=False, printresult=False)
 
 
 		per_helio=N.hstack((self.hst_pos, performance_hst_des))
 		N.savetxt(designfolder+'/results-heliostats.csv', per_helio, fmt='%.2f', delimiter=',')        	
 
-		Qin=performance_hst_des[:,1]
-		Qsolar=performance_hst_des[0,0]/float(len(self.hst_pos))
+		Qin=performance_hst_des[:,-1]
+		Qsolar=performance_hst_des[0,0]
+
 		ID=ANNUAL.argsort()
 		ID=ID[::-1]
 
@@ -227,8 +232,9 @@ class CRS:
 			        idx=ID[i]
 			        select_hst=np.append(select_hst, idx)
 			        power+=Qin[idx]
+			print('')			
+			print('Method 1')
 
-			print('power @design', power)
 		else:
 			num_hst=0
 			power=0.
@@ -240,7 +246,8 @@ class CRS:
 			        power+=Qin[idx]
 
 			self.Q_in_rcv=power
-			print('power @design', power)            
+			print('')			
+			print('Method 2')     
 
 		select_hst=select_hst.astype(int)
 
@@ -251,7 +258,9 @@ class CRS:
 		self.n_helios=len(select_hst) 
 		self.eff_des=power/float(self.n_helios)/Qsolar
 
-		print('efficiency @design', self.eff_des)
+		print('num_hst', self.n_helios)
+		print('power   @design', power)
+		print('opt_eff @design', self.eff_des)
 		Xmax=max(self.hst_pos[:,0])
 		Xmin=min(self.hst_pos[:,0])
 		Ymax=max(self.hst_pos[:,1])
@@ -282,7 +291,7 @@ class CRS:
 			    #res_hst=np.loadtxt(sundir+'/results-heliostats.csv', skiprows=1, delimiter=',')
 			    res_hst=hst_annual[c]
 			    Qtot=res_hst[:,0]
-			    Qin=res_hst[:,1]
+			    Qin=res_hst[:,-1]
 			    eff=np.sum(Qin[select_hst])/np.sum(Qtot[select_hst])
 			    print('')
 			    print('sun position:', (c), 'eff', eff)
@@ -301,76 +310,6 @@ class CRS:
 		return oelt, A_land
 		
 
-	def run_annual_system(self, num_rays, nd, nh, zipfiles=False, genvtk_hst=False, plot=False):
-
-		self.annualsolar(nd, nh)
-
-		oelt=self.table
-		run=np.r_[0]
-
-		self.n_helios=len(self.hst_pos)
-		self.eff_des=0  
-
-		for i in range(len(self.case_list)):    
-		    c=int(self.case_list[i,0].astype(float))
-		    if c not in run:
-		        azimuth=self.sol_azi[c-1]
-		        elevation= self.sol_ele[c-1]
-
-		        if np.sin(elevation*np.pi/180.)>=1.e-5:
-		            dni=1618.*np.exp(-0.606/(np.sin(elevation*np.pi/180.)**0.491))
-		        else:
-		            dni=0.
-
-		        print('')
-		        print('')
-		        print('sun position:', (c))
-		        print('azimuth:',  azimuth, ', elevation:',elevation)
-
-		        onesunfolder=self.casedir+'/sunpos_%s'%(c)
-		        if not os.path.exists(onesunfolder):
-		            os.makedirs(onesunfolder) 
-		        # run solstice
-		        if elevation<1.:
-		            efficiency_total=0.
-		        else:
-		            Qabs, Qtot, performance_hst=self.run(azimuth, elevation, dni, savefolder=onesunfolder, num_rays=num_rays, yamlfile=None, genvtk_hst=genvtk_hst, visualise=False)
-		            efficiency_total=Qabs/Qtot
-
-		        print('eff', efficiency_total)
-		     
-		        os.system('rm %s/simul'%onesunfolder)
-		        os.system('rm %s/*yaml'%onesunfolder)
-		        os.system('rm %s/*raw*'%onesunfolder)
-		        if zipfiles:
-		            os.system('zip -r -D %s/optical.zip %s'%(self.casedir, onesunfolder))
-		            os.system('rm -r %s'%onesunfolder)
-
-		    for a in range(len(oelt[3:])):
-		        for b in range(len(oelt[0,3:])):
-		            val=re.findall(r'\d+',oelt[a+3,b+3])
-		            if val==[]:
-		                oelt[a+3,b+3]=0
-		            else:
-		                if c==float(val[0]):
-		                    oelt[a+3,b+3]=efficiency_total
-
-		    run=np.append(run,c)               
-
-		Xmax=max(self.hst_pos[:,0])
-		Xmin=min(self.hst_pos[:,0])
-		Ymax=max(self.hst_pos[:,1])
-		Ymin=min(self.hst_pos[:,1])
-		A_land=(Xmax-Xmin)*(Ymax-Ymin)
-		print('land area', A_land)
-
-
-		np.savetxt(self.casedir+'/lookup_table.csv', oelt, fmt='%s', delimiter=',')
-
-		return oelt, A_land
-
-
-
 	def dni_TMY(self, weafile, nd, nh):
 		'''
 		Argument:
@@ -380,24 +319,24 @@ class CRS:
 		# col1 - GHI
 		# col2 -DNI (W/m2)
 		# col3 -DHI 
-		    ...
+			...
 		'''
 		with open(weafile) as f:
-		    content=f.read().splitlines()
+			content=f.read().splitlines()
 		f.close()
-		
+	
 		lines=len(content)
 		seconds=np.array([])
 		dni=np.array([])
-		for i in range(2, lines):
-		    l=content[i].split(",")  
-		    seconds=np.append(seconds, l[0])         
-		    dni=np.append(dni, l[2])
+		for i in range(2, lines-1):
+			l=content[i].split(",") 
+			seconds=np.append(seconds, l[0])         
+			dni=np.append(dni, l[2])
 		seconds=seconds.astype(float)
 		days=seconds/3600/24
 		wea_dec=np.array([])
 		for d in days:
-		    wea_dec=np.append(wea_dec, self.sun.declination(d)) #deg
+			wea_dec=np.append(wea_dec, self.sun.declination(d)) #deg
 
 		wea_hra=((seconds/3600.)%24-12.)*15. #deg
 		wea_dni=dni.astype(float)
@@ -454,43 +393,45 @@ class CRS:
 
 if __name__=='__main__':
 	start=time.time()
-	casedir='./test-annual-trim'
-	pm=Parameters()
-	pm.Q_in_rcv=565e6
-	pm.nd=8
-	pm.nh=25
-	pm.H_tower=250.
-	pm.H_rcv=24.
-	pm.W_rcv=24.
-	pm.dependent_par()
-	pm.saveparam(casedir)
-	print(pm.fb)
-	print(pm.H_tower)
-	crs=CRS(latitude=pm.lat, casedir=casedir)   
-	weafile='/home/yewang/solartherm-integration/SolarTherm/Data/Weather/gen3p3_Daggett_TMY3.motab'
-	crs.heliostatfield(field=pm.field_type, hst_rho=pm.rho_helio, slope=pm.slope_error, hst_w=pm.W_helio, hst_h=pm.H_helio, tower_h=pm.H_tower, tower_r=pm.R_tower, hst_z=pm.Z_helio, num_hst=pm.n_helios, R1=pm.R1, fb=pm.fb, dsep=pm.dsep)
+	casedir='./test-crs-design'
+	tablefile=casedir+'/OELT_Solstice.motab'
+	if os.path.exists(tablefile):    
+		print('')
+		print('Load exsiting OELT')
 
-	crs.receiversystem(receiver=pm.rcv_type, rec_w=float(pm.W_rcv), rec_h=float(pm.H_rcv), rec_x=float(pm.X_rcv), rec_y=float(pm.Y_rcv), rec_z=float(pm.Z_rcv), rec_tilt=float(pm.tilt_rcv), rec_grid=int(pm.n_H_rcv), rec_abs=float(pm.alpha_rcv))
+	else:
 
-	crs.field_design_annual(Q_in_des=pm.Q_in_rcv, latitude=pm.lat, dni_des=900., num_rays=int(1e6), nd=pm.nd, nh=pm.nh, weafile=weafile, genvtk_hst=False, plot=False)
+		pm=Parameters()
+		pm.Q_in_rcv=565e6
+		pm.nd=5
+		pm.nh=5
+		pm.H_tower=250.
+		pm.H_rcv=24.
+		pm.W_rcv=24.
+		pm.dependent_par()
+		pm.saveparam(casedir)
+		print(pm.fb)
+		print(pm.H_tower)
+		crs=CRS(latitude=pm.lat, casedir=casedir)   
+		weafile='/home/yewang/solartherm-master/SolarTherm/Data/Weather/gen3p3_Daggett_TMY3.motab'
+		crs.heliostatfield(field=pm.field_type, hst_rho=pm.rho_helio, slope=pm.slope_error, hst_w=pm.W_helio, hst_h=pm.H_helio, tower_h=pm.H_tower, tower_r=pm.R_tower, hst_z=pm.Z_helio, num_hst=pm.n_helios, R1=pm.R1, fb=pm.fb, dsep=pm.dsep)
+
+		crs.receiversystem(receiver=pm.rcv_type, rec_w=float(pm.W_rcv), rec_h=float(pm.H_rcv), rec_x=float(pm.X_rcv), rec_y=float(pm.Y_rcv), rec_z=float(pm.Z_rcv), rec_tilt=float(pm.tilt_rcv), rec_grid=int(pm.n_H_rcv), rec_abs=float(pm.alpha_rcv))
+
+		crs.yaml(sunshape=pm.sunshape,csr=pm.crs,half_angle_deg=pm.half_angle_deg,std_dev=pm.std_dev)
+
+		oelt, A_land=crs.field_design_annual(dni_des=900., num_rays=int(1e6), nd=pm.nd, nh=pm.nh, weafile=weafile, method=1, Q_in_des=pm.Q_in_rcv, n_helios=None, zipfiles=False, gen_vtk=False, plot=False)
+
+
+		if (A_land==0):    
+		    tablefile=None
+		else:                                                
+		    A_helio=pm.H_helio*pm.W_helio
+		    output_matadata_motab(table=oelt, field_type=pm.field_type, aiming='single', n_helios=self.n_helios, A_helio=A_helio, eff_design=self.eff_des, H_rcv=pm.H_rcv, W_rcv=pm.W_rcv, H_tower=pm.H_tower, Q_in_rcv=pm.Q_in_rcv, A_land=A_land, savedir=tablefile)
+
 
 	end=time.time()
 	print('total time %.2f'%((end-start)/60.), 'min')
 
 
-	#annualfolder=casedir+'/annual'
-	#crs.run_annual(annualfolder, num_rays=int(1e6))
 
-	#end=time.time()
-	#print 'total time %.2f'%((end-start)/60.), 'min' 
-
-	'''
-	annual=np.loadtxt('./annual_hst.csv', delimiter=',')
-
-	hst=crs.hst_pos
-
-	plt.figure(2)
-	plt.scatter(hst[:,0].astype(float), hst[:,1].astype(float), c=annual)
-	plt.savefig(open('./field.png','w'), bbox_inches='tight')
-	plt.close()
-	'''
