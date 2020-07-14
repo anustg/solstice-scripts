@@ -11,7 +11,7 @@ import os
 import numpy as np
 import time
 
-class TestMaster(unittest.TestCase):
+class TestDesignCRS(unittest.TestCase):
 	def setUp(self):
 
 		start=time.time()
