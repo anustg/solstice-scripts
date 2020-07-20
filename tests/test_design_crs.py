@@ -6,7 +6,7 @@ import unittest
 import solsticepy
 from solsticepy.design_crs import CRS
 from solsticepy.input import Parameters
-from solsticepy.output_motab import output_matadata_motab, output_motab
+from solsticepy.output_motab import output_matadata_motab, output_motab, read_motab
 import os
 import numpy as np
 import time
@@ -18,10 +18,12 @@ class TestDesignCRS(unittest.TestCase):
 		self.casedir='./test-crs-design'
 		self.tablefile=self.casedir+'/OELT_Solstice.motab'
 		if os.path.exists(self.tablefile):    
-		    print('')
-		    print('Load exsiting OELT')
+			print('')
+			print('Load exsiting OELT')
+			self.newcase=False
 
 		else:
+			self.newcase=True
 
 			pm=Parameters()
 			pm.Q_in_rcv=565e6
@@ -42,25 +44,39 @@ class TestDesignCRS(unittest.TestCase):
 
 			crs.yaml(dni=900,sunshape=pm.sunshape,csr=pm.crs,half_angle_deg=pm.half_angle_deg,std_dev=pm.std_dev)
 
-			oelt, A_land=crs.field_design_annual(dni_des=900., num_rays=int(5e6), nd=pm.nd, nh=pm.nh, weafile=weafile, method=1, Q_in_des=pm.Q_in_rcv, n_helios=None, zipfiles=False, gen_vtk=False, plot=False)
+			self.oelt, A_land=crs.field_design_annual(dni_des=900., num_rays=int(5e6), nd=pm.nd, nh=pm.nh, weafile=weafile, method=1, Q_in_des=pm.Q_in_rcv, n_helios=None, zipfiles=False, gen_vtk=False, plot=False)
 
+			self.n_helios=crs.n_helios
+			self.eff_des=crs.eff_des
 
 			if (A_land==0):    
 				self.tablefile=None
 			else:                                                
 				A_helio=pm.H_helio*pm.W_helio
-				output_matadata_motab(table=oelt, field_type=pm.field_type, aiming='single', n_helios=crs.n_helios, A_helio=A_helio, eff_design=crs.eff_des, H_rcv=pm.H_rcv, W_rcv=pm.W_rcv, H_tower=pm.H_tower, Q_in_rcv=pm.Q_in_rcv, A_land=A_land, savedir=self.tablefile)
-
+				output_matadata_motab(table=self.oelt, field_type=pm.field_type, aiming='single', n_helios=crs.n_helios, A_helio=A_helio, eff_design=crs.eff_des, H_rcv=pm.H_rcv, W_rcv=pm.W_rcv, H_tower=pm.H_tower, Q_in_rcv=pm.Q_in_rcv, A_land=A_land, savedir=self.tablefile)
 
 		end=time.time()
 		print('total time %.2f'%((end-start)/60.), 'min')
 
 	def test_touching(self):
-		if os.path.exists(self.tablefile):
-			test='successful'
-		self.assertEqual(test,'successful')
-		#os.system('rm -rf %s'%self.casedir)
 
+		if self.newcase:
+			eta_max=np.max(self.oelt[3:,3:].astype(float))
+		else:
+			self.n_helios, A_helio, self.eff_des, Q_in_rcv, A_land, solar_hour, declination, oelt=read_motab(self.tablefile)
+			eta_max=np.max(oelt)
+			
+		field=np.loadtxt(self.casedir+'/pos_and_aiming.csv', skiprows=2, delimiter=',',dtype=str)
+		num_hst=len(field)
+
+		if os.path.exists(self.tablefile):
+			oelt_generated='successful'
+		self.assertEqual(oelt_generated,'successful')
+		self.assertEqual(num_hst, self.n_helios)
+		self.assertTrue(abs(num_hst-9020) < 5)
+		self.assertTrue(abs(eta_max-0.6275) < 0.01)
+		self.assertTrue(abs(self.eff_des-0.6264) < 0.01)
+		os.system('rm -rf %s'%self.casedir)
 
 if __name__ == '__main__':
 	unittest.main()
