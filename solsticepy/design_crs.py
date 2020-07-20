@@ -180,7 +180,7 @@ class CRS:
 					efficiency_total, performance_hst=self.master.run(azimuth, elevation, num_rays, self.hst_rho, dni, folder=onesunfolder, gen_vtk=False, printresult=False)
 
 					efficiency_hst=performance_hst[:,-1]/performance_hst[:,0]
-					np.savetxt(onesunfolder+'/results-heliostats.csv', performance_hst, fmt='%.2f', delimiter=',')   
+
 
 				hst_annual[c]=performance_hst
 				sys.stderr.write(yellow("Total efficiency: {:f}\n".format(efficiency_total)))
@@ -200,7 +200,6 @@ class CRS:
 			run=np.append(run,c)               
 		np.savetxt(self.casedir+'/annual_hst.csv',ANNUAL, fmt='%.2f', delimiter=',')
 		
-
 		designfolder=self.casedir+'/des_point'
 		day=self.sun.days(21, 'Mar')
 		dec=self.sun.declination(day)
@@ -209,12 +208,8 @@ class CRS:
 		azi=self.sun.azimuth(self.latitude, zen, dec, hra)        
 		azi_des, ele_des=self.sun.convert_convention('solstice', azi, zen) 
 
-		sys.stderr.write("\n"+green('Design case: \n'))		
+		sys.stderr.write("\n"+green('Design Point: \n'))		
 		efficiency_total, performance_hst_des=self.master.run(azi_des, ele_des, num_rays, self.hst_rho, dni_des, folder=designfolder, gen_vtk=False, printresult=False)
-
-
-		per_helio=N.hstack((self.hst_pos, performance_hst_des))
-		N.savetxt(designfolder+'/results-heliostats.csv', per_helio, fmt='%.2f', delimiter=',')        	
 
 		Qin=performance_hst_des[:,-1]
 		Qsolar=performance_hst_des[0,0]
@@ -288,7 +283,6 @@ class CRS:
 			c=int(case_list[i,0].astype(float))
 			if c not in run:                
 			    #sundir=designfolder+'/sunpos_%s'%c
-			    #res_hst=np.loadtxt(sundir+'/results-heliostats.csv', skiprows=1, delimiter=',')
 			    res_hst=hst_annual[c]
 			    Qtot=res_hst[:,0]
 			    Qin=res_hst[:,-1]

@@ -4,7 +4,7 @@ from __future__ import division
 import unittest
 
 import solsticepy
-from solsticepy.CentralReceiverSystem import CRS
+from solsticepy.design_crs import CRS
 from solsticepy.input import Parameters
 from solsticepy.output_motab import output_matadata_motab, output_motab
 import os
