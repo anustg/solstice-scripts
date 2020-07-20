@@ -64,3 +64,37 @@ def output_matadata_motab(table, field_type, aiming, n_helios, A_helio, eff_desi
 		f.write("\n")
 
 	f.close()
+
+
+def read_motab(filename):
+
+	with open(filename) as f:
+		content=f.read().splitlines()
+	f.close()
+	res=content[4].split(',')
+
+	n_helios=float(res[1])
+	A_helio=float(res[2])
+	eff_des=float(res[3])
+	Q_in_rcv=float(res[-2])
+	A_land=float(res[-1])
+
+	oelt=np.array([])
+	solar_hour=np.array([])
+	declination=np.array([])
+	t=content[6].split(' ')
+
+	for v in t[1:]:
+		solar_hour=np.append(solar_hour, float(v))
+
+	for t in content[7:]:
+		v=t.split(' ')
+		declination=np.append(declination, float(v[0]))
+		oelt=np.append(oelt, np.array(v[1:],dtype=float))
+
+	oelt=oelt.reshape(len(declination), len(solar_hour))
+
+	return n_helios, A_helio, eff_des, Q_in_rcv, A_land, solar_hour, declination, oelt
+	
+
+
