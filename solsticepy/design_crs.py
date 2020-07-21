@@ -144,6 +144,8 @@ class CRS:
 		(DNI weighted)
 
 		'''  
+		print('')
+		print('Start field design')	
 		dni_weight=self.dni_TMY(weafile, nd, nh)
 
 		AZI, ZENITH,table,case_list=self.sun.annual_angles(self.latitude, casefolder=self.casedir, nd=nd, nh=nh)
