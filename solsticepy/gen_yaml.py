@@ -2,7 +2,7 @@ from __future__ import print_function
 import numpy as np
 
 #for python 2:
-from builtins import super
+#from builtins import super
 
 from .data_spectral import SolarSpectrum, MirrorRhoSpectrum
 import sys
@@ -78,7 +78,7 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims,hst_w, hst_h
 	  * `tower_h` (float): tower height (m)
 	  * `tower_r` (float): tower radius (a cylindrical shape tower) (m)
 	3. the receiver
-	  * `receiver` (str): ``'flat'``, ``'cylinder'``, or ``'stl'`` (first of the 'receiver' parameters)
+	  * `receiver` (str): ``'flat'``, ``'cylinder'``, or ``'stl' or 'multi_cavity'`` (first of the 'receiver' parameters)
 	  * `rec_abs` (float): receiver absorptivity
 	  * `rec_param` (numpy array or str): each element contains the geometrical parameter of the corresponding receiver.
 	4. others
@@ -94,6 +94,7 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims,hst_w, hst_h
 	  * if ``receiver == 'flat'``: np.array([width, height, slices, x, y, z, tilt angle (deg))]
 	  * if ``receiver == 'cylinder'``: np.array([radius, height, slices])
 	  * if ``receiver == 'stl'``: the directory of the stl file
+	  * if ``receiver == 'multi_cavity'``: the directory of the stl file
 	"""
 	# FIXME Parameters should be named according to what they are, eg
 	# the parameter should be called 'csr', not 'sunsize', to avoid confusion.
@@ -231,6 +232,9 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims,hst_w, hst_h
 
 	elif receiver=='stl':
 		rec_entt, rcv=STL_receiver(rec_param, hemisphere)
+
+	elif receiver=='multi_cavity':
+		geom, rec_entt, rcv =multi_cavity_receiver(rec_param, hemisphere)
 	#
 	# Heliostats Geometry
 	#
@@ -536,5 +540,83 @@ def STL_receiver(rec_param, hemisphere='North'):
 
     return entt, rcv
 
+def multi_cavity_receiver(rec_param, hemisphere='North'):
+    """
+    hemisphere : 'North' or 'South' hemisphere of the earth where the field located
+                if North: the field is in the positive y direction
+                if South: the field is in the negtive y direction
+                this will influence:
+                 (1) the setting of the receiver tilt angle, 
+                     if the front surface always facing to the field is desirable
+                 (2) the position of the virtual target
+    """
+	# x, y, z is the front center of the multi-cavity receiver
+	# n_c is the number of cavities
+	# rec_w, rec_h is the size of one cavity
+	# alpha is the angle between each two cavities 
+	# num_cavity is the number of cavities
+
+    rec_w=rec_param[0]
+    rec_h=rec_param[1]
+    slices=rec_param[2]
+    x=rec_param[3]
+    y=rec_param[4]
+    z=rec_param[5]
+    tilt=rec_param[6]
+    # receiver tilt angle:
+    # 0 is vertical
+    # the standby posiion of a plane in solstice is normal points to the +z axis
+    # rotation anagle, positive is anti-clockwise
+
+    geom=''
+    pts=[ [-rec_w*0.5, -rec_h*0.5], [-rec_w*0.5, rec_h*0.5], [rec_w*0.5, rec_h*0.5], [rec_w*0.5,-rec_h*0.5] ]
+
+    geom+='- geometry: &%s\n' % 'target_g'
+    geom+='  - material: *%s\n' % 'material_target'
+    geom+='    plane: \n'
+    geom+='      clip: \n' 
+    geom+='      - operation: AND \n'
+    geom+='        vertices: %s\n' % pts
+    geom+='      slices: %d\n' % slices 
+    geom+='\n'
+
+    # CREATE a receiver entity from "target_g" geometry (primary = 0)
+    entt=''
+    entt+='\n- entity:\n'
+    entt+='    name: target_e\n'
+    entt+='    primary: 0\n'
+    if hemisphere=='North':
+        entt+='    transform: { translation: %s, rotation: %s }\n' % ([x, y, z], [-90.-tilt, 0, 0]) 
+    else:
+        entt+='    transform: { translation: %s, rotation: %s }\n' % ([x, y, z], [90.+tilt, 0, 0]) 
+    entt+='    geometry: *%s\n' % 'target_g'
+
+    # CREATE a virtual target entity from "target_g" geometry (primary = 0)
+    pts = [ [-rec_w*10., -rec_h*10.], [-rec_w*10., rec_h*10.], [rec_w*10., rec_h*10.], [rec_w*10.,-rec_h*10.] ]
+    slices = 4
+    entt+='\n- entity:\n'
+    entt+='    name: virtual_target_e\n'
+    entt+='    primary: 0\n'
+    if hemisphere=='North':
+        entt+='    transform: { translation: %s, rotation: %s }\n' % ([x, y-5., z], [-90.-tilt, 0, 0])
+    else:
+        entt+='    transform: { translation: %s, rotation: %s }\n' % ([x, y+5., z], [90.+tilt, 0, 0])
+    entt+='    geometry: \n' 
+    entt+='      - material: *%s\n' % 'material_virtual' 
+    entt+='        plane: \n'
+    entt+='          clip: \n'    
+    entt+='          - operation: AND \n'
+    entt+='            vertices: %s\n' % pts
+    entt+='          slices: %d\n' % slices  
+
+    rcv=''
+    rcv+='- name: target_e \n' 
+    rcv+='  side: %s \n' % 'FRONT_AND_BACK'
+    rcv+='  per_primitive: %s \n' % 'INCOMING_AND_ABSORBED'
+    rcv+='- name: virtual_target_e \n'
+    rcv+='  side: %s \n' % 'FRONT'
+    rcv+='  per_primitive: %s \n' % 'INCOMING'
+    
+    return geom, entt, rcv
 #------------------------------
 
