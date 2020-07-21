@@ -54,8 +54,9 @@ class TestMaster(unittest.TestCase):
 		loc_z=tower_h# m
 		# R5. Abosrptivity
 		rec_abs=0.9
-		rec_mesh=100
-		rec_param=np.r_[rec_w, rec_h, rec_mesh, loc_x, loc_y, loc_z, tilt]
+		rec_mesh_x=100
+		rec_mesh_y=100
+		rec_param=np.r_[rec_w, rec_h, rec_mesh_x, rec_mesh_y, loc_x, loc_y, loc_z, tilt]
 
 		casedir='.'
 		master=Master(casedir)
