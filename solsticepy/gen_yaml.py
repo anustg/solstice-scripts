@@ -336,287 +336,289 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims,hst_w, hst_h
 
 
 def flat_receiver(rec_param, hemisphere='North'):
-    """
-    hemisphere : 'North' or 'South' hemisphere of the earth where the field located
-                if North: the field is in the positive y direction
-                if South: the field is in the negtive y direction
-                this will influence:
-                 (1) the setting of the receiver tilt angle, 
-                     if the front surface always facing to the field is desirable
-                 (2) the position of the virtual target
-    """
-    rec_w=rec_param[0]
-    rec_h=rec_param[1]
-    slices=rec_param[2]
-    x=rec_param[3]
-    y=rec_param[4]
-    z=rec_param[5]
-    tilt=rec_param[6]
-    # receiver tilt angle:
-    # 0 is vertical
-    # the standby posiion of a plane in solstice is normal points to the +z axis
-    # rotation anagle, positive is anti-clockwise
+	"""
+	hemisphere : 'North' or 'South' hemisphere of the earth where the field located
+		        if North: the field is in the positive y direction
+		        if South: the field is in the negtive y direction
+		        this will influence:
+		         (1) the setting of the receiver tilt angle, 
+		             if the front surface always facing to the field is desirable
+		         (2) the position of the virtual target
+	"""
+	rec_w=rec_param[0]
+	rec_h=rec_param[1]
+	slices=rec_param[2] # it assumes equal number of slices in x and y directions
+	x=rec_param[4]
+	y=rec_param[5]
+	z=rec_param[6]
+	tilt=rec_param[7]
+	# receiver tilt angle:
+	# 0 is vertical
+	# the standby posiion of a plane in solstice is normal points to the +z axis
+	# rotation anagle, positive is anti-clockwise
 
-    geom=''
-    pts=[ [-rec_w*0.5, -rec_h*0.5], [-rec_w*0.5, rec_h*0.5], [rec_w*0.5, rec_h*0.5], [rec_w*0.5,-rec_h*0.5] ]
+	geom=''
+	pts=[ [-rec_w*0.5, -rec_h*0.5], [-rec_w*0.5, rec_h*0.5], [rec_w*0.5, rec_h*0.5], [rec_w*0.5,-rec_h*0.5] ]
 
-    geom+='- geometry: &%s\n' % 'target_g'
-    geom+='  - material: *%s\n' % 'material_target'
-    geom+='    plane: \n'
-    geom+='      clip: \n' 
-    geom+='      - operation: AND \n'
-    geom+='        vertices: %s\n' % pts
-    geom+='      slices: %d\n' % slices 
-    geom+='\n'
+	geom+='- geometry: &%s\n' % 'target_g'
+	geom+='  - material: *%s\n' % 'material_target'
+	geom+='    plane: \n'
+	geom+='      clip: \n' 
+	geom+='      - operation: AND \n'
+	geom+='        vertices: %s\n' % pts
+	geom+='      slices: %d\n' % slices 
+	geom+='\n'
 
-    # CREATE a receiver entity from "target_g" geometry (primary = 0)
-    entt=''
-    entt+='\n- entity:\n'
-    entt+='    name: target_e\n'
-    entt+='    primary: 0\n'
-    if hemisphere=='North':
-        entt+='    transform: { translation: %s, rotation: %s }\n' % ([x, y, z], [-90.-tilt, 0, 0]) 
-    else:
-        entt+='    transform: { translation: %s, rotation: %s }\n' % ([x, y, z], [90.+tilt, 0, 0]) 
-    entt+='    geometry: *%s\n' % 'target_g'
+	# CREATE a receiver entity from "target_g" geometry (primary = 0)
+	entt=''
+	entt+='\n- entity:\n'
+	entt+='    name: target_e\n'
+	entt+='    primary: 0\n'
+	if hemisphere=='North':
+		entt+='    transform: { translation: %s, rotation: %s }\n' % ([x, y, z], [-90.-tilt, 0, 0]) 
+	else:
+		entt+='    transform: { translation: %s, rotation: %s }\n' % ([x, y, z], [90.+tilt, 0, 0]) 
+	entt+='    geometry: *%s\n' % 'target_g'
 
-    # CREATE a virtual target entity from "target_g" geometry (primary = 0)
-    pts = [ [-rec_w*10., -rec_h*10.], [-rec_w*10., rec_h*10.], [rec_w*10., rec_h*10.], [rec_w*10.,-rec_h*10.] ]
-    slices = 4
-    entt+='\n- entity:\n'
-    entt+='    name: virtual_target_e\n'
-    entt+='    primary: 0\n'
-    if hemisphere=='North':
-        entt+='    transform: { translation: %s, rotation: %s }\n' % ([x, y-5., z], [-90.-tilt, 0, 0])
-    else:
-        entt+='    transform: { translation: %s, rotation: %s }\n' % ([x, y+5., z], [90.+tilt, 0, 0])
-    entt+='    geometry: \n' 
-    entt+='      - material: *%s\n' % 'material_virtual' 
-    entt+='        plane: \n'
-    entt+='          clip: \n'    
-    entt+='          - operation: AND \n'
-    entt+='            vertices: %s\n' % pts
-    entt+='          slices: %d\n' % slices  
+	# CREATE a virtual target entity from "target_g" geometry (primary = 0)
+	pts = [ [-rec_w*10., -rec_h*10.], [-rec_w*10., rec_h*10.], [rec_w*10., rec_h*10.], [rec_w*10.,-rec_h*10.] ]
+	slices = 4
+	entt+='\n- entity:\n'
+	entt+='    name: virtual_target_e\n'
+	entt+='    primary: 0\n'
+	if hemisphere=='North':
+		entt+='    transform: { translation: %s, rotation: %s }\n' % ([x, y-5., z], [-90.-tilt, 0, 0])
+	else:
+		entt+='    transform: { translation: %s, rotation: %s }\n' % ([x, y+5., z], [90.+tilt, 0, 0])
+	entt+='    geometry: \n' 
+	entt+='      - material: *%s\n' % 'material_virtual' 
+	entt+='        plane: \n'
+	entt+='          clip: \n'    
+	entt+='          - operation: AND \n'
+	entt+='            vertices: %s\n' % pts
+	entt+='          slices: %d\n' % slices  
 
-    rcv=''
-    rcv+='- name: target_e \n' 
-    rcv+='  side: %s \n' % 'FRONT_AND_BACK'
-    rcv+='  per_primitive: %s \n' % 'INCOMING_AND_ABSORBED'
-    rcv+='- name: virtual_target_e \n'
-    rcv+='  side: %s \n' % 'FRONT'
-    rcv+='  per_primitive: %s \n' % 'INCOMING'
-    
-    return geom, entt, rcv
-    
+	rcv=''
+	rcv+='- name: target_e \n' 
+	rcv+='  side: %s \n' % 'FRONT_AND_BACK'
+	rcv+='  per_primitive: %s \n' % 'INCOMING_AND_ABSORBED'
+	rcv+='- name: virtual_target_e \n'
+	rcv+='  side: %s \n' % 'FRONT'
+	rcv+='  per_primitive: %s \n' % 'INCOMING'
+
+	return geom, entt, rcv
+
 
 
 def cylindrical_receiver(rec_param, hemisphere='North'):
-    '''
-    hemishpere : 'North' or 'South' hemisphere of the earth where the field located
-                if North: the field is in the positive y direction
-                if South: the field is in the negtive y direction
-                this will influence:
-                 (1) the setting of the receiver tilt angle, 
-                     if the front surface always facing to the field is desirable
-                 (2) the position of the virtual target
-    '''
-    rec_r=rec_param[0]
-    rec_h=rec_param[1]
-    slices=rec_param[2]
-    x=rec_param[3]
-    y=rec_param[4]
-    z=rec_param[5]-rec_r
+	'''
+	hemishpere : 'North' or 'South' hemisphere of the earth where the field located
+		        if North: the field is in the positive y direction
+		        if South: the field is in the negtive y direction
+		        this will influence:
+		         (1) the setting of the receiver tilt angle, 
+		             if the front surface always facing to the field is desirable
+		         (2) the position of the virtual target
+	'''
+	rec_r=rec_param[0]/2.
+	rec_h=rec_param[1]
+	slices=rec_param[2] # number of elements in the circumferetial direction
+	stacks=rec_param[3] # number of elements in the vertical direction
+	x=rec_param[4]
+	y=rec_param[5]
+	z=rec_param[6]
 
-    geom=''
-    geom+='- geometry: &%s\n' % 'target_g'
-    geom+='  - material: *%s\n' % 'material_target'
-    geom+='    cylinder: \n'
-    geom+='      height: %s\n'%rec_h 
-    geom+='      radius: %s\n'%rec_r 
-    geom+='      slices: %d\n' % slices 
-    geom+='\n'
+	geom=''
+	geom+='- geometry: &%s\n' % 'target_g'
+	geom+='  - material: *%s\n' % 'material_target'
+	geom+='    cylinder: \n'
+	geom+='      height: %s\n'%rec_h 
+	geom+='      radius: %s\n'%rec_r 
+	geom+='      slices: %d\n' % slices 
+	geom+='      stacks: %d\n' % stacks 
+	geom+='\n'
 
-    # CREATE a receiver entity from "target_g" geometry (primary = 0)
-    entt=''
-    entt+='\n- entity:\n'
-    entt+='    name: target_e\n'
-    entt+='    primary: 0\n'
+	# CREATE a receiver entity from "target_g" geometry (primary = 0)
+	entt=''
+	entt+='\n- entity:\n'
+	entt+='    name: target_e\n'
+	entt+='    primary: 0\n'
 
-    entt+='    transform: { translation: %s, rotation: %s }\n' % ([x, y, z], [0., 0., 0.]) 
+	entt+='    transform: { translation: %s, rotation: %s }\n' % ([x, y, z], [0., 0., 0.]) 
 
-    entt+='    geometry: *%s\n' % 'target_g'
+	entt+='    geometry: *%s\n' % 'target_g'
 
-    # CREATE a virtual target entity from "target_g" geometry (primary = 0)
-    Vsize=100.
-    pts = [ [-rec_h*Vsize, -rec_h*Vsize], [-rec_h*Vsize, rec_h*Vsize], [rec_h*Vsize, rec_h*Vsize], [rec_h*Vsize,-rec_h*Vsize] ]
-    slices = 4
-    entt+='\n- entity:\n'
-    entt+='    name: virtual_target_e\n'
-    entt+='    primary: 0\n'
+	# CREATE a virtual target entity from "target_g" geometry (primary = 0)
+	Vsize=100.
+	pts = [ [-rec_h*Vsize, -rec_h*Vsize], [-rec_h*Vsize, rec_h*Vsize], [rec_h*Vsize, rec_h*Vsize], [rec_h*Vsize,-rec_h*Vsize] ]
+	slices = 4
+	entt+='\n- entity:\n'
+	entt+='    name: virtual_target_e\n'
+	entt+='    primary: 0\n'
 
-    entt+='    transform: { translation: %s, rotation: %s }\n' % ([x, y, z+rec_h/2.+1], [-180., 0, 0])
- 
-    entt+='    geometry: \n' 
-    entt+='      - material: *%s\n' % 'material_virtual' 
-    entt+='        plane: \n'
-    entt+='          clip: \n'    
-    entt+='          - operation: AND \n'
-    entt+='            vertices: %s\n' % pts
-    entt+='          slices: %d\n' % slices  
+	entt+='    transform: { translation: %s, rotation: %s }\n' % ([x, y, z+rec_h/2.+1], [-180., 0, 0])
 
-    rcv=''
-    rcv+='- name: target_e \n' 
-    rcv+='  side: %s \n' % 'FRONT_AND_BACK'
-    rcv+='  per_primitive: %s \n' % 'INCOMING_AND_ABSORBED'
-    rcv+='- name: virtual_target_e \n'
-    rcv+='  side: %s \n' % 'FRONT'
-    rcv+='  per_primitive: %s \n' % 'INCOMING'
-    
-    return geom, entt, rcv
+	entt+='    geometry: \n' 
+	entt+='      - material: *%s\n' % 'material_virtual' 
+	entt+='        plane: \n'
+	entt+='          clip: \n'    
+	entt+='          - operation: AND \n'
+	entt+='            vertices: %s\n' % pts
+	entt+='          slices: %d\n' % slices  
+
+	rcv=''
+	rcv+='- name: target_e \n' 
+	rcv+='  side: %s \n' % 'FRONT_AND_BACK'
+	rcv+='  per_primitive: %s \n' % 'INCOMING_AND_ABSORBED'
+	rcv+='- name: virtual_target_e \n'
+	rcv+='  side: %s \n' % 'FRONT'
+	rcv+='  per_primitive: %s \n' % 'INCOMING'
+
+	return geom, entt, rcv
 
     
 
 def STL_receiver(rec_param, hemisphere='North'):
-    '''
-    hemishpere : 'North' or 'South' hemisphere of the earth where the field located
-                if North: the field is in the positive y direction
-                if South: the field is in the negtive y direction
-                this will influence:
-                 (1) the setting of the receiver tilt angle, 
-                     if the front surface always facing to the field is desirable
-                 (2) the position of the virtual target
-    '''
+	'''
+	hemishpere : 'North' or 'South' hemisphere of the earth where the field located
+		        if North: the field is in the positive y direction
+		        if South: the field is in the negtive y direction
+		        this will influence:
+		         (1) the setting of the receiver tilt angle, 
+		             if the front surface always facing to the field is desirable
+		         (2) the position of the virtual target
+	'''
 
-    rec_w=rec_param[0].astype(float) # for creating the virtual target
-    rec_h=rec_param[1].astype(float)
-    stlfile=rec_param[2] # directory of the stl file
-    x=rec_param[3].astype(float)
-    y=rec_param[4].astype(float)
-    z=rec_param[5].astype(float)
-    tilt=rec_param[6].astype(float) # need to figure out the initial mesh orientation
+	rec_w=rec_param[0].astype(float) # for creating the virtual target
+	rec_h=rec_param[1].astype(float)
+	stlfile=rec_param[2] # directory of the stl file
+	x=rec_param[3].astype(float)
+	y=rec_param[4].astype(float)
+	z=rec_param[5].astype(float)
+	tilt=rec_param[6].astype(float) # need to figure out the initial mesh orientation
 
-    # CREATE a receiver entity from a STL file 
-    entt=''
-    entt+='\n- entity:\n'
-    entt+='    name: STL_receiver_e\n'
-    entt+='    primary: 0\n'
-    if hemisphere=='North':
+	# CREATE a receiver entity from a STL file 
+	entt=''
+	entt+='\n- entity:\n'
+	entt+='    name: STL_receiver_e\n'
+	entt+='    primary: 0\n'
+	if hemisphere=='North':
 
-        entt+='    transform: { translation: %s, rotation: %s }\n' % ([x, y, z], [-90.-tilt, 0, 0]) 
-    else:
-        # if it is the mesh model of the bladed receiver at CSIRO
-        entt+='    transform: { translation: %s, rotation: %s }\n' % ([x, y, z], [180.+tilt, 0, 0]) 
-    entt+='    geometry:\n'
-    entt+='    - material: *material_target\n'
-    entt+='      transform: {translation: [0, 0, 0], rotation: [0, 0, 0]}\n'
-    entt+="      stl : {path: %s }  \n"%(stlfile)
- 
+		entt+='    transform: { translation: %s, rotation: %s }\n' % ([x, y, z], [-90.-tilt, 0, 0]) 
+	else:
+		# if it is the mesh model of the bladed receiver at CSIRO
+		entt+='    transform: { translation: %s, rotation: %s }\n' % ([x, y, z], [180.+tilt, 0, 0]) 
+	entt+='    geometry:\n'
+	entt+='    - material: *material_target\n'
+	entt+='      transform: {translation: [0, 0, 0], rotation: [0, 0, 0]}\n'
+	entt+="      stl : {path: %s }  \n"%(stlfile)
 
-    # CREATE a virtual target entity from "target_g" geometry (primary = 0)
-    pts = [ [-rec_w*10., -rec_h*10.], [-rec_w*10., rec_h*10.], [rec_w*10., rec_h*10.], [rec_w*10.,-rec_h*10.] ]
-    slices = 4
-    entt+='\n- entity:\n'
-    entt+='    name: virtual_target_e\n'
-    entt+='    primary: 0\n'
-    if hemisphere=='North':
-        entt+='    transform: { translation: %s, rotation: %s }\n' % ([x, y-5., z], [-90.-tilt, 0, 0])
-    else:
-        entt+='    transform: { translation: %s, rotation: %s }\n' % ([x, y+5., z], [90.+tilt, 0, 0])
-    entt+='    geometry: \n' 
-    entt+='      - material: *%s\n' % 'material_virtual' 
-    entt+='        plane: \n'
-    entt+='          clip: \n'    
-    entt+='          - operation: AND \n'
-    entt+='            vertices: %s\n' % pts
-    entt+='          slices: %d\n' % slices  
 
-    rcv=''
-    rcv+='- name: STL_receiver_e \n' 
-    rcv+='  side: %s \n' % 'FRONT_AND_BACK'
-    rcv+='  per_primitive: %s \n' % 'INCOMING_AND_ABSORBED'
-    rcv+='- name: virtual_target_e \n'
-    rcv+='  side: %s \n' % 'FRONT'
-    rcv+='  per_primitive: %s \n' % 'INCOMING'
+	# CREATE a virtual target entity from "target_g" geometry (primary = 0)
+	pts = [ [-rec_w*10., -rec_h*10.], [-rec_w*10., rec_h*10.], [rec_w*10., rec_h*10.], [rec_w*10.,-rec_h*10.] ]
+	slices = 4
+	entt+='\n- entity:\n'
+	entt+='    name: virtual_target_e\n'
+	entt+='    primary: 0\n'
+	if hemisphere=='North':
+		entt+='    transform: { translation: %s, rotation: %s }\n' % ([x, y-5., z], [-90.-tilt, 0, 0])
+	else:
+		entt+='    transform: { translation: %s, rotation: %s }\n' % ([x, y+5., z], [90.+tilt, 0, 0])
+	entt+='    geometry: \n' 
+	entt+='      - material: *%s\n' % 'material_virtual' 
+	entt+='        plane: \n'
+	entt+='          clip: \n'    
+	entt+='          - operation: AND \n'
+	entt+='            vertices: %s\n' % pts
+	entt+='          slices: %d\n' % slices  
 
-    return entt, rcv
+	rcv=''
+	rcv+='- name: STL_receiver_e \n' 
+	rcv+='  side: %s \n' % 'FRONT_AND_BACK'
+	rcv+='  per_primitive: %s \n' % 'INCOMING_AND_ABSORBED'
+	rcv+='- name: virtual_target_e \n'
+	rcv+='  side: %s \n' % 'FRONT'
+	rcv+='  per_primitive: %s \n' % 'INCOMING'
+
+	return entt, rcv
 
 def multi_cavity_receiver(rec_param, hemisphere='North'):
-    """
-    hemisphere : 'North' or 'South' hemisphere of the earth where the field located
-                if North: the field is in the positive y direction
-                if South: the field is in the negtive y direction
-                this will influence:
-                 (1) the setting of the receiver tilt angle, 
-                     if the front surface always facing to the field is desirable
-                 (2) the position of the virtual target
-    """
+	"""
+	hemisphere : 'North' or 'South' hemisphere of the earth where the field located
+		        if North: the field is in the positive y direction
+		        if South: the field is in the negtive y direction
+		        this will influence:
+		         (1) the setting of the receiver tilt angle, 
+		             if the front surface always facing to the field is desirable
+		         (2) the position of the virtual target
+	"""
 	# x, y, z is the front center of the multi-cavity receiver
 	# n_c is the number of cavities
 	# rec_w, rec_h is the size of one cavity
 	# alpha is the angle between each two cavities 
 	# num_cavity is the number of cavities
 
-    rec_w=rec_param[0]
-    rec_h=rec_param[1]
-    slices=rec_param[2]
-    x=rec_param[3]
-    y=rec_param[4]
-    z=rec_param[5]
-    tilt=rec_param[6]
-    # receiver tilt angle:
-    # 0 is vertical
-    # the standby posiion of a plane in solstice is normal points to the +z axis
-    # rotation anagle, positive is anti-clockwise
+	rec_w=rec_param[0]
+	rec_h=rec_param[1]
+	slices=rec_param[2]
+	x=rec_param[3]
+	y=rec_param[4]
+	z=rec_param[5]
+	tilt=rec_param[6]
+	# receiver tilt angle:
+	# 0 is vertical
+	# the standby posiion of a plane in solstice is normal points to the +z axis
+	# rotation anagle, positive is anti-clockwise
 
-    geom=''
-    pts=[ [-rec_w*0.5, -rec_h*0.5], [-rec_w*0.5, rec_h*0.5], [rec_w*0.5, rec_h*0.5], [rec_w*0.5,-rec_h*0.5] ]
+	geom=''
+	pts=[ [-rec_w*0.5, -rec_h*0.5], [-rec_w*0.5, rec_h*0.5], [rec_w*0.5, rec_h*0.5], [rec_w*0.5,-rec_h*0.5] ]
 
-    geom+='- geometry: &%s\n' % 'target_g'
-    geom+='  - material: *%s\n' % 'material_target'
-    geom+='    plane: \n'
-    geom+='      clip: \n' 
-    geom+='      - operation: AND \n'
-    geom+='        vertices: %s\n' % pts
-    geom+='      slices: %d\n' % slices 
-    geom+='\n'
+	geom+='- geometry: &%s\n' % 'target_g'
+	geom+='  - material: *%s\n' % 'material_target'
+	geom+='    plane: \n'
+	geom+='      clip: \n' 
+	geom+='      - operation: AND \n'
+	geom+='        vertices: %s\n' % pts
+	geom+='      slices: %d\n' % slices 
+	geom+='\n'
 
-    # CREATE a receiver entity from "target_g" geometry (primary = 0)
-    entt=''
-    entt+='\n- entity:\n'
-    entt+='    name: target_e\n'
-    entt+='    primary: 0\n'
-    if hemisphere=='North':
-        entt+='    transform: { translation: %s, rotation: %s }\n' % ([x, y, z], [-90.-tilt, 0, 0]) 
-    else:
-        entt+='    transform: { translation: %s, rotation: %s }\n' % ([x, y, z], [90.+tilt, 0, 0]) 
-    entt+='    geometry: *%s\n' % 'target_g'
+	# CREATE a receiver entity from "target_g" geometry (primary = 0)
+	entt=''
+	entt+='\n- entity:\n'
+	entt+='    name: target_e\n'
+	entt+='    primary: 0\n'
+	if hemisphere=='North':
+		entt+='    transform: { translation: %s, rotation: %s }\n' % ([x, y, z], [-90.-tilt, 0, 0]) 
+	else:
+		entt+='    transform: { translation: %s, rotation: %s }\n' % ([x, y, z], [90.+tilt, 0, 0]) 
+	entt+='    geometry: *%s\n' % 'target_g'
 
-    # CREATE a virtual target entity from "target_g" geometry (primary = 0)
-    pts = [ [-rec_w*10., -rec_h*10.], [-rec_w*10., rec_h*10.], [rec_w*10., rec_h*10.], [rec_w*10.,-rec_h*10.] ]
-    slices = 4
-    entt+='\n- entity:\n'
-    entt+='    name: virtual_target_e\n'
-    entt+='    primary: 0\n'
-    if hemisphere=='North':
-        entt+='    transform: { translation: %s, rotation: %s }\n' % ([x, y-5., z], [-90.-tilt, 0, 0])
-    else:
-        entt+='    transform: { translation: %s, rotation: %s }\n' % ([x, y+5., z], [90.+tilt, 0, 0])
-    entt+='    geometry: \n' 
-    entt+='      - material: *%s\n' % 'material_virtual' 
-    entt+='        plane: \n'
-    entt+='          clip: \n'    
-    entt+='          - operation: AND \n'
-    entt+='            vertices: %s\n' % pts
-    entt+='          slices: %d\n' % slices  
+	# CREATE a virtual target entity from "target_g" geometry (primary = 0)
+	pts = [ [-rec_w*10., -rec_h*10.], [-rec_w*10., rec_h*10.], [rec_w*10., rec_h*10.], [rec_w*10.,-rec_h*10.] ]
+	slices = 4
+	entt+='\n- entity:\n'
+	entt+='    name: virtual_target_e\n'
+	entt+='    primary: 0\n'
+	if hemisphere=='North':
+		entt+='    transform: { translation: %s, rotation: %s }\n' % ([x, y-5., z], [-90.-tilt, 0, 0])
+	else:
+		entt+='    transform: { translation: %s, rotation: %s }\n' % ([x, y+5., z], [90.+tilt, 0, 0])
+	entt+='    geometry: \n' 
+	entt+='      - material: *%s\n' % 'material_virtual' 
+	entt+='        plane: \n'
+	entt+='          clip: \n'    
+	entt+='          - operation: AND \n'
+	entt+='            vertices: %s\n' % pts
+	entt+='          slices: %d\n' % slices  
 
-    rcv=''
-    rcv+='- name: target_e \n' 
-    rcv+='  side: %s \n' % 'FRONT_AND_BACK'
-    rcv+='  per_primitive: %s \n' % 'INCOMING_AND_ABSORBED'
-    rcv+='- name: virtual_target_e \n'
-    rcv+='  side: %s \n' % 'FRONT'
-    rcv+='  per_primitive: %s \n' % 'INCOMING'
-    
-    return geom, entt, rcv
+	rcv=''
+	rcv+='- name: target_e \n' 
+	rcv+='  side: %s \n' % 'FRONT_AND_BACK'
+	rcv+='  per_primitive: %s \n' % 'INCOMING_AND_ABSORBED'
+	rcv+='- name: virtual_target_e \n'
+	rcv+='  side: %s \n' % 'FRONT'
+	rcv+='  per_primitive: %s \n' % 'INCOMING'
+
+	return geom, entt, rcv
 #------------------------------
 

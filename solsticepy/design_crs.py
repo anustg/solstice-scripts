@@ -38,7 +38,7 @@ class CRS:
 		self.sun=SunPosition()
 		self.master=Master(casedir)
 
-	def receiversystem(self, receiver, rec_w=0., rec_h=0., rec_x=0., rec_y=0., rec_z=100., rec_tilt=0., rec_grid=10, rec_abs=1.):
+	def receiversystem(self, receiver, rec_w=0., rec_h=0., rec_x=0., rec_y=0., rec_z=100., rec_tilt=0., rec_grid_w=10, rec_grid_h=10, rec_abs=1.):
 
 		'''
 		Arguements:
@@ -49,8 +49,9 @@ class CRS:
 		    (5) rec_y     : float, y location of the receiver (m)
 		    (6) rec_z     : float, z location of the receiver (m)
 		    (7) rec_tilt  : float, tilt angle of the receiver (deg), 0 is where the receiver face to the horizontal
-		    (8) rec_grid  :   int, the grid of the receiver, e.g. 100 by 100 mesh elements
-		    (9) rec_abs   : float, receiver surface absorptivity, e.g. 0.9
+		    (8) rec_grid_w  :   int, number of elements in the horizontal(x)/circumferential direction
+		    (9) rec_grid_h  :   int, number of elements in the vertical(z) direction
+		    (10) rec_abs   : float, receiver surface absorptivity, e.g. 0.9
 		'''
 		self.receiver=receiver
 		self.rec_abs=rec_abs
@@ -58,9 +59,9 @@ class CRS:
 		if receiver[-3:]=='stl':
 		    self.rec_param=np.r_[rec_w, rec_h, receiver, rec_x, rec_y, rec_z, rec_tilt]
 		elif receiver=='flat':
-		    self.rec_param=np.r_[rec_w, rec_h, rec_grid, rec_x, rec_y, rec_z, rec_tilt]
+		    self.rec_param=np.r_[rec_w, rec_h, rec_grid_w, rec_grid_h, rec_x, rec_y, rec_z, rec_tilt]
 		elif receiver=='cylinder': 
-		    self.rec_param=np.r_[rec_w, rec_h, rec_grid, rec_x, rec_y, rec_z, rec_tilt]  
+		    self.rec_param=np.r_[rec_w, rec_h, rec_grid_w, rec_grid_h, rec_x, rec_y, rec_z, rec_tilt]  
 
 
 	def heliostatfield(self, field, hst_rho, slope, hst_w, hst_h, tower_h, tower_r=0.01, hst_z=0., num_hst=0., R1=0., fb=0., dsep=0.):
@@ -410,7 +411,7 @@ if __name__=='__main__':
 		weafile='/home/yewang/solartherm-master/SolarTherm/Data/Weather/gen3p3_Daggett_TMY3.motab'
 		crs.heliostatfield(field=pm.field_type, hst_rho=pm.rho_helio, slope=pm.slope_error, hst_w=pm.W_helio, hst_h=pm.H_helio, tower_h=pm.H_tower, tower_r=pm.R_tower, hst_z=pm.Z_helio, num_hst=pm.n_helios, R1=pm.R1, fb=pm.fb, dsep=pm.dsep)
 
-		crs.receiversystem(receiver=pm.rcv_type, rec_w=float(pm.W_rcv), rec_h=float(pm.H_rcv), rec_x=float(pm.X_rcv), rec_y=float(pm.Y_rcv), rec_z=float(pm.Z_rcv), rec_tilt=float(pm.tilt_rcv), rec_grid=int(pm.n_H_rcv), rec_abs=float(pm.alpha_rcv))
+		crs.receiversystem(receiver=pm.rcv_type, rec_w=float(pm.W_rcv), rec_h=float(pm.H_rcv), rec_x=float(pm.X_rcv), rec_y=float(pm.Y_rcv), rec_z=float(pm.Z_rcv), rec_tilt=float(pm.tilt_rcv), rec_grid_w=int(pm.n_W_rcv), rec_grid_h=int(pm.n_H_rcv),rec_abs=float(pm.alpha_rcv))
 
 		crs.yaml(sunshape=pm.sunshape,csr=pm.crs,half_angle_deg=pm.half_angle_deg,std_dev=pm.std_dev)
 
