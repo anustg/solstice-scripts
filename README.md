@@ -52,44 +52,58 @@ The instructions below give easy instructions for end-users. If you are interest
 ## Windows
 
 * First install Python if you have not done so already. Choose the latest "Windows x86-64 executable installer" of the latest Python 3 [release for Windows](https://www.python.org/downloads/windows/).
+
 * If you added Python to your PATH during installation you can just open a command prompt and type `pip3 install solsticepy` and that should download and install everything you need.
+
 * If you didn't add Python to your PATH, you can do the following:
+
   * Create a text file `install.py` in your home directory with the following content:
+
 ```python
 # put this file in your home directory and name it install.py
 import sys, subprocess
 subprocess.check_call([sys.executable,"-m","pip","install","solsticepy"])
 ```
-  * Open a command prompt (type 'cmd' in the Start menu), then type
+* Open a command prompt (type 'cmd' in the Start menu), then type
+
 ```
 install.py
 ```
-  * You should see Python downloading and installing 'solsticepy' from the PyPI servers.
+* You should see Python downloading and installing 'solsticepy' from the PyPI servers.
 
 # Installing Paraview
 
 * **Be sure to install a version 4 release of Paraview**. Version 5 was not stable on Windows when we tested it (Apr 2020).
 * On Windows:
+
   * Try downloading and installing [ParaView-4.4.0-Qt4-Windows-64bit.exe](https://www.paraview.org/paraview-downloads/download.php?submit=Download&version=v4.4&type=binary&os=Windows&downloadFile=ParaView-4.4.0-Qt4-Windows-64bit.exe).
+
 * On Linux (Ubuntu 18.04):
+
   * `sudo apt install paraview` should be all you need.
 
 # Running a example wrapper script:
 
 * **This section yet to be completed**
+
 * Download our Zip file from [this page](https://github.com/anustg/solstice-scripts/releases/)
+
 * Extract the folder `example` to your home directory
+
 * Open a command prompt, navigate to your example directory, then run the `run.py` script:
+
 ```
 cd example
 run.py
 ```
 * You should see various output, followed by "Completed successfully". Also note the output what says "Case directory is...".
+
 * In the case directory, you will file output files including `.csv` files that can be opened using Excel, and `.vtk` files that contain 3D graphics can be opened in Paraview.
 
 # References
 
 * **Solstice**: https://www.meso-star.com/projects/solstice/solstice.html
+
 * Wang, Y., Potter, D., Asselineau, C.-A., Corsi, C., Wagner, M., Caliot, C., Piaud, B., Blanco, M., Kim, J.-S., Pye, J., 2019. [Verification of Optical Modeling on Sunshape and Surface Slope Error](https://www.researchgate.net/publication/337636543). Solar Energy 195. doi:10.1016/j.solener.2019.11.035
 
 [1]: https://solsticepy.readthedocs.io/en/latest/?badge=latest
