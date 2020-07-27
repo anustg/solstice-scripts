@@ -6,7 +6,7 @@ with open("README.md", "r") as f:
     long_description = f.read()
 
 setuptools.setup(name='solsticepy'
-	,version='0.3'
+	,version='0.3.1'
 	,author='Ye Wang'
 	,author_email='ye.wang@anu.edu.au'
 	,description="Scripts and wrappers for Solstice ray-tracing software"
