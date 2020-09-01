@@ -113,13 +113,13 @@ else:
             break
 
 if receiver =='flat':
-    rec_param=np.r_[rec_w, rec_h, rec_mesh, loc_x, loc_y, loc_z, tilt]
+    rec_param=np.r_[rec_w, rec_h, rec_mesh, rec_mesh, loc_x, loc_y, loc_z, tilt]
 elif receiver =='stl':
     rec_param=np.array([rec_w, rec_h, stlfile, loc_x, loc_y, loc_z, tilt])
 
 master=Master(casedir=casefolder)
-outfile_yaml = master.in_case('input.yaml')
-outfile_recv = master.in_case('input-rcv.yaml')
+outfile_yaml = master.in_case(folder=casefolder, fn='input.yaml')
+outfile_recv = master.in_case(folder=casefolder, fn='input-rcv.yaml')
 
 if new_case:
 	# generate the YAML file from the input parameters specified above
@@ -130,7 +130,7 @@ if new_case:
 		, medium=0, one_heliostat=one_heliostat)
 
 # run Solstice using the generate inputs, and run all required post-processing
-master.run(azimuth, elevation, num_rays, rho_refl,sun.dni, gen_vtk=True)
+master.run(azimuth, elevation, num_rays, rho_refl,sun.dni, folder=casefolder, gen_vtk=True)
 
 # annual solution (see instructions)
 #master.run_annual(nd=5, nh=5, latitude=latitude, num_rays=num_rays, num_hst=len(hst_pos),rho_mirror=rho_refl, dni=DNI)
