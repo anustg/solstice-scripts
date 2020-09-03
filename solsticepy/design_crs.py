@@ -105,15 +105,18 @@ class CRS:
 		      
 		    layout=pos_and_aiming[2:, :]
 
-		self.hst_pos=layout[:,:3].astype(float)
-		self.hst_foc=layout[:,3].astype(float) 
-		self.hst_aims=layout[:,4:].astype(float)
 		self.hst_w=hst_w
 		self.hst_h=hst_h
 		self.hst_rho=hst_rho
 		self.slope=slope
 		self.tower_h=tower_h    
 		self.tower_r=tower_r
+
+		self.hst_pos=layout[:,:3].astype(float)
+		self.hst_foc=layout[:,3].astype(float) 
+		self.hst_aims=layout[:,4:7].astype(float)
+		self.hst_row=layout[:,-1].astype(float)
+		
 
 	def yaml(self, dni=1000,sunshape=None,csr=0.01,half_angle_deg=0.2664,std_dev=0.2):
 		'''
@@ -190,16 +193,16 @@ class CRS:
 
 			cc=0
 			for a in range(len(table[3:])):
-			    for b in range(len(table[0,3:])):
-			        val=re.findall(r'\d+', table[a+3,b+3])
-			        if val==[]:
-			            table[a+3,b+3]=0
-			        else:
-			            if c==float(val[0]):
-			                #table[a+3,b+3]=efficiency_total # this line cause wired problem
-			                if cc==0: # avoid adding the symetrical point
-			                    ANNUAL+=dni_weight[a,b]*efficiency_hst
-			                    cc+=1
+				for b in range(len(table[0,3:])):
+					val=re.findall(r'\d+', table[a+3,b+3])
+					if val==[]:
+						table[a+3,b+3]=0
+					else:
+						if c==float(val[0]):
+							#table[a+3,b+3]=efficiency_total # this line cause wired problem
+							if cc==0: # avoid adding the symetrical point
+								ANNUAL+=dni_weight[a,b]*efficiency_hst
+								cc+=1
 			run=np.append(run,c)               
 		np.savetxt(self.casedir+'/annual_hst.csv',ANNUAL, fmt='%.2f', delimiter=',')
 		
@@ -221,31 +224,35 @@ class CRS:
 		ID=ID[::-1]
 
 		select_hst=np.array([])
-
+		rmax=np.max(self.hst_row)
 		if method==1:
+			print('')			
+			print('Method 1')
 			power=0.
 			self.Q_in_rcv=Q_in_des
 			for i in range(len(ID)):
-			    if power<Q_in_des:
-			        idx=ID[i]
-			        select_hst=np.append(select_hst, idx)
-			        power+=Qin[idx]
-			print('')			
-			print('Method 1')
-
+				if power<Q_in_des:
+					idx=ID[i]
+					row=self.hst_row[idx]
+					if rmax-row>0.1*rmax:
+						select_hst=np.append(select_hst, idx)
+						power+=Qin[idx]
+				
 		else:
+			print('')			
+			print('Method 2')    
 			num_hst=0
 			power=0.
 			for i in range(len(ID)):
 			    if num_hst<n_helios:
 			        idx=ID[i]
+
 			        select_hst=np.append(select_hst, idx)
 			        num_hst+=1
 			        power+=Qin[idx]
 
 			self.Q_in_rcv=power
-			print('')			
-			print('Method 2')     
+ 
 
 		select_hst=select_hst.astype(int)
 

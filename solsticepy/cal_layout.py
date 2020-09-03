@@ -116,6 +116,11 @@ def radial_stagger(latitude, num_hst, width, height, hst_z, towerheight, R1, fb,
 
 	XX=np.array([])
 	YY=np.array([])
+	ZONE=np.array([])  # zone index
+	ROW=np.array([])   # row index among the rows in a zone
+	TTROW=np.array([]) # row index among the total rows
+	NHEL=np.array([])  # No. index among the heliostats in a row
+
 	for i in range(Nzones):
 		Nrows=int(Nrows_zone[i])
 		Nhel=int(Nhel_zone[i])
@@ -171,10 +176,25 @@ def radial_stagger(latitude, num_hst, width, height, hst_z, towerheight, R1, fb,
 			yy=R*np.cos(azimuth)       
 		XX=np.append(XX, xx)
 		YY=np.append(YY, yy)
-
+		
+		zone=np.ones(len(xx))*i
+		nhels, rows=np.meshgrid(nh, row)
+		ZONE=np.append(ZONE, zone)
+		ROW=np.append(ROW, rows)
+		NHEL=np.append(NHEL, nhels)
+		if len(TTROW)==0:
+			TTROW=np.append(TTROW, rows)
+		else:			
+			TTROW=np.append(TTROW, rows+np.max(TTROW)+1)
+					
 	num_hst=int(num_hst)
 	XX=XX[:num_hst]
 	YY=YY[:num_hst]
+	ZONE=ZONE[:num_hst]
+	ROW=ROW[:num_hst]
+	NHEL=NHEL[:num_hst]
+	TTROW=TTROW[:num_hst]
+
 	sys.stderr.write("\nExpanded field %d\n"%(num_hst,))
 
 	hstpos=np.zeros(num_hst*3).reshape(num_hst, 3)
@@ -190,11 +210,11 @@ def radial_stagger(latitude, num_hst, width, height, hst_z, towerheight, R1, fb,
 
 	foc=np.sqrt((XX-aim_x)**2+(YY-aim_y)**2+(hstpos[:,2]-aim_z)**2)
 
-	pos_and_aiming=np.append(XX, (YY, hstpos[:,2], foc, aim_x, aim_y, aim_z))
-	title=np.array(['x', 'y', 'z', 'foc', 'aim x', 'aim y', 'aim z', 'm', 'm', 'm', 'm', 'm', 'm', 'm'])
-	pos_and_aiming=pos_and_aiming.reshape(7,int(len(pos_and_aiming)/7))
+	pos_and_aiming=np.append(XX, (YY, hstpos[:,2], foc, aim_x, aim_y, aim_z, ZONE, ROW, NHEL, TTROW))
+	title=np.array(['x', 'y', 'z', 'foc', 'aim x', 'aim y', 'aim z', 'Zone', 'Row', 'No.', 'row index',  'm', 'm', 'm', 'm', 'm', 'm', 'm', '-', '-', '-', '-'])
+	pos_and_aiming=pos_and_aiming.reshape(11,int(len(pos_and_aiming)/11))
 	pos_and_aiming=np.append(title, pos_and_aiming.T)
-	pos_and_aiming=pos_and_aiming.reshape(int(len(pos_and_aiming)/7), 7)
+	pos_and_aiming=pos_and_aiming.reshape(int(len(pos_and_aiming)/11), 11)
 
 	np.savetxt('%s/pos_and_aiming.csv'%savedir, pos_and_aiming, fmt='%s', delimiter=',')
 
