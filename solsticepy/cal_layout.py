@@ -177,8 +177,8 @@ def radial_stagger(latitude, num_hst, width, height, hst_z, towerheight, R1, fb,
 		XX=np.append(XX, xx)
 		YY=np.append(YY, yy)
 		
-		zone=np.ones(len(xx))*i
 		nhels, rows=np.meshgrid(nh, row)
+		zone=np.ones(np.shape(rows))*i
 		ZONE=np.append(ZONE, zone)
 		ROW=np.append(ROW, rows)
 		NHEL=np.append(NHEL, nhels)
