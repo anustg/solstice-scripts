@@ -4,7 +4,7 @@ import sys
 import os
 from uncertainties import ufloat
 from uncertainties.umath import *
-from .output_motab import output_motab 
+from output_motab import output_motab 
 
 def process_raw_results(rawfile, savedir,rho_mirror,dni):
 	"""Process the raw Solstice `simul` output into readable CSV files
@@ -364,11 +364,47 @@ def get_breakdown(casedir):
 					else:
 						breakdown[i][a+3,b+3]=eta_all[i]
 	output_motab(table=breakdown, savedir=casedir+'/OELT_Solstice_breakdown.motab', title=title_breakdown)
-			
+	
+	# at design point
+	raw=np.loadtxt(casedir+'/des_point/heliostats-raw.csv', delimiter=',', skiprows=1)
+	data=raw[:, -9:]
+	res_selected=data[idx]
+	Qtot=np.sum(res_selected[:,0])
+	Qcos=np.sum(res_selected[:,1])
+	Qshad=np.sum(res_selected[:,2])
+	Qhst=np.sum(res_selected[:,3])
+	Qblock=np.sum(res_selected[:,4])
+	Qattn=np.sum(res_selected[:,5])
+	Qspil=np.sum(res_selected[:,6])
+	Qrefl=np.sum(res_selected[:,7])
+	Qabs=np.sum(res_selected[:,8])
+
+	eta_cos=Qcos/Qtot
+	eta_shad=Qshad/Qtot
+	eta_hst=Qhst/Qtot
+	eta_block=Qblock/Qtot
+	eta_attn=Qattn/Qtot
+	eta_spil=Qspil/Qtot
+	eta_refl=Qrefl/Qtot
+	eta_abs=Qabs/Qtot	
+
+	res=np.array([
+	 ['Name', 'Value (kW)', 'eta Ratio']
+    ,['Qall', Qtot,   1]
+	,['Qcos', Qcos,   eta_cos]
+	,['Qshad', Qshad, eta_shad]
+	,['Qfield_abs', Qhst, eta_hst]
+	,['Qblcok', Qblock, eta_block]
+	,['Qattn',Qattn,  eta_attn]
+	,['Qspil ', Qspil,eta_spil]
+	,['Qrefl', Qrefl, eta_refl]
+	,['Qabs ', Qabs,  eta_abs]
+	,['After trimming', 'postprocessed results','-']
+	])
+	np.savetxt(casedir+'/des_point/result-formatted-designed.csv', res, fmt='%s', delimiter=',')			
 
 if __name__=='__main__':
-    #eta,pf_hst = proces_raw_results(sys.argv[1], sys.argv[2], sys.argv[3])
-    #sys.stderr.write('\nTotal efficiency: %s\n'%(repr(eta),))
-	casedir='/home/yewang/GitHub/stganu/solstice/tests/test-crs-design-tiny-heliostats-philipe2'
-	get_breakdown(casedir)
+    eta,pf_hst = proces_raw_results(sys.argv[1], sys.argv[2], sys.argv[3])
+    sys.stderr.write('\nTotal efficiency: %s\n'%(repr(eta),))
+
 
