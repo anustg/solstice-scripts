@@ -275,12 +275,13 @@ def process_raw_results(rawfile, savedir,rho_mirror,dni):
 
 def get_breakdown(casedir):
 	"""Postprocess the .csv output files (heliostats-raw.csv, before trimming), to obtain the breakdown of total energy losses of the designed field (after trimming)
+
 	``Argument``
 		* casedir (str): the directory of the case that contains the folder of sunpos_1, sunpos_2, ..., and all the other case-related details
 
 	``Outputs``
-		* OELT_Solstice_breakdown.motab file in the casedir: annual lookup tables of each breakdown of energy  
-		* result-formatted-designed.csv file in each sunpos folder: a list of the breakdown of energy at this sun position
+		* output file: OELT_Solstice_breakdown.motab, it contains the annual lookup tables of each breakdown of energy  
+		* output files: result-formatted-designed.csv file in each sunpos folder, each of them is a list of the breakdown of energy at this sun position
 	
 	"""
 	table=np.loadtxt(casedir+'/table_view.csv', dtype=str, delimiter=',')
