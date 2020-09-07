@@ -1,9 +1,10 @@
-import numpy as N
+import numpy as np
 import re
 import sys
 import os
 from uncertainties import ufloat
-from uncertainties.umath import * 
+from uncertainties.umath import *
+from .output_motab import output_motab 
 
 def process_raw_results(rawfile, savedir,rho_mirror,dni):
 	"""Process the raw Solstice `simul` output into readable CSV files
@@ -45,7 +46,7 @@ def process_raw_results(rawfile, savedir,rho_mirror,dni):
 				rows.append(r.split())			
 			index+=1
 
-	results=N.array([])
+	results=np.array([])
 
 	# sun direction
 
@@ -121,7 +122,7 @@ def process_raw_results(rawfile, savedir,rho_mirror,dni):
 		vir_income=get_rc(num_res+3,3)
 		vir_income_err=get_rc(num_res+3,4)
 	
-	raw_res=N.array([
+	raw_res=np.array([
 		['name','value', 'error']
 		,['sun_azimuth', azimuth,'']
 		,['sun_elevation', elevation, '']
@@ -152,39 +153,39 @@ def process_raw_results(rawfile, savedir,rho_mirror,dni):
 	#sys.stderr.write(repr(raw_res))
 	#sys.stderr.write("SHAPE = %s" % (repr(raw_res.shape)))
 
-	N.savetxt(savedir+'/result-raw.csv', raw_res, fmt='%s', delimiter=',')
+	np.savetxt(savedir+'/result-raw.csv', raw_res, fmt='%s', delimiter=',')
 
 	Qtotal=ufloat(potential, 0)
 	Fcos=ufloat(Fcos,Fcos_err) 
 	Qcos=Qtotal*(1.-Fcos)
 	Qshade=ufloat(shadow_loss,shadow_err)
 	Qfield_abs=(Qtotal-Qcos-Qshade)*(1.-float(rho_mirror))
-	Qatm=ufloat(atmospheric_loss, atmospheric_err)
+	Qattn=ufloat(atmospheric_loss, atmospheric_err)
 	Qspil=ufloat(vir_income,vir_income_err)
 	Qabs=ufloat(absorbed, absorbed_err)
 	Qrefl=ufloat(rec_front_income,rec_front_income_err)+ufloat(rec_back_income,rec_back_income_err)-Qabs
-	Qblock=Qtotal-Qcos-Qshade-Qfield_abs-Qspil-Qabs-Qrefl-Qatm
+	Qblock=Qtotal-Qcos-Qshade-Qfield_abs-Qspil-Qabs-Qrefl-Qattn
 
-	organised=N.array([
+	organised=np.array([
 		['Name', 'Value', '+/-Error']
 		,['Qall (kW)', Qtotal.n/1000., Qtotal.s/1000.]
 		,['Qcos (kW)', Qcos.n/1000.,Qcos.s/1000.]
 		,['Qshad (kW)', Qshade.n/1000., Qshade.s/1000.]
 		,['Qfield_abs (kW)', Qfield_abs.n/1000., Qfield_abs.s/1000.]
 		,['Qblcok (kW)', Qblock.n/1000.,  Qblock.s/1000.]
-		,['Qatm (kW)',Qatm.n/1000., Qatm.s/1000.]
+		,['Qattn (kW)',Qattn.n/1000., Qattn.s/1000.]
 		,['Qspil (kW)', Qspil.n/1000., Qspil.s/1000.]
 		,['Qrefl (kW)', Qrefl.n/1000.,Qrefl.s/1000.]
 		,['Qabs (kW)', Qabs.n/1000., Qabs.s/1000.]
 		,['rays', num_rays,'-']
 	])
-	N.savetxt(savedir+'/result-formatted.csv', organised, fmt='%s', delimiter=',')
+	np.savetxt(savedir+'/result-formatted.csv', organised, fmt='%s', delimiter=',')
 	efficiency_total=Qabs/Qtotal
 
 	# per heliostat results, and
 	# per receiver per heliostat results
 	num_hst=int(num_hst)    
-	heliostats=N.zeros((num_hst,28))
+	heliostats=np.zeros((num_hst,28))
 
 	for i in range(num_hst):
 		l1=2+num_res+num_rec+i # the line number of the per heliostat result
@@ -262,17 +263,107 @@ def process_raw_results(rawfile, savedir,rho_mirror,dni):
 	heliostats=heliostats[idx]
 	performance_hst=heliostats[:, 19:]
 
-	heliostats_title=N.array(['hst_idx', 'area', 'sample', 'cos', 'shade', 'incoming', 'in-mat-loss','in-atm-loss', 'absorbed', 'abs-mat-loss', 'abs-atm-loss', 'vir_incoming', 'vir_in-mat-loss','vir_in-atm-loss', 'vir_absorbed', 'vir_abs-mat-loss', 'vir_abs-atm-loss', '', '', 'total', 'cos', 'shad', 'hst_abs', 'block', 'atm', 'spil', 'rec_refl', 'rec_abs' ]) 
+	heliostats_title=np.array(['hst_idx', 'area', 'sample', 'cos', 'shade', 'incoming', 'in-mat-loss','in-atm-loss', 'absorbed', 'abs-mat-loss', 'abs-atm-loss', 'vir_incoming', 'vir_in-mat-loss','vir_in-atm-loss', 'vir_absorbed', 'vir_abs-mat-loss', 'vir_abs-atm-loss', '', '', 'total', 'cos', 'shad', 'hst_abs', 'block', 'atm', 'spil', 'rec_refl', 'rec_abs' ]) 
 
-	heliostats_details=N.vstack((heliostats_title, heliostats))
+	heliostats_details=np.vstack((heliostats_title, heliostats))
 
-	N.savetxt(savedir+'/heliostats-raw.csv', heliostats_details, fmt='%s', delimiter=',')
+	np.savetxt(savedir+'/heliostats-raw.csv', heliostats_details, fmt='%s', delimiter=',')
 
 
 	return efficiency_total, performance_hst
 
-if __name__=='__main__':
-    eta,pf_hst = proces_raw_results(sys.argv[1], sys.argv[2], sys.argv[3])
-    sys.stderr.write('\nTotal efficiency: %s\n'%(repr(eta),))
 
+def get_breakdown(casedir):
+	"""Postprocess the .csv output files (heliostats-raw.csv, before trimming), to obtain the breakdown of total energy losses of the designed field (after trimming)
+	``Argument``
+		* casedir (str): the directory of the case that contains the folder of sunpos_1, sunpos_2, ..., and all the other case-related details
+	
+	"""
+	table=np.loadtxt(casedir+'/table_view.csv', dtype=str, delimiter=',')
+	idx=np.loadtxt(casedir+'/selected_hst.csv', dtype=int, delimiter=',') #index of the selected heliostats
+
+	cosn=table
+	shad=table
+	hsta=table
+	blck=table
+	attn=table
+	spil=table
+	refl=table
+	absr=table
+	breakdown=np.array([absr, cosn, shad, hsta, blck, attn, spil, refl])
+	title_breakdown=['eta_rcv_absorption','eta_cosine', 'eta_shading', 'eta_helios_absorption', 'eta_blocking', 'eta_attenuation', 'eta_spillage', 'eta_rcv_reflection']
+	tot=len(title_breakdown)
+
+	for a in range(len(table[3:])):
+		for b in range(len(table[0,3:])):
+			val=re.findall(r'\d+',table[a+3,b+3])
+			if len(val)==0:
+				for i in range(tot):
+					breakdown[i][a+3,b+3]=0
+			else:
+				c=val[0]
+				resfile=casedir+'/sunpos_%s/result-formatted-designed.csv'%c
+				if os.path.exists(resfile):
+					res=np.loadtxt(resfile, dtype=str, delimiter=',')
+					eta_cos=res[2,2].astype(float)
+					eta_shad=res[3,2].astype(float)
+					eta_hst=res[4,2].astype(float)
+					eta_block=res[5,2].astype(float)
+					eta_attn=res[6,2].astype(float)
+					eta_spil=res[7,2].astype(float)
+					eta_refl=res[8,2].astype(float)
+					eta_abs=res[9,2].astype(float)
+
+				else:
+					raw=np.loadtxt(casedir+'/sunpos_%s/heliostats-raw.csv'%c, delimiter=',', skiprows=1)
+					data=raw[:, -9:]
+					res_selected=data[idx]
+					Qtot=np.sum(res_selected[:,0])
+					Qcos=np.sum(res_selected[:,1])
+					Qshad=np.sum(res_selected[:,2])
+					Qhst=np.sum(res_selected[:,3])
+					Qblock=np.sum(res_selected[:,4])
+					Qattn=np.sum(res_selected[:,5])
+					Qspil=np.sum(res_selected[:,6])
+					Qrefl=np.sum(res_selected[:,7])
+					Qabs=np.sum(res_selected[:,8])
+
+					eta_cos=Qcos/Qtot
+					eta_shad=Qshad/Qtot
+					eta_hst=Qhst/Qtot
+					eta_block=Qblock/Qtot
+					eta_attn=Qattn/Qtot
+					eta_spil=Qspil/Qtot
+					eta_refl=Qrefl/Qtot
+					eta_abs=Qabs/Qtot	
+
+					res=np.array([
+					 ['Name', 'Value (kW)', 'eta Ratio']
+				    ,['Qall', Qtot,   1]
+					,['Qcos', Qcos,   eta_cos]
+					,['Qshad', Qshad, eta_shad]
+					,['Qfield_abs', Qhst, eta_hst]
+					,['Qblcok', Qblock, eta_block]
+					,['Qattn',Qattn,  eta_attn]
+					,['Qspil ', Qspil,eta_spil]
+					,['Qrefl', Qrefl, eta_refl]
+					,['Qabs ', Qabs,  eta_abs]
+					,['After trimming', 'postprocessed results','-']
+					])
+					np.savetxt(casedir+'/sunpos_%s/result-formatted-designed.csv'%c, res, fmt='%s', delimiter=',')
+
+				eta_all=[eta_abs, eta_cos, eta_shad, eta_hst, eta_block, eta_attn, eta_spil, eta_refl]
+				for i in range(tot):
+					if eta_all[i]<1e-8:
+						breakdown[i][a+3,b+3]=0.
+					else:
+						breakdown[i][a+3,b+3]=eta_all[i]
+	output_motab(table=breakdown, savedir=casedir+'/OELT_Solstice_breakdown.motab', title=title_breakdown)
+			
+
+if __name__=='__main__':
+    #eta,pf_hst = proces_raw_results(sys.argv[1], sys.argv[2], sys.argv[3])
+    #sys.stderr.write('\nTotal efficiency: %s\n'%(repr(eta),))
+	casedir='/home/yewang/GitHub/stganu/solstice/tests/test-crs-design-tiny-heliostats-philipe2'
+	get_breakdown(casedir)
 
