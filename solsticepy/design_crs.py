@@ -158,7 +158,7 @@ class CRS:
 		oelt=table
 		run=np.r_[0]
 		nhst=len(self.hst_pos) 
-		ANNUAL=N.zeros(nhst)    
+		ANNUAL=np.zeros(nhst)    
 		hst_annual={}
 
 		for i in range(len(case_list)):    
