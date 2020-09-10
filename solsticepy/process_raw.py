@@ -4,7 +4,7 @@ import sys
 import os
 from uncertainties import ufloat
 from uncertainties.umath import *
-from output_motab import output_motab 
+from .output_motab import output_motab 
 
 def process_raw_results(rawfile, savedir,rho_mirror,dni):
 	"""Process the raw Solstice `simul` output into readable CSV files
