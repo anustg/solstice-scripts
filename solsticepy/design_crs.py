@@ -312,6 +312,38 @@ class CRS:
 		np.savetxt(self.casedir+'/lookup_table.csv', oelt, fmt='%s', delimiter=',')
 
 		return oelt, A_land
+
+
+	def annual_oelt(self, dni_des, num_rays, nd, nh, zipfiles=False, gen_vtk=False, plot=False):
+		'''
+		Annual performance of a known field
+		'''  
+		self.n_helios=len(self.hst_pos) 
+		oelt, ANNUAL=self.master.run_annual(nd=nd, nh=nh, latitude=self.latitude, num_rays=num_rays, num_hst=self.n_helios,rho_mirror=self.hst_rho, dni=dni_des)
+
+		Xmax=max(self.hst_pos[:,0])
+		Xmin=min(self.hst_pos[:,0])
+		Ymax=max(self.hst_pos[:,1])
+		Ymin=min(self.hst_pos[:,1])
+		A_land=(Xmax-Xmin)*(Ymax-Ymin)
+		print('land area', A_land)
+
+		np.savetxt(self.casedir+'/lookup_table.csv', oelt, fmt='%s', delimiter=',')
+
+
+		designfolder=self.casedir+'/des_point'
+		day=self.sun.days(21, 'Mar')
+		dec=self.sun.declination(day)
+		hra=0. # solar noon
+		zen=self.sun.zenith(self.latitude, dec, hra)
+		azi=self.sun.azimuth(self.latitude, zen, dec, hra)        
+		azi_des, ele_des=self.sun.convert_convention('solstice', azi, zen) 
+
+		sys.stderr.write("\n"+green('Design Point: \n'))		
+		efficiency_total, performance_hst_des=self.master.run(azi_des, ele_des, num_rays, self.hst_rho, dni_des, folder=designfolder, gen_vtk=False, printresult=False)
+		self.eff_des=efficiency_total.n
+
+		return oelt, A_land
 		
 
 	def dni_TMY(self, weafile, nd, nh):
