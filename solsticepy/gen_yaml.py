@@ -78,7 +78,7 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims,hst_w, hst_h
 	  * `tower_h` (float): tower height (m)
 	  * `tower_r` (float): tower radius (a cylindrical shape tower) (m)
 	3. the receiver
-	  * `receiver` (str): ``'flat'``, ``'cylinder'``, or ``'stl' or 'multi_cavity'`` (first of the 'receiver' parameters)
+	  * `receiver` (str): ``'flat'``, ``'cylinder'``, or ``'stl' or 'multi-aperture'`` (first of the 'receiver' parameters)
 	  * `rec_abs` (float): receiver absorptivity
 	  * `rec_param` (numpy array or str): each element contains the geometrical parameter of the corresponding receiver.
 	4. others
@@ -91,10 +91,10 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims,hst_w, hst_h
 	Note that the parameters are in groups that relate to the `sun`, the `field` and the `receiver` then `others`. 
 
 	Note also the type for `rec_param` should be as follows.
-	  * if ``receiver == 'flat'``: np.array([width, height, slices, x, y, z, tilt angle (deg))]
-	  * if ``receiver == 'cylinder'``: np.array([radius, height, slices])
+	  * if ``receiver == 'flat'``: np.array([width, height, grid_w, grid_h,, x, y, z, tilt angle (deg))]
+	  * if ``receiver == 'cylinder'``: np.array([radius, height, grid_circ, grid_h, x, y, z, tilt angle (deg)])
 	  * if ``receiver == 'stl'``: the directory of the stl file
-	  * if ``receiver == 'multi_cavity'``: the directory of the stl file
+	  * if ``receiver == 'multi-aperture'``:  np.array([width, height, grid_w, grid_h,, x, y, z, tilt angle (deg),num_aperture, ang_rang (deg) ])
 	"""
 	# FIXME Parameters should be named according to what they are, eg
 	# the parameter should be called 'csr', not 'sunsize', to avoid confusion.
@@ -233,8 +233,9 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims,hst_w, hst_h
 	elif receiver=='stl':
 		rec_entt, rcv=STL_receiver(rec_param, hemisphere)
 
-	elif receiver=='multi_cavity':
-		geom, rec_entt, rcv =multi_cavity_receiver(rec_param, hemisphere)
+	elif receiver=='multi-aperture':
+		geom, rec_entt, rcv =multi_aperture_receiver(rec_param, hemisphere)
+		iyaml+=geom
 	#
 	# Heliostats Geometry
 	#
@@ -542,7 +543,7 @@ def STL_receiver(rec_param, hemisphere='North'):
 
 	return entt, rcv
 
-def multi_cavity_receiver(rec_param, hemisphere='North'):
+def multi_aperture_receiver(rec_param, hemisphere='North'):
 	"""
 	hemisphere : 'North' or 'South' hemisphere of the earth where the field located
 		        if North: the field is in the positive y direction
@@ -552,23 +553,33 @@ def multi_cavity_receiver(rec_param, hemisphere='North'):
 		             if the front surface always facing to the field is desirable
 		         (2) the position of the virtual target
 	"""
-	# x, y, z is the front center of the multi-cavity receiver
-	# n_c is the number of cavities
-	# rec_w, rec_h is the size of one cavity
-	# alpha is the angle between each two cavities 
-	# num_cavity is the number of cavities
+	# rec_w and rec_h is the size of one aperture
+	# rec_grid_w and rec_gird_h is the number of elements of one aperture
+	# rec_x, rec_y, rec_z is the location of the central point of the multi-aperture receiver
+	# rec_tilt is the tilt angle of each aperture
+	# num_aperture is the number of apertures
+	# ang_rang is the angular range (deg) that covers by the center of the most left and right apertures
+	# alpha is the angle between each two apertures 
+
 
 	rec_w=rec_param[0]
 	rec_h=rec_param[1]
-	slices=rec_param[2]
-	x=rec_param[3]
-	y=rec_param[4]
-	z=rec_param[5]
-	tilt=rec_param[6]
+	rec_grid_w=rec_param[2]
+	rec_grid_h=rec_param[3]
+	rec_x=rec_param[4]
+	rec_y=rec_param[5]
+	rec_z=rec_param[6]
+	rec_tilt=rec_param[7] 
 	# receiver tilt angle:
 	# 0 is vertical
 	# the standby posiion of a plane in solstice is normal points to the +z axis
 	# rotation anagle, positive is anti-clockwise
+	num_aperture=int(rec_param[8]) 
+	ang_rang=rec_param[9]*np.pi/180. 
+
+	alpha=ang_rang/float(num_aperture-1)
+	W=rec_w*1.2 # 20% space
+	r=W/2./np.tan(alpha/2.)
 
 	geom=''
 	pts=[ [-rec_w*0.5, -rec_h*0.5], [-rec_w*0.5, rec_h*0.5], [rec_w*0.5, rec_h*0.5], [rec_w*0.5,-rec_h*0.5] ]
@@ -579,19 +590,34 @@ def multi_cavity_receiver(rec_param, hemisphere='North'):
 	geom+='      clip: \n' 
 	geom+='      - operation: AND \n'
 	geom+='        vertices: %s\n' % pts
-	geom+='      slices: %d\n' % slices 
+	geom+='      slices: %d\n' % rec_grid_w 
 	geom+='\n'
 
-	# CREATE a receiver entity from "target_g" geometry (primary = 0)
+
 	entt=''
-	entt+='\n- entity:\n'
-	entt+='    name: target_e\n'
-	entt+='    primary: 0\n'
-	if hemisphere=='North':
-		entt+='    transform: { translation: %s, rotation: %s }\n' % ([x, y, z], [-90.-tilt, 0, 0]) 
-	else:
-		entt+='    transform: { translation: %s, rotation: %s }\n' % ([x, y, z], [90.+tilt, 0, 0]) 
-	entt+='    geometry: *%s\n' % 'target_g'
+	for i in range(num_aperture):
+		# center of the i-th aperture
+		# count from the left
+		# the angular position of the center
+		ang_pos=-ang_rang/2.+float(i)*alpha 
+		# the angular position of the left and right edge
+		#delta_a=np.arctan(rec_w/r)
+		#ang_left=ang_pos-delta_a
+		#ang_righ=ang_pos+delta_a
+		xc=r*np.sin(ang_pos)
+		yc=r*np.cos(ang_pos)
+		zc=rec_z
+
+		# CREATE a receiver entity from "target_g" geometry (primary = 0)
+
+		entt+='\n- entity:\n'
+		entt+='    name: target_e_%.0f\n'%(i)
+		entt+='    primary: 0\n'
+		if hemisphere=='North':
+			entt+='    transform: { translation: %s, rotation: %s }\n' % ([xc, yc, zc], [-90.-rec_tilt, ang_pos*180/np.pi,0]) 
+		else:
+			entt+='    transform: { translation: %s, rotation: %s }\n' % ([-xc, -yc, zc], [90.+rec_tilt, ang_pos*180/np.pi,0]) 
+		entt+='    geometry: *%s\n' % 'target_g'
 
 	# CREATE a virtual target entity from "target_g" geometry (primary = 0)
 	pts = [ [-rec_w*10., -rec_h*10.], [-rec_w*10., rec_h*10.], [rec_w*10., rec_h*10.], [rec_w*10.,-rec_h*10.] ]
@@ -600,9 +626,9 @@ def multi_cavity_receiver(rec_param, hemisphere='North'):
 	entt+='    name: virtual_target_e\n'
 	entt+='    primary: 0\n'
 	if hemisphere=='North':
-		entt+='    transform: { translation: %s, rotation: %s }\n' % ([x, y-5., z], [-90.-tilt, 0, 0])
+		entt+='    transform: { translation: %s, rotation: %s }\n' % ([rec_x, rec_y-r, rec_z], [-90.-rec_tilt, 0, 0])
 	else:
-		entt+='    transform: { translation: %s, rotation: %s }\n' % ([x, y+5., z], [90.+tilt, 0, 0])
+		entt+='    transform: { translation: %s, rotation: %s }\n' % ([rec_x, rec_y+r, rec_z], [90.+rec_tilt, 0, 0])
 	entt+='    geometry: \n' 
 	entt+='      - material: *%s\n' % 'material_virtual' 
 	entt+='        plane: \n'
@@ -612,9 +638,10 @@ def multi_cavity_receiver(rec_param, hemisphere='North'):
 	entt+='          slices: %d\n' % slices  
 
 	rcv=''
-	rcv+='- name: target_e \n' 
-	rcv+='  side: %s \n' % 'FRONT_AND_BACK'
-	rcv+='  per_primitive: %s \n' % 'INCOMING_AND_ABSORBED'
+	for i in range(num_aperture):
+		rcv+='- name: target_e_%.0f \n'%(i)
+		rcv+='  side: %s \n' % 'FRONT_AND_BACK'
+		rcv+='  per_primitive: %s \n' % 'INCOMING_AND_ABSORBED'
 	rcv+='- name: virtual_target_e \n'
 	rcv+='  side: %s \n' % 'FRONT'
 	rcv+='  per_primitive: %s \n' % 'INCOMING'

@@ -38,11 +38,11 @@ class CRS:
 		self.sun=SunPosition()
 		self.master=Master(casedir)
 
-	def receiversystem(self, receiver, rec_w=0., rec_h=0., rec_x=0., rec_y=0., rec_z=100., rec_tilt=0., rec_grid_w=10, rec_grid_h=10, rec_abs=1.):
+	def receiversystem(self, receiver, rec_w=0., rec_h=0., rec_x=0., rec_y=0., rec_z=100., rec_tilt=0., rec_grid_w=10, rec_grid_h=10, rec_abs=1., num_aperture=0, ang_rang=0.):
 
 		'''
 		Arguements:
-		    (1) receiver  :   str, 'flat', 'cylinder' or directory of the 'stl', type of the receiver
+		    (1) receiver  :   str, type of the receiver, i.e. 'flat', 'cylinder', 'multi_aperture' or directory of the 'stl', 
 		    (2) rec_w     : float, width of a flat receiver or radius of a cylindrical receiver (m) 
 		    (3) rec_h     : float, height of the receiver (m)
 		    (4) rec_x     : float, x location of the receiver (m)
@@ -51,17 +51,30 @@ class CRS:
 		    (7) rec_tilt  : float, tilt angle of the receiver (deg), 0 is where the receiver face to the horizontal
 		    (8) rec_grid_w  :   int, number of elements in the horizontal(x)/circumferential direction
 		    (9) rec_grid_h  :   int, number of elements in the vertical(z) direction
-		    (10) rec_abs   : float, receiver surface absorptivity, e.g. 0.9
+		    (10) rec_abs    : float, receiver surface absorptivity, e.g. 0.9
+		    (11) num_aperture :   int, number of apertures if it is a multi-aperture receiver
+		    (12) ang_rang   : float, the angular range (deg) that covers by the center of the most left and right apertures, it the receiver is a multi-aperture receiver
 		'''
 		self.receiver=receiver
 		self.rec_abs=rec_abs
 
 		if receiver[-3:]=='stl':
-		    self.rec_param=np.r_[rec_w, rec_h, receiver, rec_x, rec_y, rec_z, rec_tilt]
+			self.rec_param=np.r_[rec_w, rec_h, receiver, rec_x, rec_y, rec_z, rec_tilt]
 		elif receiver=='flat':
-		    self.rec_param=np.r_[rec_w, rec_h, rec_grid_w, rec_grid_h, rec_x, rec_y, rec_z, rec_tilt]
+			self.rec_param=np.r_[rec_w, rec_h, rec_grid_w, rec_grid_h, rec_x, rec_y, rec_z, rec_tilt]
 		elif receiver=='cylinder': 
-		    self.rec_param=np.r_[rec_w, rec_h, rec_grid_w, rec_grid_h, rec_x, rec_y, rec_z, rec_tilt]  
+			self.rec_param=np.r_[rec_w, rec_h, rec_grid_w, rec_grid_h, rec_x, rec_y, rec_z, rec_tilt] 
+		elif receiver=='multi-aperture':	
+			# rec_w and rec_h is the size of one aperture
+			# rec_grid_w and rec_gird_h is the number of elements of one aperture
+			# rec_x, rec_y, rec_z is the location of the central point of the multi-aperture receiver
+			# rec_tilt is the tilt angle of each aperture
+			# num_aperture is the number of apertures
+			# ang_rang is the angular range (deg) that covers by the center of the most left and right apertures
+			self.rec_param=np.r_[rec_w, rec_h, rec_grid_w, rec_grid_h, rec_x, rec_y, rec_z, rec_tilt, num_aperture, ang_rang]  
+			self.rec_w=rec_w
+			self.num_aperture=num_aperture
+			self.ang_rang=ang_rang
 
 
 	def heliostatfield(self, field, hst_rho, slope, hst_w, hst_h, tower_h, tower_r=0.01, hst_z=0., num_hst=0., R1=0., fb=0., dsep=0.):
@@ -92,18 +105,22 @@ class CRS:
 		 '''
 	   
 		if field[-3:]=='csv':
-		    print('KNOWN FIELD')
-		    layout=np.loadtxt(field, delimiter=',', skiprows=2)
+			print('KNOWN FIELD')
+			layout=np.loadtxt(field, delimiter=',', skiprows=2)
 
 		else:
-		    # design a new field            
-		    savefolder=self.casedir+'/des_point'
-		    if not os.path.exists(savefolder):
-		        os.makedirs(savefolder)
+			# design a new field            
+			savefolder=self.casedir+'/des_point'
+			if not os.path.exists(savefolder):
+				os.makedirs(savefolder)
 
-		    pos_and_aiming=radial_stagger(latitude=self.latitude, num_hst=num_hst, width=hst_w, height=hst_h, hst_z=hst_z, towerheight=tower_h, R1=R1, fb=fb, dsep=0., field=field, savedir=savefolder, plot=False)        
-		      
-		    layout=pos_and_aiming[2:, :]
+			pos_and_aiming=radial_stagger(latitude=self.latitude, num_hst=num_hst, width=hst_w, height=hst_h, hst_z=hst_z, towerheight=tower_h, R1=R1, fb=fb, dsep=0., field=field, num_aperture=self.num_aperture, ang_rang=self.ang_rang, rec_w=self.rec_w, savedir=savefolder, plot=False)        
+			  
+			layout=pos_and_aiming[2:, :]
+
+		self.hst_pos=layout[:,:3].astype(float)
+		self.hst_foc=layout[:,3].astype(float) 
+		self.hst_aims=layout[:,4:].astype(float)
 
 		self.hst_w=hst_w
 		self.hst_h=hst_h
@@ -183,7 +200,7 @@ class CRS:
 				    performance_hst=np.zeros((nhst, 9))  
 				    efficiency_hst=np.zeros(nhst)
 				else:
-					efficiency_total, performance_hst=self.master.run(azimuth, elevation, num_rays, self.hst_rho, dni, folder=onesunfolder, gen_vtk=False, printresult=False)
+					efficiency_total, performance_hst=self.master.run(azimuth, elevation, num_rays, self.hst_rho, dni, folder=onesunfolder, gen_vtk=gen_vtk, printresult=False)
 
 					efficiency_hst=performance_hst[:,-1]/performance_hst[:,0]
 
@@ -215,13 +232,14 @@ class CRS:
 		azi_des, ele_des=self.sun.convert_convention('solstice', azi, zen) 
 
 		sys.stderr.write("\n"+green('Design Point: \n'))		
-		efficiency_total, performance_hst_des=self.master.run(azi_des, ele_des, num_rays, self.hst_rho, dni_des, folder=designfolder, gen_vtk=False, printresult=False)
+		efficiency_total, performance_hst_des=self.master.run(azi_des, ele_des, num_rays, self.hst_rho, dni_des, folder=designfolder, gen_vtk=gen_vtk, printresult=False)
 
 		Qin=performance_hst_des[:,-1]
 		Qsolar=performance_hst_des[0,0]
 
 		ID=ANNUAL.argsort()
 		ID=ID[::-1]
+		#ID=np.lexsort((-ANNUAL, self.hst_foc))
 
 		select_hst=np.array([])
 		rmax=np.max(self.hst_row)
@@ -266,6 +284,7 @@ class CRS:
 		print('num_hst', self.n_helios)
 		print('power   @design', power)
 		print('opt_eff @design', self.eff_des)
+		print('opt_eff @design', efficiency_total)
 		Xmax=max(self.hst_pos[:,0])
 		Xmin=min(self.hst_pos[:,0])
 		Ymax=max(self.hst_pos[:,1])
@@ -292,22 +311,22 @@ class CRS:
 		for i in range(len(case_list)):    
 			c=int(case_list[i,0].astype(float))
 			if c not in run:                
-			    #sundir=designfolder+'/sunpos_%s'%c
-			    res_hst=hst_annual[c]
-			    Qtot=res_hst[:,0]
-			    Qin=res_hst[:,-1]
-			    eff=np.sum(Qin[select_hst])/np.sum(Qtot[select_hst])
-			    print('')
-			    print('sun position:', (c), 'eff', eff)
+				#sundir=designfolder+'/sunpos_%s'%c
+				res_hst=hst_annual[c]
+				Qtot=res_hst[:,0]
+				Qin=res_hst[:,-1]
+				eff=np.sum(Qin[select_hst])/np.sum(Qtot[select_hst])
+				print('')
+				print('sun position:', (c), 'eff', eff)
 
 			for a in range(len(oelt[3:])):
-			    for b in range(len(oelt[0,3:])):
-			        val=re.findall(r'\d+',oelt[a+3,b+3])
-			        if val==[]:
-			            oelt[a+3,b+3]=0
-			        else:
-			            if c==float(val[0]):
-			                oelt[a+3,b+3]=eff
+				for b in range(len(oelt[0,3:])):
+					val=re.findall(r'\d+',oelt[a+3,b+3])
+					if val==[]:
+						oelt[a+3,b+3]=0
+					else:
+						if c==float(val[0]):
+							oelt[a+3,b+3]=eff
 
 		np.savetxt(self.casedir+'/lookup_table.csv', oelt, fmt='%s', delimiter=',')
 

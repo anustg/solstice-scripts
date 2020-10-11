@@ -3,7 +3,7 @@ from datetime import datetime
 
 def output_motab(table,savedir=None, title=None):
 	'''
-	output the .motab table fiel
+	output the .motab table file
 	'''
 	f=open(savedir, 'w')
 	f.write('#1\n')

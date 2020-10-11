@@ -46,8 +46,6 @@ def process_raw_results(rawfile, savedir,rho_mirror,dni):
 				rows.append(r.split())			
 			index+=1
 
-	results=np.array([])
-
 	# sun direction
 
 	#sys.stderr.write("SUN DIRECTION?\n")
@@ -94,33 +92,58 @@ def process_raw_results(rawfile, savedir,rho_mirror,dni):
 	# 1 - 2 id and area
 	# 3 - 24 (total 22) front
 	# 25- 46 (total 22) back 
-	rec_area=get_rc(num_res+2,2) # m2  
-	
-	rec_front_income=get_rc(num_res+2,3)
-	rec_front_income_err=get_rc(num_res+2,4)
+	rec_area=0. # m2  
+
+	rec_front_income=0.
+	rec_front_income_err=0.
 	#rec_no_material_loss=get_rc(num_res+2,5)
 	#rec_no_material_loss_err=get_rc(num_res+2,6)
 	#rec_no_atmo_loss=get_rc(num_res+2,7)
 	#rec_no_atmo_loss_err=get_rc(num_res+2,8)
 	#rec_material_loss=get_rc(num_res+2,9)
 	#rec_material_loss_err=get_rc(num_res+2,10)
-	rec_front_absorbed=get_rc(num_res+2,13)
-	rec_front_absorbed_err=get_rc(num_res+2,14)
-	rec_front_eff=get_rc(num_res+2,23)
-	rec_front_eff_err=get_rc(num_res+2,24)
+	rec_front_absorbed=0.
+	rec_front_absorbed_err=0.
+	rec_front_eff=0.
+	rec_front_eff_err=0.
 
-	rec_back_income=get_rc(num_res+2,25)
-	rec_back_income_err=get_rc(num_res+2,26)
-	rec_back_absorbed=get_rc(num_res+2,35)
-	rec_back_absorbed_err=get_rc(num_res+2,36)
-	rec_back_eff=get_rc(num_res+2,-2)
-	rec_back_eff_err=get_rc(num_res+2,-1)
+	rec_back_income=0.
+	rec_back_income_err=0.
+	rec_back_absorbed=0.
+	rec_back_absorbed_err=0.
+	rec_back_eff=0.
+	rec_back_eff_err=0.
 
-	if num_rec>1:
-		#Virtual target
-		vir_area=get_rc(num_res+3,2)
-		vir_income=get_rc(num_res+3,3)
-		vir_income_err=get_rc(num_res+3,4)
+	rec_id={}
+	for i in range(num_rec-1):
+		rec_id[i]=get_rc(num_res+2+i,1) # the id number of the receiver
+		rec_area+=get_rc(num_res+2+i,2) # m2  
+	
+		rec_front_income+=get_rc(num_res+2+i,3)
+		rec_front_income_err+=get_rc(num_res+2+i,4)
+		#rec_no_material_loss=get_rc(num_res+2,5)
+		#rec_no_material_loss_err=get_rc(num_res+2,6)
+		#rec_no_atmo_loss=get_rc(num_res+2,7)
+		#rec_no_atmo_loss_err=get_rc(num_res+2,8)
+		#rec_material_loss=get_rc(num_res+2,9)
+		#rec_material_loss_err=get_rc(num_res+2,10)
+		rec_front_absorbed+=get_rc(num_res+2+i,13)
+		rec_front_absorbed_err+=get_rc(num_res+2+i,14)
+		rec_front_eff+=get_rc(num_res+2+i,23)
+		rec_front_eff_err+=get_rc(num_res+2+i,24)
+
+		rec_back_income+=get_rc(num_res+2+i,25)
+		rec_back_income_err+=get_rc(num_res+2+i,26)
+		rec_back_absorbed+=get_rc(num_res+2+i,35)
+		rec_back_absorbed_err+=get_rc(num_res+2+i,36)
+		rec_back_eff+=get_rc(num_res+2+i,-2)
+		rec_back_eff_err+=get_rc(num_res+2+i,-1)
+
+
+	#Virtual target
+	vir_area=get_rc(num_res+3+num_rec-1,2)
+	vir_income=get_rc(num_res+3+num_rec-1,3)
+	vir_income_err=get_rc(num_res+3+num_rec-1,4)
 	
 	raw_res=np.array([
 		['name','value', 'error']
@@ -204,21 +227,22 @@ def process_raw_results(rawfile, savedir,rho_mirror,dni):
 		heliostats[i,4]=hst_shad
 
 		# per heliostat per receiver
-		l2=2+num_res+num_rec+num_hst+i  
-		per_hst=rows[l2]   
-		hst_in=float(per_hst[2])+float(per_hst[22]) # front+back
-		hst_in_mat=float(per_hst[8])+float(per_hst[28])
-		hst_in_atm=float(per_hst[10])+float(per_hst[30])
-		hst_abs=float(per_hst[12])+float(per_hst[32])
-		hst_abs_mat=float(per_hst[18])+float(per_hst[38])
-		hst_abs_atm=float(per_hst[20])+float(per_hst[40])
-		  
-		heliostats[i,5]=hst_in
-		heliostats[i,6]=hst_in_mat
-		heliostats[i,7]=hst_in_atm
-		heliostats[i,8]=hst_abs
-		heliostats[i,9]=hst_abs_mat
-		heliostats[i,10]=hst_abs_atm
+		for j in range(num_rec-1):
+			l2=2+num_res+num_rec+num_hst*(j+1)+i  
+			per_hst=rows[l2]   
+			hst_in=float(per_hst[2])+float(per_hst[22]) # front+back
+			hst_in_mat=float(per_hst[8])+float(per_hst[28])
+			hst_in_atm=float(per_hst[10])+float(per_hst[30])
+			hst_abs=float(per_hst[12])+float(per_hst[32])
+			hst_abs_mat=float(per_hst[18])+float(per_hst[38])
+			hst_abs_atm=float(per_hst[20])+float(per_hst[40])
+			  
+			heliostats[i,5]+=hst_in
+			heliostats[i,6]+=hst_in_mat
+			heliostats[i,7]+=hst_in_atm
+			heliostats[i,8]+=hst_abs
+			heliostats[i,9]+=hst_abs_mat
+			heliostats[i,10]+=hst_abs_atm
 
 		# per heliostat per virtual target
 		l3=2+num_res+num_rec+2*num_hst+i  

@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 from .cal_sun import *
 from .gen_vtk import gen_vtk
 
-def radial_stagger(latitude, num_hst, width, height, hst_z, towerheight, R1, fb, dsep=0., field='polar', savedir='.', plot=False):
+def radial_stagger(latitude, num_hst, width, height, hst_z, towerheight, R1, fb, dsep=0., field='polar', num_aperture=0., ang_rang=0., rec_w=0., savedir='.', plot=False):
 	'''Generate a radial-stagger heliostat field, ref. Collado and Guallar, 2012, Campo: Generation of regular heliostat field.
 
 	``Arguments``
@@ -19,7 +19,9 @@ def radial_stagger(latitude, num_hst, width, height, hst_z, towerheight, R1, fb,
 	  * R1 (float)      : distance from the first row to the bottom of the tower, i.e. (0, 0, 0)
 	  * fb (float)      : the field layout growing factor, in (0, 1)
 	  * dsep (float)    : separation distance (m)
-	  * field (str)     : 'polar-half' or 'surround-half' or 'polar' or 'surround' field, the 'half' option is for simulation a symmetric field
+	  * field (str)     : 'polar-half' or 'surround-half' or 'polar' or 'surround' field or 'multi-aperture', the 'half' option is for simulation a symmetric field
+	  * num_aperture(int): number of apertures, for a multi-aperture configuration
+	  * ang_rang (float): the angular range (deg) that covers by the center of the most left and right apertures (for a multi-aperture configuration)	 
 	  * savedir (str)   : directory of saving the pos_and_aiming.csv
 	  * plot (bool)     : True - plot the layout by Matplotlib
 
@@ -106,7 +108,7 @@ def radial_stagger(latitude, num_hst, width, height, hst_z, towerheight, R1, fb,
 	sys.stderr.write("\n")
 	sys.stderr.write("Denest field %d\n"%(num))
 
-	if field=='surround':
+	if field=='surround' or field=='multi-aperture':
 		num_hst*=2
 
 	# expanding the field
@@ -204,9 +206,63 @@ def radial_stagger(latitude, num_hst, width, height, hst_z, towerheight, R1, fb,
 
 	# the aiming point is a default point
 	# it is required to be revised for receiver performance
-	aim_x=np.zeros(num_hst)
-	aim_y=np.zeros(num_hst)
-	aim_z=np.ones(num_hst)*towerheight
+
+	ANGLE=np.array([])
+	OC=np.array([])
+
+	if field=='multi-aperture':
+
+		ang_rang=ang_rang*np.pi/180.
+		alpha=ang_rang/float(num_aperture-1)
+		W=rec_w*1.2 # 20% space
+		r=W/2./np.tan(alpha/2.)
+		for i in range(int(num_aperture)):
+			ang_pos=-ang_rang/2.+float(i)*alpha
+			xc=r*np.sin(ang_pos)
+			yc=r*np.cos(ang_pos)
+			zc=0.
+			oc=np.r_[xc, yc, 0.]
+			OC=np.append(OC, oc)
+
+			norm_rcv=oc/np.linalg.norm(oc)		
+
+			vec_CH=hstpos-oc	
+			L_CH=np.linalg.norm(vec_CH, axis=1)
+			L_CH=L_CH.reshape(len(L_CH), 1)
+			norm_CH=vec_CH/L_CH
+		
+			angle=np.arccos(np.sum(norm_rcv*norm_CH, axis=1))
+
+			ANGLE=np.append(ANGLE, angle)
+
+		ANGLE=ANGLE.reshape(int(num_aperture), len(angle))
+		OC=OC.reshape(int(num_aperture), 3)
+		idx_aim=np.argmin(ANGLE, axis=0)
+		angle_min=np.amin(ANGLE, axis=0)
+
+
+		idx_hst=((angle_min<=np.pi/2.)) # valid heliostats that can be seen from the receiver
+		idx_aim=idx_aim[idx_hst]
+
+		hstpos=hstpos[idx_hst]
+		num_hst=len(hstpos)
+		aiming=OC[idx_aim]
+		aim_x=aiming[:,0]
+		aim_y=aiming[:,1]		
+		aim_z=np.ones(num_hst)*towerheight
+		#XX=hstpos[:,0]
+		#YY=hstpos[:,1]
+		XX=XX[idx_hst]
+		YY=YY[idx_hst]
+		ZONE=ZONE[idx_hst]
+		ROW=ROW[idx_hst]
+		NHEL=NHEL[idx_hst]
+		TTROW=TTROW[idx_hst]
+
+	else:
+		aim_x=np.zeros(num_hst)
+		aim_y=np.zeros(num_hst)
+		aim_z=np.ones(num_hst)*towerheight
 
 	foc=np.sqrt((XX-aim_x)**2+(YY-aim_y)**2+(hstpos[:,2]-aim_z)**2)
 

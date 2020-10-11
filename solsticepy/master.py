@@ -39,7 +39,7 @@ class Master:
 		``Argument``
 		  * casedir (str): the case directory
 		"""
-		self.casedir=casedir
+		self.casedir=os.path.abspath(casedir)
 		if not os.path.exists(self.casedir):
 		    os.makedirs(self.casedir)
 		    assert os.path.isdir(casedir)
@@ -84,7 +84,7 @@ class Master:
 		# main raytrace
 		run_prog("solstice",['-D%s,%s'%(azimuth,elevation),'-v','-n',num_rays,'-R',RECV_IN,'-fo',self.in_case(folder, 'simul'),YAML_IN])
 
-
+		folder=os.path.abspath(folder)
 		if gen_vtk:
 			dirn = os.getcwd()
 			try:

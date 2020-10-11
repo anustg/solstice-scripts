@@ -45,7 +45,8 @@ class Parameters:
 	def Heliostat(self):
 		'''
 			(1) field_type : str,
-				-- 'polar', 'polar-half', 'surround' or 'surround-half' for desiging a new field 
+				-- 'polar', 'surround', 'multi-aperture', 'polar-half' or 'surround-half for desiging a new field 
+				    the 'half' option is for simulation of a symmetric field
 				-- the directory of the layout file
 				    the layout file is a 'csv' file, (n+2, 7)
 				   - n is the total number of heliostats 
@@ -90,16 +91,18 @@ class Parameters:
 
 	def Receiver(self):
 		'''
-			(1) rcv_type  :   str, 'flat', 'cylinder', 'particle' or 'stl', type of the receiver
-			(2) H_rcv     : float, height of a flat receiver or radius of a cylindrical receiver (m) 
-			(3) W_rcv     : float, width of the receiver (m)
-			(4) tilt_rcv  : float, tilt angle of the receiver (deg), 0 is where the receiver face to the horizontal
-			(5) alpha_rcv : float, receiver surface absorptivity (0-1), set as 1 if rcv_type='particle'
-			(6) n_H_rcv   :   int, number of discretisation of the receiver in the height direction
-			(7) n_W_rcv   :   int, number of discretisation of the receiver in the width direction (for a flat receiver) 
+			(1) rcv_type  :   str, 'flat', 'cylinder', 'particle', 'multi-aperture' or 'stl', type of the receiver
+			(2) num_aperture: int, number of apertures if it is a multi-aperture receiver
+			(3) ang_rang  : float, the angular range (deg) that covers by the center of the most left and right apertures, it the receiver is a multi-aperture receiver
+			(4) H_rcv     : float, height of a flat receiver or radius of a cylindrical receiver (m) 
+			(5) W_rcv     : float, width of the receiver (m)
+			(6) tilt_rcv  : float, tilt angle of the receiver (deg), 0 is where the receiver face to the horizontal
+			(7) alpha_rcv : float, receiver surface absorptivity (0-1), set as 1 if rcv_type='particle'
+			(8) n_H_rcv   :   int, number of discretisation of the receiver in the height direction
+			(9) n_W_rcv   :   int, number of discretisation of the receiver in the width direction (for a flat receiver) 
 				                    or in the circular direction (for a cylindrical receiver) 
-			(8) X_rcv     : float, x location of the receiver (m)
-			(9) Y_rcv     : float, y location of the receiver (m)
+			(10) X_rcv     : float, x location of the receiver (m)
+			(11) Y_rcv     : float, y location of the receiver (m)
 			---(*) z_rcv  : float, z location of the receiver (m)
 
 		'''
@@ -112,6 +115,8 @@ class Parameters:
 		self.n_W_rcv=10
 		self.X_rcv=0. # receiver location
 		self.Y_rcv=0.
+		self.num_aperture=0
+		self.ang_rang=0.
 
 
 	def simulation(self):
@@ -171,6 +176,8 @@ class Parameters:
 				['R1', self.R1, 'm'],    
 				['dsep', self.dsep, 'm'],    
 				['rcv_type', self.rcv_type, '-'],  
+				['num_aperture', self.num_aperture, '-'],
+				['aperture angular range',self.ang_rang , 'deg'],
 				['H_rcv', self.H_rcv, 'm'],
 				['W_rcv', self.W_rcv, 'm'],   
 				['tilt_rcv', self.tilt_rcv, 'deg'],  
