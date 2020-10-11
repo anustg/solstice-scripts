@@ -258,17 +258,31 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims,hst_w, hst_h
 	slices = 4 # slices for the envelop circle
 	pts_hst = [ [-hst_w*0.5, -hst_h*0.5], [-hst_w*0.5, hst_h*0.5], [hst_w*0.5, hst_h*0.5], [hst_w*0.5,-hst_h*0.5] ]
 	# CREATE a reflective facet (mirror)
-	for i in range(0,num_hst):
-		name_hst_g = 'hst_g_'+str(i)
+	if num_hst>1e4:
+
+		name_hst_g = 'hst_g'
 		iyaml+='- geometry: &%s\n' % name_hst_g 
 		iyaml+='  - material: *%s\n' % 'material_mirror' 
 		#iyaml+='    transform: { translation: %s, rotation: %s }\n' % ([hst_x[i], hst_y[i], hst_z[i]], [0, 0, 0]) )
 		iyaml+='    parabol: \n'
-		iyaml+='      focal: %s\n' % hst_foc[i]
+		iyaml+='      focal: %s\n' % hst_foc[0]
 		iyaml+='      clip: \n'  
 		iyaml+='      - operation: AND \n'
 		iyaml+='        vertices: %s\n' % pts_hst
 		iyaml+='      slices: %d\n' % slices  
+
+	else:
+		for i in range(0,num_hst):
+			name_hst_g = 'hst_g_'+str(i)
+			iyaml+='- geometry: &%s\n' % name_hst_g 
+			iyaml+='  - material: *%s\n' % 'material_mirror' 
+			#iyaml+='    transform: { translation: %s, rotation: %s }\n' % ([hst_x[i], hst_y[i], hst_z[i]], [0, 0, 0]) )
+			iyaml+='    parabol: \n'
+			iyaml+='      focal: %s\n' % hst_foc[i]
+			iyaml+='      clip: \n'  
+			iyaml+='      - operation: AND \n'
+			iyaml+='        vertices: %s\n' % pts_hst
+			iyaml+='      slices: %d\n' % slices  
 
 	# CREATE the pylon "pylon_g" geometry cylindrical shape
 	h_pyl = 0.001 # pylon height
@@ -286,22 +300,40 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims,hst_w, hst_h
 	# (programming objects gathering geometries or pivot and geometries)
 	#------------------------------
 	# CREATE the heliostat templates
-	for i in range(0,num_hst):    
-		name_hst_t = 'hst_t_'+str(i)
+	if num_hst>1e4:
+		name_hst_t = 'hst_t'
 		iyaml+='- template: &%s\n' % name_hst_t 
-		name_hst_n = 'hst_'+ str(i)
+		name_hst_n = 'hst'
 		iyaml+='    name: %s\n' % name_hst_n 
 		iyaml+='    primary: 0\n'   
 		iyaml+='    geometry: *pylon_g\n'
 		iyaml+='    children: \n' 
 		iyaml+='    - name: pivot\n'
-		iyaml+='      zx_pivot: {target: {position: %s}} \n' % ([aim_x[i],aim_y[i],aim_z[i]]) 
+		iyaml+='      zx_pivot: {target: {position: %s}} \n' % ([aim_x[0],aim_y[0],aim_z[0]]) 
 		iyaml+='      children: \n'
 		iyaml+='      - name: reflect_surface\n'
 		iyaml+='        primary: 1\n'
 		iyaml+='        transform: {rotation: [-90,0,0]} \n'   
-		name_hst_g = 'hst_g_'+str(i)
+		name_hst_g = 'hst_g'
 		iyaml+='        geometry: *%s\n' % name_hst_g 
+
+	else:
+		for i in range(0,num_hst):    
+			name_hst_t = 'hst_t_'+str(i)
+			iyaml+='- template: &%s\n' % name_hst_t 
+			name_hst_n = 'hst_'+ str(i)
+			iyaml+='    name: %s\n' % name_hst_n 
+			iyaml+='    primary: 0\n'   
+			iyaml+='    geometry: *pylon_g\n'
+			iyaml+='    children: \n' 
+			iyaml+='    - name: pivot\n'
+			iyaml+='      zx_pivot: {target: {position: %s}} \n' % ([aim_x[i],aim_y[i],aim_z[i]]) 
+			iyaml+='      children: \n'
+			iyaml+='      - name: reflect_surface\n'
+			iyaml+='        primary: 1\n'
+			iyaml+='        transform: {rotation: [-90,0,0]} \n'   
+			name_hst_g = 'hst_g_'+str(i)
+			iyaml+='        geometry: *%s\n' % name_hst_g 
 
 	# 
 	### Section (6)
@@ -320,13 +352,23 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims,hst_w, hst_h
 	iyaml+='    geometry: *%s\n' % 'tower_g'    
 	#
 	# heliostat entities from the template
-	for i in range(0,num_hst):
-		name_e ='H_'+str(i)
-		name_hst_t = 'hst_t_'+str(i)
-		iyaml+='\n- entity:\n'
-		iyaml+='    name: %s\n' % name_e
-		iyaml+='    transform: { translation: %s, rotation: %s }\n' % ([hst_x[i], hst_y[i], hst_z[i]], [0, 0, 0]) 
-		iyaml+='    children: [ *%s ]\n' % name_hst_t    
+	if num_hst>1e4:
+		for i in range(0,num_hst):
+			name_e ='H_'+str(i)
+			name_hst_t = 'hst_t'
+			iyaml+='\n- entity:\n'
+			iyaml+='    name: %s\n' % name_e
+			iyaml+='    transform: { translation: %s, rotation: %s }\n' % ([hst_x[i], hst_y[i], hst_z[i]], [0, 0, 0]) 
+			iyaml+='    children: [ *%s ]\n' % name_hst_t    
+
+	else:
+		for i in range(0,num_hst):
+			name_e ='H_'+str(i)
+			name_hst_t = 'hst_t_'+str(i)
+			iyaml+='\n- entity:\n'
+			iyaml+='    name: %s\n' % name_e
+			iyaml+='    transform: { translation: %s, rotation: %s }\n' % ([hst_x[i], hst_y[i], hst_z[i]], [0, 0, 0]) 
+			iyaml+='    children: [ *%s ]\n' % name_hst_t    
 
 	with open(outfile_yaml,'w') as f:
 		f.write(iyaml)
