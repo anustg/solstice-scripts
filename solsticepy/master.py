@@ -112,7 +112,7 @@ class Master:
 				os.chdir(dirn)
 
 		if system=='dish':
-			eta=process_raw_results_dish(self.in_case(folder, 'simul'), folder,rho_mirror,dni)
+			eta=process_raw_results_dish(self.in_case(folder, 'simul'), folder, rho_mirror, dni)
 			if printresult:
 				sys.stderr.write('\n' + yellow("Total efficiency: {:f}\n".format(eta)))
 				sys.stderr.write(green("Completed successfully.\n"))
