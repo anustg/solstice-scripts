@@ -182,7 +182,7 @@ class Master:
 				    efficiency_total=ufloat(0,0)
 				    performance_hst=np.zeros((num_hst, 9))  
 				else:
-					efficiency_total, performance_hst=self.run(azimuth, elevation, num_rays, rho_mirror, dni, folder=onesunfolder, gen_vtk=gen_vtk, printresult=False, system=system)
+					efficiency_total, performance_hst=self.run(azimuth, elevation, num_rays, rho_mirror, dni, folder=onesunfolder, gen_vtk=gen_vtk, printresult=False)
 
 					sys.stderr.write(yellow("Total efficiency: {:f}\n".format(efficiency_total)))
 
@@ -209,80 +209,5 @@ class Master:
 		sys.stderr.write("\n"+green("Lookup table saved.\n"))
 		sys.stderr.write(green("Completed successfully.\n"+"\n"))
 		return table, ANNUAL
-
-
-	def run_annual_dish(self, nd, nh, latitude, num_rays,rho_mirror,dni,gen_vtk=False):
-
-		"""Run a list of optical simulations to obtain annual performance (lookup table) using Solstice 
-
-		``Arguments``
-
-		  * nd (int): number of rows in the lookup table (discretisation of the declination angle)
-		  * nh (int): number of columns in the lookup table (discretisation of the solar hour angle)
-		  * latitude (float): the latitude angle of the plan location (deg)
-		  * num_rays (int): number of rays to be cast in the ray-tracing simulation
-		  * num_hst (int): number of heliostats 
-		  * rho_mirror (float): reflectivity of mirrors, required for results post-processing 
-		  * dni (float): the direct normal irradiance (W/m2), required to obtain performance of individual heliostat
-		  * gen_vtk (bool): True - perform postprocessing for visualisation of  each individual ray-tracing scene (each sun position), False - no postprocessing for visualisation 
-
-
-		``Return``
-
-		  * No return value (results files are created and written)
-		"""
-
-		YAML_IN = self.in_case(self.casedir, 'input.yaml')
-		RECV_IN = self.in_case(self.casedir, 'input-rcv.yaml')
-
-		sun=SunPosition()
-		AZI, ZENITH,table,case_list=sun.annual_angles(latitude, casefolder=self.casedir, nd=nd, nh=nh)
-		case_list=case_list[1:]
-		SOLSTICE_AZI, SOLSTICE_ELE=sun.convert_convention('solstice', AZI, ZENITH)
-
-		# TODO note, DNI is not varied in the simulation, 
-		# i.e. performance is not dni-weighted
-  
-		run=np.r_[0]
-
-		for i in range(len(case_list)):     
-			c=int(case_list[i,0].astype(float))
-			if c not in run:
-				azimuth=SOLSTICE_AZI[c-1]-90.
-				elevation=SOLSTICE_ELE[c-1]
-				#if np.sin(elevation*np.pi/180.)>=1.e-5:
-				#	dni=1618.*np.exp(-0.606/(np.sin(elevation*np.pi/180.)**0.491))
-				#else:
-				#	dni=0.
-		   
-				sys.stderr.write("\n"+green('Sun position: %s \n'%c))
-				print('azimuth: %.2f'% azimuth, ', elevation: %.2f'%elevation)
-
-				onesunfolder=os.path.join(self.casedir,'sunpos_%s'%(c))
-
-				# run solstice
-				if elevation<12.: # 1 degree
-				    efficiency_total=ufloat(0,0)
-				else:
-					efficiency_total=self.run(azimuth, elevation, num_rays, rho_mirror, dni, folder=onesunfolder, gen_vtk=gen_vtk, printresult=False, system='dish')
-
-					sys.stderr.write(yellow("Total efficiency: {:f}\n".format(efficiency_total)))
-
-
-			for a in range(len(table[3:])):
-				for b in range(len(table[0,3:])):
-				    val=re.findall(r'\d+',    table[a+3,b+3])
-				    if val==[]:
-				        table[a+3,b+3]=0
-				    else:
-				        if c==float(val[0]):
-				            table[a+3,b+3]=efficiency_total.nominal_value
-
-			run=np.append(run,c)   
-
-		np.savetxt(self.casedir+'/lookup_table.csv', table, fmt='%s', delimiter=',')
-		sys.stderr.write("\n"+green("Lookup table saved.\n"))
-		sys.stderr.write(green("Completed successfully.\n"+"\n"))
-		return table
 
 
