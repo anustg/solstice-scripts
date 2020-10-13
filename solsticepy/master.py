@@ -74,7 +74,7 @@ class Master:
 		* `rho_mirror` (float): reflectivity of mirrors, required for results post-processing 
 		* `dni` (float): the direct normal irradiance (W/m2), required to obtain performance of individual heliostat
 		* `gen_vtk` (boolean): if True, generate .vtk files for rendering in Paraview
-		* `system` (str): 'crs' for central receiver system, or 'dish' for parabolic dish system				
+		* `system` (str): 'crs' for a central receiver system, or 'dish' for a parabolic dish system				
 
 		Returns: no return value (results files are created and written)
 		"""
