@@ -223,11 +223,11 @@ def radial_stagger(latitude, num_hst, width, height, hst_z, towerheight, R1, fb,
 
 	foc=np.sqrt((XX-aim_x)**2+(YY-aim_y)**2+(hstpos[:,2]-aim_z)**2)
 
-	pos_and_aiming=np.append(XX, (YY, hstpos[:,2], foc, aim_x, aim_y, aim_z, ZONE, ROW, NHEL, TTROW, AZIMUTH))
-	title=np.array(['x', 'y', 'z', 'foc', 'aim x', 'aim y', 'aim z', 'Zone', 'Row', 'No.', 'row index', 'Azimuth pos', 'm', 'm', 'm', 'm', 'm', 'm', 'm', '-', '-', '-', '-', 'deg'])
-	pos_and_aiming=pos_and_aiming.reshape(12,int(len(pos_and_aiming)/12))
+	pos_and_aiming=np.append(XX, (YY, hstpos[:,2], foc, aim_x, aim_y, aim_z, AZIMUTH, ZONE, ROW, NHEL, TTROW, np.arange(num_hst)))
+	title=np.array(['x', 'y', 'z', 'foc', 'aim x', 'aim y', 'aim z', 'Azimuth pos','Zone', 'Row', 'No.', 'row index', 'No. index',  'm', 'm', 'm', 'm', 'm', 'm', 'm', 'deg','-', '-', '-', '-', '-'])
+	pos_and_aiming=pos_and_aiming.reshape(13, num_hst)
 	pos_and_aiming=np.append(title, pos_and_aiming.T)
-	pos_and_aiming=pos_and_aiming.reshape(int(len(pos_and_aiming)/12), 12)
+	pos_and_aiming=pos_and_aiming.reshape(num_hst+2, 13)
 
 	np.savetxt('%s/pos_and_aiming.csv'%savedir, pos_and_aiming, fmt='%s', delimiter=',')
 
@@ -244,7 +244,7 @@ def radial_stagger(latitude, num_hst, width, height, hst_z, towerheight, R1, fb,
 		plt.savefig(savedir+'/field_layout.png', bbox_inches='tight')
 		plt.close()
 
-	return pos_and_aiming
+	return pos_and_aiming, Nzones, Nrows_zone
 
 def cal_cosw_coset(latitude, towerheight, xx, yy, zz):
 	'''
