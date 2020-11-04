@@ -101,7 +101,7 @@ class CRS:
 		    if not os.path.exists(savefolder):
 		        os.makedirs(savefolder)
 
-		    pos_and_aiming=radial_stagger(latitude=self.latitude, num_hst=num_hst, width=hst_w, height=hst_h, hst_z=hst_z, towerheight=tower_h, R1=R1, fb=fb, dsep=0., field=field, savedir=savefolder, plot=False)        
+		    pos_and_aiming, self.Nzones, self.Nrows=radial_stagger(latitude=self.latitude, num_hst=num_hst, width=hst_w, height=hst_h, hst_z=hst_z, towerheight=tower_h, R1=R1, fb=fb, dsep=0., field=field, savedir=savefolder, plot=False)        
 		      
 		    layout=pos_and_aiming[2:, :]
 
@@ -115,8 +115,13 @@ class CRS:
 		self.hst_pos=layout[:,:3].astype(float)
 		self.hst_foc=layout[:,3].astype(float) 
 		self.hst_aims=layout[:,4:7].astype(float)
-		self.hst_row=layout[:,-1].astype(float)
-		
+
+		#self.hst_azi=layout[:,7].astype(float)      # azimuthal position (deg)
+		self.hst_zone=layout[:,8].astype(float)     # zone number
+		self.hst_row=layout[:,9].astype(float)      # row index in the zone
+		self.hst_row_idx=layout[:,11].astype(float) # row index in the field
+		#self.hst_num_idx=layout[:,12].astype(float) # num index in the field
+
 
 	def yaml(self, dni=1000,sunshape=None,csr=0.01,half_angle_deg=0.2664,std_dev=0.2):
 		'''
@@ -200,9 +205,37 @@ class CRS:
 					else:
 						if c==float(val[0]):
 							#table[a+3,b+3]=efficiency_total # this line cause wired problem
-							if cc==0: # avoid adding the symetrical point
+							if cc==0: 
+								# avoid adding the symetrical point 
+								# i.e. morning positions
 								ANNUAL+=dni_weight[a,b]*efficiency_hst
-								cc+=1
+								cc+=1 
+							else:
+								# the symetrical points (i.e. afternoon)
+								eff_symetrical=np.array([])
+								for e in range(self.Nzones):
+									idx_z=(self.hst_zone==e)
+									eff_zone=efficiency_hst[idx_z]
+									row_zone=self.hst_row[idx_z]
+									#n_hst_zone=np.sum(idx_z)
+									nr=int(self.Nrows[e])
+									for r in range(nr):
+										idx_r=(row_zone==r)
+										eff_row=eff_zone[idx_r]
+										if r%2==0:
+											eff_row=eff_row[::-1]
+										else:
+											eff_row[1:]=eff_row[1:][::-1]
+											
+										eff_symetrical=np.append(eff_symetrical, eff_row)
+								#print(np.shape(eff_symetrical))
+								#check=np.append(self.hst_zone, (self.hst_row, self.hst_num_idx, efficiency_hst, eff_symetrical))
+								#print(np.shape(check))
+								#check=check.reshape(5,int(len(check)/5))
+								#np.savetxt('./check.csv', check.T, fmt='%.5f', delimiter=',') 
+								ANNUAL+=dni_weight[a,b]*eff_symetrical									
+
+
 			run=np.append(run,c)               
 		np.savetxt(self.casedir+'/annual_hst.csv',ANNUAL, fmt='%.2f', delimiter=',')
 		
@@ -224,7 +257,7 @@ class CRS:
 		ID=ID[::-1]
 
 		select_hst=np.array([])
-		rmax=np.max(self.hst_row)
+		rmax=np.max(self.hst_row_idx)
 		if method==1:
 			print('')			
 			print('Method 1')
@@ -233,7 +266,7 @@ class CRS:
 			for i in range(len(ID)):
 				if power<Q_in_des:
 					idx=ID[i]
-					row=self.hst_row[idx]
+					row=self.hst_row_idx[idx]
 					if rmax-row>0.1*rmax:
 						select_hst=np.append(select_hst, idx)
 						power+=Qin[idx]
@@ -273,9 +306,9 @@ class CRS:
 		A_land=(Xmax-Xmin)*(Ymax-Ymin)
 		print('land area', A_land)
 
-		num_hst=len(self.hst_pos)
+	
 		title=np.array([['x', 'y', 'z', 'foc', 'aim x', 'aim y', 'aim z'], ['m', 'm', 'm', 'm', 'm', 'm', 'm']])
-		design_pos_and_aim=np.hstack((self.hst_pos, self.hst_foc.reshape(num_hst, 1)))
+		design_pos_and_aim=np.hstack((self.hst_pos, self.hst_foc.reshape(self.n_helios, 1)))
 		design_pos_and_aim=np.hstack((design_pos_and_aim, self.hst_aims))
 		#symmetric=design_pos_and_aim
 		#symmetric[:, 0]=-symmetric[:, 0]
