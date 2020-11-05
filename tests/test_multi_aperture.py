@@ -26,16 +26,18 @@ class TestMultiAperture(unittest.TestCase):
 			self.newcase=True
 
 			pm=Parameters()
-			pm.Q_in_rcv=565e6
+			pm.Q_in_rcv=56e6
 			pm.n_row_oelt=5
 			pm.n_col_oelt=22
-			pm.H_tower=200.
-			pm.H_rcv=20.
-			pm.W_rcv=20.
+			pm.H_tower=120.
+			pm.H_rcv=12.
+			pm.W_rcv=12.
+			pm.fb=0.5
+			pm.R1=50.
 			pm.field_type='multi-aperture'
 			pm.rcv_type='multi-aperture'	
 			pm.num_aperture=3
-			pm.ang_rang=180.
+			pm.ang_rang=180. # deg
 			pm.n_W_rcv=10
 			pm.n_H_rcv=10	
 
@@ -79,10 +81,9 @@ class TestMultiAperture(unittest.TestCase):
 			oelt_generated='successful'
 		self.assertEqual(oelt_generated,'successful')
 		self.assertEqual(num_hst, self.n_helios)
-		self.assertTrue(abs(num_hst-9020) < 5)
-		self.assertTrue(abs(eta_max-0.6275) < 0.01)
-		self.assertTrue(abs(self.eff_des-0.6264) < 0.01)
-		os.system('rm -rf %s'%self.casedir)
+		self.assertTrue(abs(num_hst-711) < 5)
+		self.assertTrue(abs(self.eff_des-0.7878) < 0.01)
+		#os.system('rm -rf %s'%self.casedir)
 
 if __name__ == '__main__':
 	unittest.main()

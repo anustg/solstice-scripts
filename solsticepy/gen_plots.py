@@ -62,7 +62,7 @@ class Case:
 		plt.close()
 
 if __name__=='__main__':
-	casedir='../tests/test-crs-design'
+	casedir='../tests/test-multi-aperture'
 	Case=Case(casedir)
 	Case.plot_initial_layout()
 	Case.plot_designed_layout()

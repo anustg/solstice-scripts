@@ -38,7 +38,7 @@ class CRS:
 		self.sun=SunPosition()
 		self.master=Master(casedir)
 
-	def receiversystem(self, receiver, rec_w=0., rec_h=0., rec_x=0., rec_y=0., rec_z=100., rec_tilt=0., rec_grid_w=10, rec_grid_h=10, rec_abs=1., num_aperture=0, ang_rang=0.):
+	def receiversystem(self, receiver, rec_w=0., rec_h=0., rec_x=0., rec_y=0., rec_z=100., rec_tilt=0., rec_grid_w=10, rec_grid_h=10, rec_abs=1., num_aperture=1, ang_rang=0.):
 
 		'''
 		Arguements:
@@ -57,6 +57,9 @@ class CRS:
 		'''
 		self.receiver=receiver
 		self.rec_abs=rec_abs
+		self.rec_w=rec_w
+		self.num_aperture=num_aperture
+		self.ang_rang=ang_rang
 
 		if receiver[-3:]=='stl':
 			self.rec_param=np.r_[rec_w, rec_h, receiver, rec_x, rec_y, rec_z, rec_tilt]
@@ -73,8 +76,6 @@ class CRS:
 			# ang_rang is the angular range (deg) that covers by the center of the most left and right apertures
 			self.rec_param=np.r_[rec_w, rec_h, rec_grid_w, rec_grid_h, rec_x, rec_y, rec_z, rec_tilt, num_aperture, ang_rang]  
 			self.rec_w=rec_w
-			self.num_aperture=num_aperture
-			self.ang_rang=ang_rang
 
 
 	def heliostatfield(self, field, hst_rho, slope, hst_w, hst_h, tower_h, tower_r=0.01, hst_z=0., num_hst=0., R1=0., fb=0., dsep=0.):
@@ -314,7 +315,6 @@ class CRS:
 		print('num_hst', self.n_helios)
 		print('power   @design', power)
 		print('opt_eff @design', self.eff_des)
-		print('opt_eff @design', efficiency_total)
 		Xmax=max(self.hst_pos[:,0])
 		Xmin=min(self.hst_pos[:,0])
 		Ymax=max(self.hst_pos[:,1])

@@ -9,26 +9,35 @@ import numpy as np
 
 class TestLayout(unittest.TestCase):
 	def setUp(self):
-
-		latitude=34.
+		self.latitude=34.
 		self.num_hst=22640
-		width=10.
-		height=10.
-		hst_z=5., 
-		towerheight=250.
-		R1=80.
-		fb=0.6
-		dsep=0.
+		self.width=10.
+		self.height=10.
+		self.hst_z=5., 
+		self.towerheight=250.
+		self.R1=80.
+		self.fb=0.6
+		self.dsep=0.
+		self.savedir='.'	
+		self.plot=False
+
+	'''
+	def test_polarfield(self):
 		field='polar'
-		savedir='.'	
-		plot=False
-
-		self.pos_and_aim, Nzones, Nrows_zone=radial_stagger(latitude, self.num_hst, width, height, hst_z, towerheight, R1, fb, dsep, field, savedir, plot)
-
-	def test_touching(self):
-		num=len(self.pos_and_aim)-2
+		pos_and_aim, Nzones, Nrows_zone=radial_stagger(self.latitude, self.num_hst, self.width, self.height, self.hst_z, self.towerheight, self.R1, self.fb, self.dsep, field, savedir=self.savedir, plot=self.plot)
+		num=len(pos_and_aim)-2
 		self.assertEqual(num, self.num_hst)
 		#os.system('rm *.csv')
+	'''
+	def test_multiaperture(self):
+		field='multi-aperture'
+		num_aperture=3
+		ang_rang=180.
+		rec_w=12.
+		pos_and_aim, Nzones, Nrows_zone=radial_stagger(self.latitude, self.num_hst, self.width, self.height, self.hst_z, self.towerheight, self.R1, self.fb, self.dsep, field, num_aperture, ang_rang,  rec_w, self.savedir, self.plot)
+		num=len(pos_and_aim)-2
+		print(num)
+		self.assertEqual(num, self.num_hst)
 
 
 if __name__ == '__main__':

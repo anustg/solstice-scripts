@@ -1,7 +1,7 @@
 import numpy as np
 import sys
 import matplotlib
-matplotlib.use("agg")
+#matplotlib.use("agg")
 import matplotlib.pyplot as plt
 from .cal_sun import *
 from .gen_vtk import gen_vtk
@@ -109,9 +109,6 @@ def radial_stagger(latitude, num_hst, width, height, hst_z, towerheight, R1, fb,
 	sys.stderr.write("\n")
 	sys.stderr.write("Denest field %d\n"%(num))
 
-	if field=='surround' or field=='multi-aperture':
-		num_hst*=2
-
 	# expanding the field
 	#
 	wr=width/height
@@ -191,7 +188,7 @@ def radial_stagger(latitude, num_hst, width, height, hst_z, towerheight, R1, fb,
 			ROW=np.append(ROW, rows)
 			NHEL=np.append(NHEL, nhels)
 			zone=np.ones(np.shape(rows))*i	
-     
+
 		XX=np.append(XX, xx)
 		YY=np.append(YY, yy)
 		ZONE=np.append(ZONE, zone)
@@ -200,8 +197,79 @@ def radial_stagger(latitude, num_hst, width, height, hst_z, towerheight, R1, fb,
 			TTROW=np.append(TTROW, rows)
 		else:			
 			TTROW=np.append(TTROW, rows+np.max(TTROW)+1)
-					
+				
 	num_hst=int(num_hst)
+
+	if field=='multi-aperture':
+		nt=len(XX)
+		hstpos=np.zeros(nt*3).reshape(nt, 3)
+		hstpos[:, 0]=XX
+		hstpos[:, 1]=YY
+		hstpos[:,2]=hst_z
+
+		ANGLE=np.array([])
+		C=np.array([])
+		ang_rang=ang_rang*np.pi/180.
+		alpha=ang_rang/float(num_aperture-1)
+		W=rec_w*1.2 # 20% space
+		r=W/2./np.tan(alpha/2.)
+		for i in range(int(num_aperture)):
+			ang_pos=-ang_rang/2.+float(i)*alpha
+			xc=r*np.sin(ang_pos)
+			yc=r*np.cos(ang_pos)
+			zc=towerheight
+			c=np.r_[xc, yc, towerheight]
+
+			oc=np.r_[xc, yc, 0]
+
+			C=np.append(C, c)
+
+			norm_rcv=oc/np.linalg.norm(oc)		
+
+			vec_CH=hstpos-c	
+			L_CH=np.linalg.norm(vec_CH, axis=1)
+			L_CH=L_CH.reshape(len(L_CH), 1)
+			norm_CH=vec_CH/L_CH
+		
+			angle=np.arccos(np.sum(norm_rcv*norm_CH, axis=1))
+			ANGLE=np.append(ANGLE, angle)
+
+		ANGLE=ANGLE.reshape(int(num_aperture), len(angle))
+		C=C.reshape(int(num_aperture), 3)
+
+		idx_aim=np.argmin(ANGLE, axis=0)
+		angle_min=np.amin(ANGLE, axis=0)
+
+		idx_hst=((angle_min<80.*np.pi/180.)) # valid heliostats that can be seen from the receiver
+
+		idx_aim=idx_aim[idx_hst]
+		XX=XX[idx_hst]
+		YY=YY[idx_hst]
+		ZONE=ZONE[idx_hst]
+		ROW=ROW[idx_hst]
+		NHEL=NHEL[idx_hst]
+		TTROW=TTROW[idx_hst]
+		AZIMUTH=AZIMUTH[idx_hst]
+
+
+		aiming=C[idx_aim]
+		aim_x=aiming[:,0]
+		aim_y=aiming[:,1]		
+		aim_z=np.ones(num_hst)*towerheight
+
+		#plt.scatter(XX, YY, c=aim_x)
+		#plt.colorbar()
+		#plt.show()
+		#plt.grid()
+		#plt.close()
+
+	else:
+		aim_x=np.zeros(num_hst)
+		aim_y=np.zeros(num_hst)
+		aim_z=np.ones(num_hst)*towerheight
+
+	aim_x=aim_x[:num_hst]
+	aim_y=aim_y[:num_hst]
 	XX=XX[:num_hst]
 	YY=YY[:num_hst]
 	ZONE=ZONE[:num_hst]
@@ -209,6 +277,7 @@ def radial_stagger(latitude, num_hst, width, height, hst_z, towerheight, R1, fb,
 	NHEL=NHEL[:num_hst]
 	TTROW=TTROW[:num_hst]
 	AZIMUTH=AZIMUTH[:num_hst]*180./np.pi
+
 
 	sys.stderr.write("\nExpanded field %d\n"%(num_hst,))
 
@@ -220,62 +289,6 @@ def radial_stagger(latitude, num_hst, width, height, hst_z, towerheight, R1, fb,
 	# the aiming point is a default point
 	# it is required to be revised for receiver performance
 
-	ANGLE=np.array([])
-	OC=np.array([])
-
-	if field=='multi-aperture':
-
-		ang_rang=ang_rang*np.pi/180.
-		alpha=ang_rang/float(num_aperture-1)
-		W=rec_w*1.2 # 20% space
-		r=W/2./np.tan(alpha/2.)
-		for i in range(int(num_aperture)):
-			ang_pos=-ang_rang/2.+float(i)*alpha
-			xc=r*np.sin(ang_pos)
-			yc=r*np.cos(ang_pos)
-			zc=0.
-			oc=np.r_[xc, yc, 0.]
-			OC=np.append(OC, oc)
-
-			norm_rcv=oc/np.linalg.norm(oc)		
-
-			vec_CH=hstpos-oc	
-			L_CH=np.linalg.norm(vec_CH, axis=1)
-			L_CH=L_CH.reshape(len(L_CH), 1)
-			norm_CH=vec_CH/L_CH
-		
-			angle=np.arccos(np.sum(norm_rcv*norm_CH, axis=1))
-
-			ANGLE=np.append(ANGLE, angle)
-
-		ANGLE=ANGLE.reshape(int(num_aperture), len(angle))
-		OC=OC.reshape(int(num_aperture), 3)
-		idx_aim=np.argmin(ANGLE, axis=0)
-		angle_min=np.amin(ANGLE, axis=0)
-
-
-		idx_hst=((angle_min<=np.pi/2.)) # valid heliostats that can be seen from the receiver
-		idx_aim=idx_aim[idx_hst]
-
-		hstpos=hstpos[idx_hst]
-		num_hst=len(hstpos)
-		aiming=OC[idx_aim]
-		aim_x=aiming[:,0]
-		aim_y=aiming[:,1]		
-		aim_z=np.ones(num_hst)*towerheight
-		#XX=hstpos[:,0]
-		#YY=hstpos[:,1]
-		XX=XX[idx_hst]
-		YY=YY[idx_hst]
-		ZONE=ZONE[idx_hst]
-		ROW=ROW[idx_hst]
-		NHEL=NHEL[idx_hst]
-		TTROW=TTROW[idx_hst]
-
-	else:
-		aim_x=np.zeros(num_hst)
-		aim_y=np.zeros(num_hst)
-		aim_z=np.ones(num_hst)*towerheight
 
 	foc=np.sqrt((XX-aim_x)**2+(YY-aim_y)**2+(hstpos[:,2]-aim_z)**2)
 
