@@ -620,21 +620,16 @@ def multi_aperture_receiver(rec_param, hemisphere='North'):
 		entt+='    geometry: *%s\n' % 'target_g'
 
 	# CREATE a virtual target entity from "target_g" geometry (primary = 0)
-	pts = [ [-rec_w*10., -rec_h*10.], [-rec_w*10., rec_h*10.], [rec_w*10., rec_h*10.], [rec_w*10.,-rec_h*10.] ]
-	slices = 4
+	slices = 16
+	radius=np.sqrt(rec_w**2+rec_h**2)*5.
 	entt+='\n- entity:\n'
 	entt+='    name: virtual_target_e\n'
 	entt+='    primary: 0\n'
-	if hemisphere=='North':
-		entt+='    transform: { translation: %s, rotation: %s }\n' % ([rec_x, rec_y-r, rec_z], [-90.-rec_tilt, 0, 0])
-	else:
-		entt+='    transform: { translation: %s, rotation: %s }\n' % ([rec_x, rec_y+r, rec_z], [90.+rec_tilt, 0, 0])
+	entt+='    transform: { translation: %s}\n' % ([0., 0., rec_z])
 	entt+='    geometry: \n' 
 	entt+='      - material: *%s\n' % 'material_virtual' 
-	entt+='        plane: \n'
-	entt+='          clip: \n'    
-	entt+='          - operation: AND \n'
-	entt+='            vertices: %s\n' % pts
+	entt+='        sphere: \n'
+	entt+='          radius: %s\n' % radius   
 	entt+='          slices: %d\n' % slices  
 
 	rcv=''
