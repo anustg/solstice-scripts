@@ -115,7 +115,7 @@ def process_raw_results(rawfile, savedir,rho_mirror,dni):
 	rec_back_eff_err=0.
 
 	rec_id={}
-	for i in range(num_rec-1):
+	for i in range(num_rec-1): # -1 the virtual target
 		rec_id[i]=get_rc(num_res+2+i,1) # the id number of the receiver
 		rec_area+=get_rc(num_res+2+i,2) # m2  
 	
@@ -141,9 +141,9 @@ def process_raw_results(rawfile, savedir,rho_mirror,dni):
 
 
 	#Virtual target
-	vir_area=get_rc(num_res+3+num_rec-1,2)
-	vir_income=get_rc(num_res+3+num_rec-1,3)
-	vir_income_err=get_rc(num_res+3+num_rec-1,4)
+	vir_area=get_rc(num_res+2+num_rec-1,2)
+	vir_income=get_rc(num_res+2+num_rec-1,3)
+	vir_income_err=get_rc(num_res+2+num_rec-1,4)
 	
 	raw_res=np.array([
 		['name','value', 'error']
@@ -184,8 +184,8 @@ def process_raw_results(rawfile, savedir,rho_mirror,dni):
 	Qshade=ufloat(shadow_loss,shadow_err)
 	Qfield_abs=(Qtotal-Qcos-Qshade)*(1.-float(rho_mirror))
 	Qattn=ufloat(atmospheric_loss, atmospheric_err)
-	Qspil=ufloat(vir_income,vir_income_err)
 	Qabs=ufloat(absorbed, absorbed_err)
+	Qspil=ufloat(vir_income,vir_income_err)-Qabs
 	Qrefl=ufloat(rec_front_income,rec_front_income_err)+ufloat(rec_back_income,rec_back_income_err)-Qabs
 	Qblock=Qtotal-Qcos-Qshade-Qfield_abs-Qspil-Qabs-Qrefl-Qattn
 
@@ -245,7 +245,7 @@ def process_raw_results(rawfile, savedir,rho_mirror,dni):
 			heliostats[i,10]+=hst_abs_atm
 
 		# per heliostat per virtual target
-		l3=2+num_res+num_rec+2*num_hst+i  
+		l3=2+num_res+num_rec+(num_rec)*num_hst+i  
 		per_hst=rows[l3] 
 		hst_in=float(per_hst[2])+float(per_hst[22]) # front+back
 		hst_in_mat=float(per_hst[8])+float(per_hst[28])
@@ -267,9 +267,9 @@ def process_raw_results(rawfile, savedir,rho_mirror,dni):
 		hst_shad=float(hst_shad)
 		hst_abs=(hst_tot-hst_cos-hst_shad)*(1.-rho_mirror)
 
-		hst_atm=float(heliostats[i,16])
-		hst_spil=float(heliostats[i,11])
+		hst_atm=float(heliostats[i,10])
 		hst_rec_abs=float(heliostats[i,8])
+		hst_spil=float(heliostats[i,11])-hst_rec_abs
 		hst_rec_refl=float(heliostats[i,5])-float(heliostats[i,8])
 		hst_block=hst_tot-hst_cos-hst_shad-hst_abs-hst_atm-hst_spil-hst_rec_abs-hst_rec_refl
 
