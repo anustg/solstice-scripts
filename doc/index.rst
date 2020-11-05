@@ -37,6 +37,8 @@ Process the results
 
 .. autofunction:: solsticepy.process_raw_results
 .. autofunction:: solsticepy.get_breakdown
+.. autofunction:: solsticepy.process_raw_results_dish
+
 
 Generate new heliostat field layouts
 ====================================

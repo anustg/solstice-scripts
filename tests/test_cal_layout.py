@@ -23,12 +23,12 @@ class TestLayout(unittest.TestCase):
 		savedir='.'	
 		plot=False
 
-		self.pos_and_aim=radial_stagger(latitude, self.num_hst, width, height, hst_z, towerheight, R1, fb, dsep, field, savedir, plot)
+		self.pos_and_aim, Nzones, Nrows_zone=radial_stagger(latitude, self.num_hst, width, height, hst_z, towerheight, R1, fb, dsep, field, savedir, plot)
 
 	def test_touching(self):
 		num=len(self.pos_and_aim)-2
 		self.assertEqual(num, self.num_hst)
-		os.system('rm *.csv')
+		#os.system('rm *.csv')
 
 
 if __name__ == '__main__':

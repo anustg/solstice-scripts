@@ -27,12 +27,14 @@ class TestDesignCRS(unittest.TestCase):
 			self.newcase=True
 
 			pm=Parameters()
-			pm.Q_in_rcv=565e6
+			pm.Q_in_rcv=56e6
 			pm.n_row_oelt=5
 			pm.n_col_oelt=22
-			pm.H_tower=250.
-			pm.H_rcv=24.
-			pm.W_rcv=24.
+			pm.H_tower=120.
+			pm.H_rcv=12.
+			pm.W_rcv=12.
+			pm.fb=0.5
+			pm.R1=50.
 			pm.dependent_par()
 			pm.saveparam(self.casedir)
 			print(pm.fb)
@@ -76,9 +78,8 @@ class TestDesignCRS(unittest.TestCase):
 			oelt_generated='successful'
 		self.assertEqual(oelt_generated,'successful')
 		self.assertEqual(num_hst, self.n_helios)
-		self.assertTrue(abs(num_hst-9020) < 5)
-		self.assertTrue(abs(eta_max-0.6275) < 0.01)
-		self.assertTrue(abs(self.eff_des-0.6264) < 0.01)
+		self.assertTrue(abs(num_hst-740) < 5)
+		self.assertTrue(abs(self.eff_des-0.757) < 0.01)
 		#os.system('rm -rf %s'%self.casedir)
 
 if __name__ == '__main__':

@@ -90,8 +90,8 @@ def radial_stagger(latitude, num_hst, width, height, hst_z, towerheight, R1, fb,
 
 		nh=np.arange(Nhel)
 		azimuth=np.zeros((int(Nrows), int(Nhel)))
-		azimuth[0::2, :]=delta_az/2.+nh*delta_az-np.pi/2. # the odd rows
-		azimuth[1::2, :]=nh*delta_az-np.pi/2.
+		azimuth[0::2, :]=delta_az/2.+nh*delta_az # the odd rows
+		azimuth[1::2, :]=nh*delta_az
 
 		row=np.arange(Nrows)
 		r=R+row*delta_Rmin
@@ -102,6 +102,7 @@ def radial_stagger(latitude, num_hst, width, height, hst_z, towerheight, R1, fb,
 		X[i]=xx
 		Y[i]=yy
 		num+=len(xx.flatten())
+		print('Zone', i, 'Nrow', Nrows, 'Nhel', Nhel)
 		i+=1
 	Nzones=i
 
@@ -122,6 +123,7 @@ def radial_stagger(latitude, num_hst, width, height, hst_z, towerheight, R1, fb,
 	ROW=np.array([])   # row index among the rows in a zone
 	TTROW=np.array([]) # row index among the total rows
 	NHEL=np.array([])  # No. index among the heliostats in a row
+	AZIMUTH=np.array([])
 
 	for i in range(Nzones):
 		Nrows=int(Nrows_zone[i])
@@ -158,32 +160,42 @@ def radial_stagger(latitude, num_hst, width, height, hst_z, towerheight, R1, fb,
 
 		nh=np.arange(Nhel)
 		azimuth=np.zeros((Nrows, Nhel))
-		azimuth[0::2, :]=delta_az/2.+nh*delta_az-np.pi/2. # the odd rows
-		azimuth[1::2, :]=nh*delta_az-np.pi/2.
+		azimuth[0::2, :]=delta_az/2.+nh*delta_az # the odd rows
+		azimuth[1::2, :]=nh*delta_az
 
 		azimuth=azimuth.flatten()
 		R=R.flatten()
+		nhels, rows=np.meshgrid(nh, row)
+		nhels=nhels.flatten()
+		rows=rows.flatten()
+
 		if field=='polar':
 			if i<2:
-				idx= (azimuth>-np.pi/2.)*(azimuth<np.pi/2.)
+				idx=(azimuth>1.5*np.pi)+(azimuth<0.5*np.pi)
 
 			else:
-				idx=(azimuth>-np.pi/2.+i*np.pi/40.)* (azimuth<np.pi/2.-i*np.pi/40.)
+				idx=(azimuth>(1.5*np.pi+i*np.pi/40.))+(azimuth<(np.pi/2.-i*np.pi/40.))
 
 			xx=R[idx]*np.sin(azimuth[idx])
 			yy=R[idx]*np.cos(azimuth[idx])
+			AZIMUTH=np.append(AZIMUTH, azimuth[idx])
+			rows=rows[idx]
+			ROW=np.append(ROW, rows)
+			NHEL=np.append(NHEL, nhels[idx])
+			zone=np.ones(np.shape(rows))*i
 
 		else:                       
 			xx=R*np.sin(azimuth)
-			yy=R*np.cos(azimuth)       
+			yy=R*np.cos(azimuth)  
+			AZIMUTH=np.append(AZIMUTH, azimuth)
+			ROW=np.append(ROW, rows)
+			NHEL=np.append(NHEL, nhels)
+			zone=np.ones(np.shape(rows))*i	
+     
 		XX=np.append(XX, xx)
 		YY=np.append(YY, yy)
-		
-		nhels, rows=np.meshgrid(nh, row)
-		zone=np.ones(np.shape(rows))*i
 		ZONE=np.append(ZONE, zone)
-		ROW=np.append(ROW, rows)
-		NHEL=np.append(NHEL, nhels)
+
 		if len(TTROW)==0:
 			TTROW=np.append(TTROW, rows)
 		else:			
@@ -196,6 +208,7 @@ def radial_stagger(latitude, num_hst, width, height, hst_z, towerheight, R1, fb,
 	ROW=ROW[:num_hst]
 	NHEL=NHEL[:num_hst]
 	TTROW=TTROW[:num_hst]
+	AZIMUTH=AZIMUTH[:num_hst]*180./np.pi
 
 	sys.stderr.write("\nExpanded field %d\n"%(num_hst,))
 
@@ -266,11 +279,11 @@ def radial_stagger(latitude, num_hst, width, height, hst_z, towerheight, R1, fb,
 
 	foc=np.sqrt((XX-aim_x)**2+(YY-aim_y)**2+(hstpos[:,2]-aim_z)**2)
 
-	pos_and_aiming=np.append(XX, (YY, hstpos[:,2], foc, aim_x, aim_y, aim_z, ZONE, ROW, NHEL, TTROW))
-	title=np.array(['x', 'y', 'z', 'foc', 'aim x', 'aim y', 'aim z', 'Zone', 'Row', 'No.', 'row index',  'm', 'm', 'm', 'm', 'm', 'm', 'm', '-', '-', '-', '-'])
-	pos_and_aiming=pos_and_aiming.reshape(11,int(len(pos_and_aiming)/11))
+	pos_and_aiming=np.append(XX, (YY, hstpos[:,2], foc, aim_x, aim_y, aim_z, AZIMUTH, ZONE, ROW, NHEL, TTROW, np.arange(num_hst)))
+	title=np.array(['x', 'y', 'z', 'foc', 'aim x', 'aim y', 'aim z', 'Azimuth pos','Zone', 'Row', 'No.', 'row index', 'No. index',  'm', 'm', 'm', 'm', 'm', 'm', 'm', 'deg','-', '-', '-', '-', '-'])
+	pos_and_aiming=pos_and_aiming.reshape(13, num_hst)
 	pos_and_aiming=np.append(title, pos_and_aiming.T)
-	pos_and_aiming=pos_and_aiming.reshape(int(len(pos_and_aiming)/11), 11)
+	pos_and_aiming=pos_and_aiming.reshape(num_hst+2, 13)
 
 	np.savetxt('%s/pos_and_aiming.csv'%savedir, pos_and_aiming, fmt='%s', delimiter=',')
 
@@ -287,7 +300,7 @@ def radial_stagger(latitude, num_hst, width, height, hst_z, towerheight, R1, fb,
 		plt.savefig(savedir+'/field_layout.png', bbox_inches='tight')
 		plt.close()
 
-	return pos_and_aiming
+	return pos_and_aiming, Nzones, Nrows_zone
 
 def cal_cosw_coset(latitude, towerheight, xx, yy, zz):
 	'''

@@ -64,7 +64,7 @@ class Master:
 
 		return os.path.join(folder,fn)
 
-	def run(self, azimuth, elevation, num_rays, rho_mirror, dni, folder, gen_vtk=True, printresult=True):
+	def run(self, azimuth, elevation, num_rays, rho_mirror, dni, folder, gen_vtk=True, printresult=True, system='crs'):
 
 		"""Run an optical simulation (one sun position) using Solstice 
 
@@ -74,7 +74,8 @@ class Master:
 		* `rho_mirror` (float): reflectivity of mirrors, required for results post-processing 
 		* `dni` (float): the direct normal irradiance (W/m2), required to obtain performance of individual heliostat
 		* `gen_vtk` (boolean): if True, generate .vtk files for rendering in Paraview
-			
+		* `system` (str): 'crs' for a central receiver system, or 'dish' for a parabolic dish system				
+
 		Returns: no return value (results files are created and written)
 		"""
 
@@ -110,13 +111,20 @@ class Master:
 			finally:
 				os.chdir(dirn)
 
-		eta, performance_hst=process_raw_results(self.in_case(folder, 'simul'), folder,rho_mirror,dni)
+		if system=='dish':
+			eta=process_raw_results_dish(self.in_case(folder, 'simul'), folder, rho_mirror, dni)
+			if printresult:
+				sys.stderr.write('\n' + yellow("Total efficiency: {:f}\n".format(eta)))
+				sys.stderr.write(green("Completed successfully.\n"))
+			return eta
 
-		if printresult:
-			sys.stderr.write('\n' + yellow("Total efficiency: {:f}\n".format(eta)))
-			sys.stderr.write(green("Completed successfully.\n"))
+		else:
+			eta, performance_hst=process_raw_results(self.in_case(folder, 'simul'), folder,rho_mirror,dni)
 
-		return eta, performance_hst
+			if printresult:
+				sys.stderr.write('\n' + yellow("Total efficiency: {:f}\n".format(eta)))
+				sys.stderr.write(green("Completed successfully.\n"))
+			return eta, performance_hst
 
 	def run_annual(self, nd, nh, latitude, num_rays, num_hst,rho_mirror,dni,gen_vtk=False):
 
@@ -174,7 +182,7 @@ class Master:
 				    efficiency_total=ufloat(0,0)
 				    performance_hst=np.zeros((num_hst, 9))  
 				else:
-					efficiency_total, performance_hst=self.run(azimuth, elevation, num_rays, rho_mirror, dni, folder=onesunfolder, gen_vtk=False, printresult=False)
+					efficiency_total, performance_hst=self.run(azimuth, elevation, num_rays, rho_mirror, dni, folder=onesunfolder, gen_vtk=gen_vtk, printresult=False)
 
 					sys.stderr.write(yellow("Total efficiency: {:f}\n".format(efficiency_total)))
 
