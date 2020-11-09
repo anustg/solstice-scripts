@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 from .cal_sun import *
 from .gen_vtk import gen_vtk
 
-def radial_stagger(latitude, num_hst, width, height, hst_z, towerheight, R1, fb, dsep=0., field='polar', num_aperture=0., ang_rang=0., rec_w=0., savedir='.', plot=False):
+def radial_stagger(latitude, num_hst, width, height, hst_z, towerheight, R1, fb, dsep=0., field='polar', num_aperture=0., alpha=0., rec_w=0., savedir='.', plot=False, plt_aiming=None):
 	'''Generate a radial-stagger heliostat field, ref. Collado and Guallar, 2012, Campo: Generation of regular heliostat field.
 
 	``Arguments``
@@ -21,7 +21,7 @@ def radial_stagger(latitude, num_hst, width, height, hst_z, towerheight, R1, fb,
 	  * dsep (float)    : separation distance (m)
 	  * field (str)     : 'polar-half' or 'surround-half' or 'polar' or 'surround' field or 'multi-aperture', the 'half' option is for simulation a symmetric field
 	  * num_aperture(int): number of apertures, for a multi-aperture configuration
-	  * ang_rang (float): the angular range (deg) that covers by the center of the most left and right apertures (for a multi-aperture configuration)	 
+	  * alpha (float): the angular space between two adjacent apertures (except the aperture faces to the South) (deg)	 
 	  * savedir (str)   : directory of saving the pos_and_aiming.csv
 	  * plot (bool)     : True - plot the layout by Matplotlib
 
@@ -201,6 +201,8 @@ def radial_stagger(latitude, num_hst, width, height, hst_z, towerheight, R1, fb,
 	num_hst=int(num_hst)
 
 	if field=='multi-aperture':
+		assert(alpha<=360./num_aperture), "\n\nThe angular space is too big to arange %s apertures in the circle\n\n\n"%num_aperture
+
 		nt=len(XX)
 		hstpos=np.zeros(nt*3).reshape(nt, 3)
 		hstpos[:, 0]=XX
@@ -209,14 +211,21 @@ def radial_stagger(latitude, num_hst, width, height, hst_z, towerheight, R1, fb,
 
 		ANGLE=np.array([])
 		C=np.array([])
-		ang_rang=ang_rang*np.pi/180.
-		alpha=ang_rang/float(num_aperture-1)
+		alpha*=np.pi/180.
 		W=rec_w*1.2 # 20% space
 		r=W/2./np.tan(alpha/2.)
 		for i in range(int(num_aperture)):
-			ang_pos=-ang_rang/2.+float(i)*alpha
-			xc=r*np.sin(ang_pos)
-			yc=r*np.cos(ang_pos)
+			if num_aperture%2==1:
+				ang_pos=np.pi/2.-((num_aperture-1.)/2.-i)*alpha
+			else:
+				if i<num_aperture-1:
+					ang_pos=np.pi/2.-(num_aperture/2.-1.-i)*alpha
+				else:
+					ang_pos=-np.pi/2.
+			print('aperture', i, 'angle', ang_pos*90./np.pi)
+
+			xc=r*np.cos(ang_pos)
+			yc=r*np.sin(ang_pos)
 			zc=towerheight
 			c=np.r_[xc, yc, towerheight]
 
@@ -251,17 +260,11 @@ def radial_stagger(latitude, num_hst, width, height, hst_z, towerheight, R1, fb,
 		TTROW=TTROW[idx_hst]
 		AZIMUTH=AZIMUTH[idx_hst]
 
-
 		aiming=C[idx_aim]
 		aim_x=aiming[:,0]
 		aim_y=aiming[:,1]		
 		aim_z=np.ones(num_hst)*towerheight
 
-		#plt.scatter(XX, YY, c=aim_x)
-		#plt.colorbar()
-		#plt.show()
-		#plt.grid()
-		#plt.close()
 
 	else:
 		aim_x=np.zeros(num_hst)
@@ -311,6 +314,14 @@ def radial_stagger(latitude, num_hst, width, height, hst_z, towerheight, R1, fb,
 		plt.xlabel('x (m)', fontsize=fts)
 		plt.ylabel('y (m)', fontsize=fts)
 		plt.savefig(savedir+'/field_layout.png', bbox_inches='tight')
+		plt.close()
+
+	if plt_aiming!=None:
+		plt.figure(dpi=100.,figsize=(12,9))
+		plt.scatter(XX, YY, c=aim_x)
+		#plt.colorbar()
+		#plt.grid()
+		plt.savefig(savedir+'/aiming_%s.png'%plt_aiming, bbox_inches='tight')
 		plt.close()
 
 	return pos_and_aiming, Nzones, Nrows_zone

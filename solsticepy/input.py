@@ -151,8 +151,9 @@ class Parameters:
 		if self.method==1:
 			self.n_helios=self.Q_in_rcv/self.W_helio/self.H_helio/self.dni_des/eta_field
 			  
-			if self.field_type=='polar':
+			if self.field_type!='surround':
 				self.n_helios*=2.  
+
 
 	def saveparam(self, savedir):
 		if not os.path.exists(savedir):

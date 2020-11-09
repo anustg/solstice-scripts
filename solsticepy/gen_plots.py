@@ -45,20 +45,34 @@ class Case:
 		plt.show()
 		plt.close()
 
-	def plot_designed_layout(self, perf=True):
+	def plot_designed_layout(self, perf=True, vmin=None, vmax=None, markersize=1, savefig=None, title=None, xlabel=None, ylabel=None):
 		'''
 		casedir: str, the case directory
 		'''
 		x,y,annual=self.layout()
+		print(np.max(annual), np.min(annual))
 
 		if perf:
 			# the design
-			plt.scatter(x, y,c=annual)
+			if vmin==None:
+				plt.scatter(x, y, c=annual, s=markersize)
+			else:
+				plt.scatter(x, y, c=annual, s=markersize, vmin=vmin, vmax=vmax)
 
 		else:
 			plt.plot(x, y, '.')
+		#plt.colorbar()
+		if title!=None:
+			plt.title(title)
+		if xlabel!=None:
+			plt.xlabel(xlabel)
+		if ylabel!=None:
+			plt.ylabel(ylabel)
+		if savefig==None:
+			plt.show()
+		else:
+			plt.savefig(savefig, bbox_inches='tight')
 
-		plt.show()
 		plt.close()
 
 if __name__=='__main__':
