@@ -55,7 +55,7 @@ def output_motab(table,savedir=None, title=None):
 	f.close()
 
 
-def output_matadata_motab(table, field_type, aiming, n_helios, A_helio, eff_design, H_rcv, W_rcv, H_tower, Q_in_rcv, A_land, savedir=None, details_en=None):
+def output_matadata_motab(table, field_type, aiming, n_helios, A_helio, eff_design, eff_annual, H_rcv, W_rcv, H_tower, Q_in_rcv, A_land, savedir=None, details_en=None):
 	"""Output the .motab file to work with the SolarTherm program
 
 	``Arguments``
@@ -65,6 +65,7 @@ def output_matadata_motab(table, field_type, aiming, n_helios, A_helio, eff_desi
 		* n_helios (int): total number of heliostats
 		* A_helio (float): area of each heliostat (m2)
 		* eff_design (float): the optical efficiency at design point
+		* eff_annual (float): the annual optical efficiency (dni weighted)
 		* H_rcv (float): height of the heliostat (m)
 		* W_rcv (float): width of the heliostat (m)
 		* H_tower (float), tower height (m)
@@ -79,9 +80,9 @@ def output_matadata_motab(table, field_type, aiming, n_helios, A_helio, eff_desi
 	f=open(savedir, 'w')
 	f.write('#1\n')
 	f.write('#Comments: Field type: %s, Aiming Strategy: %s, Date:%s\n'%(field_type, aiming, datetime.now()))
-	f.write('#METALABELS,n_helios,A_helio,Eff_design,H_rcv,W_rcv,H_tower, Q_in_rcv, A_land\n')
-	f.write('##METAUNITS,real,m2,real,m,m,m,W,m2\n')
-	f.write('#METADATA,%s,%s,%s,%s,%s,%s,%s,%s\n'%(n_helios,A_helio,eff_design,H_rcv,W_rcv,H_tower,Q_in_rcv,A_land))
+	f.write('#METALABELS,n_helios,A_helio,Eff_design,Eff_annual,H_rcv,W_rcv,H_tower, Q_in_rcv, A_land\n')
+	f.write('##METAUNITS,real,m2,real,real,m,m,m,W,m2\n')
+	f.write('#METADATA,%s,%s,%s,%s,%s,%s,%s,%s,%s\n'%(n_helios,A_helio,eff_design,eff_annual,H_rcv,W_rcv,H_tower,Q_in_rcv,A_land))
 
 	# size of the lookup table  
 	m=np.shape(table)[0]-2
@@ -131,6 +132,7 @@ def read_motab(filename):
 	n_helios=float(res[1])
 	A_helio=float(res[2])
 	eff_des=float(res[3])
+	eff_annual=float(res[4])
 	Q_in_rcv=float(res[-2])
 	A_land=float(res[-1])
 
@@ -149,7 +151,7 @@ def read_motab(filename):
 
 	oelt=oelt.reshape(len(declination), len(solar_hour))
 
-	return n_helios, A_helio, eff_des, Q_in_rcv, A_land, solar_hour, declination, oelt
+	return n_helios, A_helio, eff_des, eff_annual, Q_in_rcv, A_land, solar_hour, declination, oelt
 	
 
 

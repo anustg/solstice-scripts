@@ -38,7 +38,7 @@ class CRS:
 		self.sun=SunPosition()
 		self.master=Master(casedir)
 
-	def receiversystem(self, receiver, rec_w=0., rec_h=0., rec_x=0., rec_y=0., rec_z=100., rec_tilt=0., rec_grid_w=10, rec_grid_h=10, rec_abs=1., num_aperture=1, ang_rang=0.):
+	def receiversystem(self, receiver, rec_w=0., rec_h=0., rec_x=0., rec_y=0., rec_z=100., rec_tilt=0., rec_grid_w=10, rec_grid_h=10, rec_abs=1., num_aperture=1, alpha=0.):
 
 		'''
 		Arguements:
@@ -53,13 +53,13 @@ class CRS:
 		    (9) rec_grid_h  :   int, number of elements in the vertical(z) direction
 		    (10) rec_abs    : float, receiver surface absorptivity, e.g. 0.9
 		    (11) num_aperture :   int, number of apertures if it is a multi-aperture receiver
-		    (12) ang_rang   : float, the angular range (deg) that covers by the center of the most left and right apertures, it the receiver is a multi-aperture receiver
+		    (12) alpha   : float, the angular space between two adjacent apertures (except the aperture faces to the South) (deg)	 
 		'''
 		self.receiver=receiver
 		self.rec_abs=rec_abs
 		self.rec_w=rec_w
 		self.num_aperture=num_aperture
-		self.ang_rang=ang_rang
+		self.alpha=alpha
 
 		if receiver[-3:]=='stl':
 			self.rec_param=np.r_[rec_w, rec_h, receiver, rec_x, rec_y, rec_z, rec_tilt]
@@ -73,8 +73,8 @@ class CRS:
 			# rec_x, rec_y, rec_z is the location of the central point of the multi-aperture receiver
 			# rec_tilt is the tilt angle of each aperture
 			# num_aperture is the number of apertures
-			# ang_rang is the angular range (deg) that covers by the center of the most left and right apertures
-			self.rec_param=np.r_[rec_w, rec_h, rec_grid_w, rec_grid_h, rec_x, rec_y, rec_z, rec_tilt, num_aperture, ang_rang]  
+			# alpha is the angular space between two adjacent apertures (except the aperture faces to the South) (deg)	 
+			self.rec_param=np.r_[rec_w, rec_h, rec_grid_w, rec_grid_h, rec_x, rec_y, rec_z, rec_tilt, num_aperture, alpha]  
 			self.rec_w=rec_w
 
 
@@ -115,7 +115,7 @@ class CRS:
 			if not os.path.exists(savefolder):
 				os.makedirs(savefolder)
 
-			pos_and_aiming, self.Nzones, self.Nrows=radial_stagger(latitude=self.latitude, num_hst=num_hst, width=hst_w, height=hst_h, hst_z=hst_z, towerheight=tower_h, R1=R1, fb=fb, dsep=0., field=field, num_aperture=self.num_aperture, ang_rang=self.ang_rang, rec_w=self.rec_w, savedir=savefolder, plot=False)        
+			pos_and_aiming, self.Nzones, self.Nrows=radial_stagger(latitude=self.latitude, num_hst=num_hst, width=hst_w, height=hst_h, hst_z=hst_z, towerheight=tower_h, R1=R1, fb=fb, dsep=0., field=field, num_aperture=self.num_aperture, alpha=self.alpha, rec_w=self.rec_w, savedir=savefolder, plot=False)        
 			  
 			layout=pos_and_aiming[2:, :]
 
@@ -169,7 +169,7 @@ class CRS:
 		'''  
 		print('')
 		print('Start field design')	
-		dni_weight=self.dni_TMY(weafile, nd, nh)
+		dni_weight, dni_avg=self.dni_TMY(weafile, nd, nh)
 
 		AZI, ZENITH,table,case_list=self.sun.annual_angles(self.latitude, casefolder=self.casedir, nd=nd, nh=nh)
 		case_list=case_list[1:]
@@ -178,80 +178,72 @@ class CRS:
 		oelt=table
 		run=np.r_[0]
 		nhst=len(self.hst_pos) 
-		ANNUAL=np.zeros(nhst)    
+		ANNUAL=np.zeros(nhst) 
+		annual_solar=0.   
 		hst_annual={}
 
-		for i in range(len(case_list)):    
-			c=int(case_list[i,0].astype(float))
-			if c not in run:
-				azimuth=SOLSTICE_AZI[c-1]
-				elevation= SOLSTICE_ELE[c-1]
-
-				if np.sin(elevation*np.pi/180.)>=1.e-5:
-				    dni=1618.*np.exp(-0.606/(np.sin(elevation*np.pi/180.)**0.491))
+		for a in range(len(table[3:])):
+			for b in range(len(table[0,3:])):
+				val=re.findall(r'\d+', table[a+3,b+3])
+				if val==[]:
+					table[a+3,b+3]=0
 				else:
-				    dni=0.
+					c=int(val[0])
 
-				sys.stderr.write("\n"+green('Sun position: %s \n'%c))
-				print('azimuth: %.2f'% azimuth, ', elevation: %.2f'%elevation)
+					if c not in run:
+						# the morning positions
 
-				onesunfolder=os.path.join(self.casedir,'sunpos_%s'%(c))
+						azimuth=SOLSTICE_AZI[c-1]
+						elevation= SOLSTICE_ELE[c-1]
+						dni=dni_avg[a,b]
 
-				# run solstice
-				if elevation<1.:
-				    efficiency_total=0
-				    performance_hst=np.zeros((nhst, 9))  
-				    efficiency_hst=np.zeros(nhst)
-				else:
-					efficiency_total, performance_hst=self.master.run(azimuth, elevation, num_rays, self.hst_rho, dni, folder=onesunfolder, gen_vtk=gen_vtk, printresult=False)
+						sys.stderr.write("\n"+green('Sun position: %s \n'%c))
+						print('azimuth: %.2f'% azimuth, ', elevation: %.2f'%elevation)
 
-					efficiency_hst=performance_hst[:,-1]/performance_hst[:,0]
+						onesunfolder=os.path.join(self.casedir,'sunpos_%s'%(c))
 
+						# run solstice
+						if elevation<1.:
+							efficiency_total=0
+							performance_hst=np.zeros((nhst, 9))  
+							efficiency_hst=np.zeros(nhst)
+						else:
+							efficiency_total, performance_hst=self.master.run(azimuth, elevation, num_rays, self.hst_rho, dni, folder=onesunfolder, gen_vtk=gen_vtk, printresult=False)
+							efficiency_hst=performance_hst[:,-1]/performance_hst[:,0]
 
-				hst_annual[c]=performance_hst
-				sys.stderr.write(yellow("Total efficiency: {:f}\n".format(efficiency_total)))
+						hst_annual[c]=performance_hst
+						sys.stderr.write(yellow("Total efficiency: {:f}\n".format(efficiency_total)))
 
-			cc=0
-			for a in range(len(table[3:])):
-				for b in range(len(table[0,3:])):
-					val=re.findall(r'\d+', table[a+3,b+3])
-					if val==[]:
-						table[a+3,b+3]=0
+						ANNUAL+=dni_weight[a,b]*efficiency_hst
+						annual_solar+=dni_weight[a,b]
+						run=np.append(run,c) 
 					else:
-						if c==float(val[0]):
-							#table[a+3,b+3]=efficiency_total # this line cause wired problem
-							if cc==0: 
-								# avoid adding the symetrical point 
-								# i.e. morning positions
-								ANNUAL+=dni_weight[a,b]*efficiency_hst
-								cc+=1 
-							else:
-								# the symetrical points (i.e. afternoon)
-								eff_symetrical=np.array([])
-								for e in range(self.Nzones):
-									idx_z=(self.hst_zone==e)
-									eff_zone=efficiency_hst[idx_z]
-									row_zone=self.hst_row[idx_z]
-									#n_hst_zone=np.sum(idx_z)
-									nr=int(self.Nrows[e])
-									for r in range(nr):
-										idx_r=(row_zone==r)
-										eff_row=eff_zone[idx_r]
-										if r%2==0:
-											eff_row=eff_row[::-1]
-										else:
-											eff_row[1:]=eff_row[1:][::-1]
-											
-										eff_symetrical=np.append(eff_symetrical, eff_row)
-								#print(np.shape(eff_symetrical))
-								#check=np.append(self.hst_zone, (self.hst_row, self.hst_num_idx, efficiency_hst, eff_symetrical))
-								#print(np.shape(check))
-								#check=check.reshape(5,int(len(check)/5))
-								#np.savetxt('./check.csv', check.T, fmt='%.5f', delimiter=',') 
-								ANNUAL+=dni_weight[a,b]*eff_symetrical									
-
-
-			run=np.append(run,c)               
+						# the symetrical points (i.e. afternoon)
+						eff_symetrical=np.array([])
+						for e in range(self.Nzones):
+							idx_z=(self.hst_zone==e)
+							eff_zone=efficiency_hst[idx_z]
+							row_zone=self.hst_row[idx_z]
+							#n_hst_zone=np.sum(idx_z)
+							nr=int(self.Nrows[e])
+							for r in range(nr):
+								idx_r=(row_zone==r)
+								eff_row=eff_zone[idx_r]
+								if r%2==0:
+									eff_row=eff_row[::-1]
+								else:
+									eff_row[1:]=eff_row[1:][::-1]
+									
+								eff_symetrical=np.append(eff_symetrical, eff_row)
+						#print(np.shape(eff_symetrical))
+						#check=np.append(self.hst_zone, (self.hst_row, self.hst_num_idx, efficiency_hst, eff_symetrical))
+						#print(np.shape(check))
+						#check=check.reshape(5,int(len(check)/5))
+						#np.savetxt('./check.csv', check.T, fmt='%.5f', delimiter=',') 
+						ANNUAL+=dni_weight[a,b]*eff_symetrical	
+						annual_solar+=dni_weight[a,b]	
+					
+		ANNUAL/=annual_solar      
 		np.savetxt(self.casedir+'/annual_hst.csv',ANNUAL, fmt='%.2f', delimiter=',')
 		
 		designfolder=self.casedir+'/des_point'
@@ -302,7 +294,6 @@ class CRS:
 
 			self.Q_in_rcv=power
  
-
 		select_hst=select_hst.astype(int)
 
 		self.hst_pos= self.hst_pos[select_hst,:]
@@ -322,7 +313,6 @@ class CRS:
 		A_land=(Xmax-Xmin)*(Ymax-Ymin)
 		print('land area', A_land)
 
-	
 		title=np.array([['x', 'y', 'z', 'foc', 'aim x', 'aim y', 'aim z'], ['m', 'm', 'm', 'm', 'm', 'm', 'm']])
 		design_pos_and_aim=np.hstack((self.hst_pos, self.hst_foc.reshape(self.n_helios, 1)))
 		design_pos_and_aim=np.hstack((design_pos_and_aim, self.hst_aims))
@@ -334,10 +324,10 @@ class CRS:
 		np.savetxt(self.casedir+'/pos_and_aiming.csv', design_pos_and_aim, fmt='%s', delimiter=',')
 		np.savetxt(self.casedir+'/selected_hst.csv', select_hst, fmt='%.0f', delimiter=',')
 
-
 		# lookup table
 		run=np.r_[0]
-	
+		annual_solar=0.  
+		annual_field=0.
 		for i in range(len(case_list)):    
 			c=int(case_list[i,0].astype(float))
 			if c not in run:                
@@ -351,13 +341,18 @@ class CRS:
 
 			for a in range(len(oelt[3:])):
 				for b in range(len(oelt[0,3:])):
+
 					val=re.findall(r'\d+',oelt[a+3,b+3])
 					if val==[]:
 						oelt[a+3,b+3]=0
 					else:
 						if c==float(val[0]):
 							oelt[a+3,b+3]=eff
-
+							dni=dni_weight[a,b]
+							annual_solar+=dni
+							annual_field+=dni*eff
+							
+		self.eff_annual=annual_field/annual_solar
 		np.savetxt(self.casedir+'/lookup_table.csv', oelt, fmt='%s', delimiter=',')
 
 		return oelt, A_land
@@ -426,16 +421,23 @@ class CRS:
 		wea_hra=((seconds/3600.)%24-12.)*15. #deg
 		wea_dni=dni.astype(float)
 
-		hra_lim=180.*(float(nh)/float(nh-1))
-		dec_lim=23.45*(float(nd)/float(nd-1))
+		dh=360./float(nh)
+		dd=23.45*2./float(nd)
+
+		hra_lim=180.+dh/2.
+		dec_lim=23.45+dd/2.
+
 		hra_bin=np.linspace(-hra_lim, hra_lim, nh+1) 
 		dec_bin=np.linspace(-dec_lim, dec_lim, nd+1)
 		bins=np.array([hra_bin, dec_bin])
 
 
 		dni_weight, xbins, ybins=np.histogram2d(wea_hra, wea_dec, bins, weights=wea_dni)
-
-		return dni_weight.T
+		dni_n, xbins, ybins=np.histogram2d(wea_hra, wea_dec, bins)
+	
+		dni_avg=np.divide(dni_weight, dni_n, out=np.zeros_like(dni_weight), where=dni_n!=0) 
+	
+		return dni_weight.T, dni_avg.T
 
 	def get_attenuation_factor(self):
 

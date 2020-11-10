@@ -42,10 +42,11 @@ class Case:
 		else:
 			plt.plot(self.pos_and_aim[:,0], self.pos_and_aim[:,1], '.')
 
+		plt.colorbar()
 		plt.show()
 		plt.close()
 
-	def plot_designed_layout(self, perf=True, vmin=None, vmax=None, markersize=1, savefig=None, title=None, xlabel=None, ylabel=None):
+	def plot_designed_layout(self, perf=True, vmin=None, vmax=None, markersize=5, savefig=None, title=None, xlabel=None, ylabel=None):
 		'''
 		casedir: str, the case directory
 		'''
@@ -61,7 +62,7 @@ class Case:
 
 		else:
 			plt.plot(x, y, '.')
-		#plt.colorbar()
+		plt.colorbar()
 		if title!=None:
 			plt.title(title)
 		if xlabel!=None:
@@ -75,11 +76,25 @@ class Case:
 
 		plt.close()
 
+	def plot_aiming(self, savefig=None):
+		X=self.pos_and_aim[:,0]
+		Y=self.pos_and_aim[:,1]
+		aim_x=self.pos_and_aim[:,4]
+		plt.scatter(X, Y, c=aim_x)	
+		if savefig==None:
+			plt.show()
+		else:
+			plt.savefig(savefig, bbox_inches='tight')
+		plt.close()	
+
+
 if __name__=='__main__':
 	casedir='../tests/test-multi-aperture'
+	#casedir='/media/yewang/Data/data-gen3p3-particle/study-multi-aperture/L15_R40_fb0.4'
 	Case=Case(casedir)
 	Case.plot_initial_layout()
 	Case.plot_designed_layout()
+	Case.plot_aiming()
 
 
 	
