@@ -93,7 +93,7 @@ class Parameters:
 		'''
 			(1) rcv_type  :   str, 'flat', 'cylinder', 'particle', 'multi-aperture' or 'stl', type of the receiver
 			(2) num_aperture: int, number of apertures if it is a multi-aperture receiver
-			(3) ang_rang  : float, the angular range (deg) that covers by the center of the most left and right apertures, it the receiver is a multi-aperture receiver
+			(3) alpha  : float, the angular space between two adjacent apertures (except the aperture faces to the South) (deg)	 
 			(4) H_rcv     : float, height of a flat receiver or radius of a cylindrical receiver (m) 
 			(5) W_rcv     : float, width of the receiver (m)
 			(6) tilt_rcv  : float, tilt angle of the receiver (deg), 0 is where the receiver face to the horizontal
@@ -116,7 +116,7 @@ class Parameters:
 		self.X_rcv=0. # receiver location
 		self.Y_rcv=0.
 		self.num_aperture=0
-		self.ang_rang=0.
+		self.alpha=0.
 
 
 	def simulation(self):
@@ -178,7 +178,7 @@ class Parameters:
 				['dsep', self.dsep, 'm'],    
 				['rcv_type', self.rcv_type, '-'],  
 				['num_aperture', self.num_aperture, '-'],
-				['aperture angular range',self.ang_rang , 'deg'],
+				['aperture angular space',self.alpha , 'deg'],
 				['H_rcv', self.H_rcv, 'm'],
 				['W_rcv', self.W_rcv, 'm'],   
 				['tilt_rcv', self.tilt_rcv, 'deg'],  

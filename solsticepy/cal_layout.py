@@ -319,6 +319,7 @@ def radial_stagger(latitude, num_hst, width, height, hst_z, towerheight, R1, fb,
 	if plt_aiming!=None:
 		plt.figure(dpi=100.,figsize=(12,9))
 		plt.scatter(XX, YY, c=aim_x)
+		plt.scatter(C[:,0], C[:,1], s=1)
 		#plt.colorbar()
 		#plt.grid()
 		plt.savefig(savedir+'/aiming_%s.png'%plt_aiming, bbox_inches='tight')
