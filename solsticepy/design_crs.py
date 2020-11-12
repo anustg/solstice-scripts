@@ -182,66 +182,82 @@ class CRS:
 		annual_solar=0.   
 		hst_annual={}
 
-		for a in range(len(table[3:])):
-			for b in range(len(table[0,3:])):
-				val=re.findall(r'\d+', table[a+3,b+3])
-				if val==[]:
-					table[a+3,b+3]=0
+		for i in range(len(case_list)):    
+			c=int(case_list[i,0].astype(float))
+			if c not in run:
+				# the morning positions
+				azimuth=SOLSTICE_AZI[c-1]
+				elevation= SOLSTICE_ELE[c-1]
+
+				t=0
+				for a in range(len(table[3:])):
+					for b in range(len(table[0,3:])):
+						val=re.findall(r'\d+', table[a+3,b+3])
+						if str(c) in val:
+							if t==0:
+								dni=dni_avg[a,b]
+								t=1
+
+				sys.stderr.write("\n"+green('Sun position: %s \n'%c))
+				print('azimuth: %.2f'% azimuth, ', elevation: %.2f'%elevation)
+
+				onesunfolder=os.path.join(self.casedir,'sunpos_%s'%(c))
+
+				# run solstice
+				if elevation<1.:
+					efficiency_total=0
+					performance_hst=np.zeros((nhst, 9))  
+					efficiency_hst=np.zeros(nhst)
 				else:
-					c=int(val[0])
+					efficiency_total, performance_hst=self.master.run(azimuth, elevation, num_rays, self.hst_rho, dni, folder=onesunfolder, gen_vtk=gen_vtk, printresult=False)
+					'''
+					res=np.loadtxt(onesunfolder+'/result-formatted.csv', dtype=str, delimiter=',')
+					res_hst=np.loadtxt(onesunfolder+'/heliostats-raw.csv', dtype=str, delimiter=',')
+					efficiency_total=res[-2,1].astype(float)/res[1,1].astype(float)
+					performance_hst=res_hst[1:,-9:].astype(float)
+					'''
+					efficiency_hst=performance_hst[:,-1]/performance_hst[:,0]
 
-					if c not in run:
-						# the morning positions
+				hst_annual[c]=performance_hst
+				sys.stderr.write(yellow("Total efficiency: {:f}\n".format(efficiency_total)))
+				run=np.append(run,c)  
 
-						azimuth=SOLSTICE_AZI[c-1]
-						elevation= SOLSTICE_ELE[c-1]
-						dni=dni_avg[a,b]
-
-						sys.stderr.write("\n"+green('Sun position: %s \n'%c))
-						print('azimuth: %.2f'% azimuth, ', elevation: %.2f'%elevation)
-
-						onesunfolder=os.path.join(self.casedir,'sunpos_%s'%(c))
-
-						# run solstice
-						if elevation<1.:
-							efficiency_total=0
-							performance_hst=np.zeros((nhst, 9))  
-							efficiency_hst=np.zeros(nhst)
+			cc=0
+			for a in range(len(table[3:])):
+				for b in range(len(table[0,3:])):
+					val=re.findall(r'\d+', table[a+3,b+3])
+					if str(c) in val:
+						if cc==0: 
+							# i.e. morning positions
+							ANNUAL+=dni_weight[a,b]*efficiency_hst
+							annual_solar+=dni_weight[a,b]
+							cc+=1 
 						else:
-							efficiency_total, performance_hst=self.master.run(azimuth, elevation, num_rays, self.hst_rho, dni, folder=onesunfolder, gen_vtk=gen_vtk, printresult=False)
-							efficiency_hst=performance_hst[:,-1]/performance_hst[:,0]
+							# the symetrical points (i.e. afternoon)
+							eff_symetrical=np.array([])
+							for e in range(self.Nzones):
+								idx_z=(self.hst_zone==e)
+								eff_zone=efficiency_hst[idx_z]
+								row_zone=self.hst_row[idx_z]
 
-						hst_annual[c]=performance_hst
-						sys.stderr.write(yellow("Total efficiency: {:f}\n".format(efficiency_total)))
+								nr=int(self.Nrows[e])
+								for r in range(nr):
+									idx_r=(row_zone==r)
+									eff_row=eff_zone[idx_r]
+									if r%2==0:
+										eff_row=eff_row[::-1]
+									else:
+										eff_row[1:]=eff_row[1:][::-1]
+										
+									eff_symetrical=np.append(eff_symetrical, eff_row)
 
-						ANNUAL+=dni_weight[a,b]*efficiency_hst
-						annual_solar+=dni_weight[a,b]
-						run=np.append(run,c) 
-					else:
-						# the symetrical points (i.e. afternoon)
-						eff_symetrical=np.array([])
-						for e in range(self.Nzones):
-							idx_z=(self.hst_zone==e)
-							eff_zone=efficiency_hst[idx_z]
-							row_zone=self.hst_row[idx_z]
-							#n_hst_zone=np.sum(idx_z)
-							nr=int(self.Nrows[e])
-							for r in range(nr):
-								idx_r=(row_zone==r)
-								eff_row=eff_zone[idx_r]
-								if r%2==0:
-									eff_row=eff_row[::-1]
-								else:
-									eff_row[1:]=eff_row[1:][::-1]
-									
-								eff_symetrical=np.append(eff_symetrical, eff_row)
-						#print(np.shape(eff_symetrical))
-						#check=np.append(self.hst_zone, (self.hst_row, self.hst_num_idx, efficiency_hst, eff_symetrical))
-						#print(np.shape(check))
-						#check=check.reshape(5,int(len(check)/5))
-						#np.savetxt('./check.csv', check.T, fmt='%.5f', delimiter=',') 
-						ANNUAL+=dni_weight[a,b]*eff_symetrical	
-						annual_solar+=dni_weight[a,b]	
+							#print(np.shape(eff_symetrical))
+							#check=np.append(self.hst_zone, (self.hst_row, self.hst_num_idx, efficiency_hst, eff_symetrical))
+							#print(np.shape(check))
+							#check=check.reshape(5,int(len(check)/5))
+							#np.savetxt('./check.csv', check.T, fmt='%.5f', delimiter=',') 
+							ANNUAL+=dni_weight[a,b]*eff_symetrical	
+							annual_solar+=dni_weight[a,b]	
 					
 		ANNUAL/=annual_solar      
 		np.savetxt(self.casedir+'/annual_hst.csv',ANNUAL, fmt='%.2f', delimiter=',')
@@ -256,30 +272,43 @@ class CRS:
 
 		sys.stderr.write("\n"+green('Design Point: \n'))		
 		efficiency_total, performance_hst_des=self.master.run(azi_des, ele_des, num_rays, self.hst_rho, dni_des, folder=designfolder, gen_vtk=gen_vtk, printresult=False)
+		'''
+		res=np.loadtxt(designfolder+'/result-formatted.csv', dtype=str, delimiter=',')
+		res_hst=np.loadtxt(designfolder+'/heliostats-raw.csv', dtype=str, delimiter=',')
+		efficiency_total=res[-2,1].astype(float)/res[1,1].astype(float)
+		performance_hst_des=res_hst[1:,-9:].astype(float)
+		'''
 
 		Qin=performance_hst_des[:,-1]
 		Qsolar=performance_hst_des[0,0]
 
-		ID=ANNUAL.argsort()
-		ID=ID[::-1]
-		#ID=np.lexsort((-ANNUAL, self.hst_foc))
+		#ID=ANNUAL.argsort()
+		#ID=ID[::-1]
+		ann_rank=ANNUAL/np.max(ANNUAL)
+		ann_rank=np.around(ann_rank, decimals=1)
+		#ID=ann_rank.argsort()
+		#ID=ID[::-1]
 
-		select_hst=np.array([])
-		rmax=np.max(self.hst_row_idx)
+		ID=np.lexsort((self.hst_foc,-ann_rank))
+		#ID=np.lexsort((-ann_rank, self.hst_foc))
+
 		if method==1:
 			print('')			
 			print('Method 1')
-			power=0.
 			self.Q_in_rcv=Q_in_des
+
+			# initial selection
+			power=0.
+			select_hst=np.array([])
 			for i in range(len(ID)):
 				if power<Q_in_des:
 					idx=ID[i]
-					row=self.hst_row_idx[idx]
-					if rmax-row>0.1*rmax:
-						select_hst=np.append(select_hst, idx)
-						power+=Qin[idx]
+					select_hst=np.append(select_hst, idx)
+					power+=Qin[idx]
+
 				
 		else:
+			select_hst=np.array([])
 			print('')			
 			print('Method 2')    
 			num_hst=0
@@ -390,7 +419,7 @@ class CRS:
 		return oelt, A_land
 		
 
-	def dni_TMY(self, weafile, nd, nh):
+	def dni_TMY(self, weafile, nd, nh, plot=True):
 		'''
 		Argument:
 
@@ -412,10 +441,12 @@ class CRS:
 			l=content[i].split(",") 
 			seconds=np.append(seconds, l[0])         
 			dni=np.append(dni, l[2])
-		seconds=seconds.astype(float)
+		seconds=seconds.astype(float)+1800.
 		days=seconds/3600/24
+
 		wea_dec=np.array([])
 		for d in days:
+			d=int(d)+1
 			wea_dec=np.append(wea_dec, self.sun.declination(d)) #deg
 
 		wea_hra=((seconds/3600.)%24-12.)*15. #deg
@@ -431,12 +462,32 @@ class CRS:
 		dec_bin=np.linspace(-dec_lim, dec_lim, nd+1)
 		bins=np.array([hra_bin, dec_bin])
 
-
 		dni_weight, xbins, ybins=np.histogram2d(wea_hra, wea_dec, bins, weights=wea_dni)
 		dni_n, xbins, ybins=np.histogram2d(wea_hra, wea_dec, bins)
 	
-		dni_avg=np.divide(dni_weight, dni_n, out=np.zeros_like(dni_weight), where=dni_n!=0) 
-	
+		dni_avg=np.divide(dni_weight, dni_n, out=np.zeros_like(dni_weight), where=dni_n!=0)
+
+		if plot:
+			X=np.linspace(-180.,  180. , nh)
+			Y=np.linspace(-23.45, 23.45, nd) 
+			plt.pcolormesh(hra_bin, dec_bin, dni_avg.T)
+			cb=plt.colorbar()
+			plt.xlabel('Solar hour angle')
+			plt.ylabel('Delination angle')
+			plt.savefig(self.casedir+'/DNI_weather.png', bbox_inches='tight')
+			plt.close()		
+
+			# check the symmetricity of the weather dni data		
+			data=dni_avg.T
+			plt.pcolormesh(hra_bin[:int(nh/2)], dec_bin, data[:,:int(nh/2), ]-np.fliplr(data[:,-int(nh/2):]))
+			cb=plt.colorbar()
+			plt.xlabel('Solar hour angle')
+			plt.ylabel('Delination angle')
+			plt.savefig(self.casedir+'/DNI_weather_diff.png', bbox_inches='tight')
+			plt.close()	
+
+			np.savetxt(self.casedir+'/DNI_weather.csv', data, fmt='%.4f', delimiter=',')
+ 
 		return dni_weight.T, dni_avg.T
 
 	def get_attenuation_factor(self):

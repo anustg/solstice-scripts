@@ -95,7 +95,7 @@ class SunPosition:
 		return days
 
 
-	def declination(self, days, form='detail'):
+	def declination(self, days, form=None):
 		"""Calculate the solar declination angle for a specified day-of-the-year, ref. J Duffie page 13, declination angle: delta=23.45*sin(360*(284+day)/365)
 
 		``Arguments``
@@ -109,6 +109,7 @@ class SunPosition:
 		"""
 
 		if form=='detail':
+			#TODO this equation doesn't give symmetrical annual declination angles
 		    B=float(days-1)*360./365.*np.pi/180.
 
 		    delta=(180./np.pi)*(0.006918 - 0.399912*np.cos(B) +0.070257*np.sin(B)- 0.006758*np.cos(2.*B) + 0.000907*np.sin(2.*B)- 0.002697*np.cos(3.*B) + 0.00148*np.sin(3.*B))
