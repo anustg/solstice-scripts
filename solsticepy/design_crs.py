@@ -169,7 +169,6 @@ class CRS:
 		'''  
 		print('')
 		print('Start field design')	
-		dni_weight, dni_avg=self.dni_TMY(weafile, nd, nh)
 
 		AZI, ZENITH,table,case_list=self.sun.annual_angles(self.latitude, casefolder=self.casedir, nd=nd, nh=nh)
 		case_list=case_list[1:]
@@ -189,14 +188,10 @@ class CRS:
 				azimuth=SOLSTICE_AZI[c-1]
 				elevation= SOLSTICE_ELE[c-1]
 
-				t=0
-				for a in range(len(table[3:])):
-					for b in range(len(table[0,3:])):
-						val=re.findall(r'\d+', table[a+3,b+3])
-						if str(c) in val:
-							if t==0:
-								dni=dni_avg[a,b]
-								t=1
+				if np.sin(elevation*np.pi/180.)>=1.e-5:
+				    dni=1618.*np.exp(-0.606/(np.sin(elevation*np.pi/180.)**0.491))
+				else:
+				    dni=0.
 
 				sys.stderr.write("\n"+green('Sun position: %s \n'%c))
 				print('azimuth: %.2f'% azimuth, ', elevation: %.2f'%elevation)
@@ -229,8 +224,8 @@ class CRS:
 					if str(c) in val:
 						if cc==0: 
 							# i.e. morning positions
-							ANNUAL+=dni_weight[a,b]*efficiency_hst
-							annual_solar+=dni_weight[a,b]
+							ANNUAL+=dni*efficiency_hst
+							annual_solar+=dni
 							cc+=1 
 						else:
 							# the symetrical points (i.e. afternoon)
@@ -256,8 +251,8 @@ class CRS:
 							#print(np.shape(check))
 							#check=check.reshape(5,int(len(check)/5))
 							#np.savetxt('./check.csv', check.T, fmt='%.5f', delimiter=',') 
-							ANNUAL+=dni_weight[a,b]*eff_symetrical	
-							annual_solar+=dni_weight[a,b]	
+							ANNUAL+=dni*eff_symetrical	
+							annual_solar+=dni	
 					
 		ANNUAL/=annual_solar      
 		np.savetxt(self.casedir+'/annual_hst.csv',ANNUAL, fmt='%.2f', delimiter=',')
@@ -368,6 +363,14 @@ class CRS:
 				print('')
 				print('sun position:', (c), 'eff', eff)
 
+				azimuth=SOLSTICE_AZI[c-1]
+				elevation= SOLSTICE_ELE[c-1]
+
+				if np.sin(elevation*np.pi/180.)>=1.e-5:
+				    dni=1618.*np.exp(-0.606/(np.sin(elevation*np.pi/180.)**0.491))
+				else:
+				    dni=0.
+
 			for a in range(len(oelt[3:])):
 				for b in range(len(oelt[0,3:])):
 
@@ -377,7 +380,6 @@ class CRS:
 					else:
 						if c==float(val[0]):
 							oelt[a+3,b+3]=eff
-							dni=dni_weight[a,b]
 							annual_solar+=dni
 							annual_field+=dni*eff
 							

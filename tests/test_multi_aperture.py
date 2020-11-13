@@ -78,14 +78,14 @@ class TestMultiAperture(unittest.TestCase):
 		field=np.loadtxt(self.casedir+'/pos_and_aiming.csv', skiprows=2, delimiter=',',dtype=str)
 		num_hst=len(field)
 
-		print(num_hst, self.n_helios, self.eff_des, self.eff_annual)
+		#print(num_hst, self.n_helios, self.eff_des, self.eff_annual)
 		if os.path.exists(self.tablefile):
 			oelt_generated='successful'
 		self.assertEqual(oelt_generated,'successful')
 		self.assertEqual(num_hst, self.n_helios)
-		self.assertTrue(abs(num_hst-713) < 5)
-		self.assertTrue(abs(self.eff_des-0.7855) < 0.01)
-		self.assertTrue(abs(self.eff_annual-0.68248) < 0.01)
+		self.assertTrue(abs(num_hst-719) < 10)
+		self.assertTrue(abs(self.eff_des- 0.7797) < 0.01)
+		self.assertTrue(abs(self.eff_annual-0.6622) < 0.01)
 		#os.system('rm -rf %s'%self.casedir)
 
 if __name__ == '__main__':

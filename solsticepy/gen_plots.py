@@ -35,10 +35,11 @@ class Case:
 		'''
 		casedir: str, the case directory
 		'''
-
+		x,y,annual=self.layout()
 		if perf:
 			# the initial large field
 			plt.scatter(self.pos_and_aim[:,0], self.pos_and_aim[:,1], c=self.annual)
+			plt.plot(x, y, 'r.')
 		else:
 			plt.plot(self.pos_and_aim[:,0], self.pos_and_aim[:,1], '.')
 
@@ -90,7 +91,6 @@ class Case:
 
 if __name__=='__main__':
 	casedir='../tests/test-multi-aperture'
-	#casedir='/media/yewang/Data/data-gen3p3-particle/study-multi-aperture/L15_R40_fb0.4'
 	Case=Case(casedir)
 	Case.plot_initial_layout()
 	Case.plot_designed_layout()
