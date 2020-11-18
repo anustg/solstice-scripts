@@ -64,7 +64,7 @@ class Master:
 
 		return os.path.join(folder,fn)
 
-	def run(self, azimuth, elevation, num_rays, rho_mirror, dni, folder, gen_vtk=True, printresult=True, system='crs'):
+	def run(self, azimuth, elevation, num_rays, rho_mirror, dni, folder, gen_vtk=False, printresult=False, verbose=False, system='crs'):
 
 		"""Run an optical simulation (one sun position) using Solstice 
 
@@ -112,21 +112,21 @@ class Master:
 				os.chdir(dirn)
 
 		if system=='dish':
-			eta=process_raw_results_dish(self.in_case(folder, 'simul'), folder, rho_mirror, dni)
+			eta=process_raw_results_dish(self.in_case(folder, 'simul'), folder, rho_mirror, dni, verbose=verbose)
 			if printresult:
 				sys.stderr.write('\n' + yellow("Total efficiency: {:f}\n".format(eta)))
 				sys.stderr.write(green("Completed successfully.\n"))
 			return eta
 
 		else:
-			eta, performance_hst=process_raw_results(self.in_case(folder, 'simul'), folder,rho_mirror,dni)
+			eta, performance_hst=process_raw_results(self.in_case(folder, 'simul'), folder,rho_mirror, dni, verbose=verbose)
 
 			if printresult:
 				sys.stderr.write('\n' + yellow("Total efficiency: {:f}\n".format(eta)))
 				sys.stderr.write(green("Completed successfully.\n"))
 			return eta, performance_hst
 
-	def run_annual(self, nd, nh, latitude, num_rays, num_hst,rho_mirror,dni,gen_vtk=False):
+	def run_annual(self, nd, nh, latitude, num_rays, num_hst,rho_mirror,dni,gen_vtk=False,verbose=False):
 
 		"""Run a list of optical simulations to obtain annual performance (lookup table) using Solstice 
 
@@ -144,7 +144,8 @@ class Master:
 
 		``Return``
 
-		  * No return value (results files are created and written)
+		  * table (numpy array), the annual optical efficiency lookup table
+		  * ANNUAL (numpy array), the annual output of each heliostat
 		"""
 
 		YAML_IN = self.in_case(self.casedir, 'input.yaml')
@@ -204,8 +205,10 @@ class Master:
 
 		annual_title=np.array(['Q_solar','Q_cosine', 'Q_shade', 'Q_hst_abs', 'Q_block', 'Q_atm', 'Q_spil', 'Q_refl', 'Q_rcv_abs']) 
 		ANNUAL=np.vstack((annual_title, ANNUAL))
-		np.savetxt(self.casedir+'/lookup_table.csv', table, fmt='%s', delimiter=',')
-		np.savetxt(self.casedir+'/result-heliostats-annual-performance.csv', ANNUAL, fmt='%s', delimiter=',')
+		if verbose:
+			np.savetxt(self.casedir+'/lookup_table.csv', table, fmt='%s', delimiter=',')
+			np.savetxt(self.casedir+'/result-heliostats-annual-performance.csv', ANNUAL, fmt='%s', delimiter=',')
+
 		sys.stderr.write("\n"+green("Lookup table saved.\n"))
 		sys.stderr.write(green("Completed successfully.\n"+"\n"))
 		return table, ANNUAL

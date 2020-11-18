@@ -32,21 +32,22 @@ class TestMultiAperture(unittest.TestCase):
 			pm.H_tower=120.
 			pm.H_rcv=12.
 			pm.W_rcv=12.
+			pm.Z_rcv=[pm.H_tower,pm.H_tower,pm.H_tower]
 			pm.fb=0.5
 			pm.R1=50.
 			pm.field_type='multi-aperture'
 			pm.rcv_type='multi-aperture'	
 			pm.num_aperture=3
-			pm.alpha=90. # deg
+			pm.gamma=180. # deg
 			pm.n_W_rcv=10
 			pm.n_H_rcv=10	
 
 			pm.dependent_par()
-			pm.saveparam(self.casedir)
+			#pm.saveparam(self.casedir)
 
-			crs=CRS(latitude=pm.lat, casedir=self.casedir)   
+			crs=CRS(latitude=pm.lat, casedir=self.casedir, verbose=True)   
 			weafile='../example/demo_TMY3_weather.motab'
-			crs.receiversystem(receiver=pm.rcv_type, rec_w=float(pm.W_rcv), rec_h=float(pm.H_rcv), rec_x=float(pm.X_rcv), rec_y=float(pm.Y_rcv), rec_z=float(pm.Z_rcv), rec_tilt=float(pm.tilt_rcv), rec_grid_w=int(pm.n_W_rcv), rec_grid_h=int(pm.n_H_rcv), rec_abs=float(pm.alpha_rcv), num_aperture=pm.num_aperture, alpha=pm.alpha)
+			crs.receiversystem(receiver=pm.rcv_type, rec_w=float(pm.W_rcv), rec_h=float(pm.H_rcv), rec_x=float(pm.X_rcv), rec_y=float(pm.Y_rcv), rec_z=pm.Z_rcv, rec_tilt=float(pm.tilt_rcv), rec_grid_w=int(pm.n_W_rcv), rec_grid_h=int(pm.n_H_rcv), rec_abs=float(pm.alpha_rcv), num_aperture=pm.num_aperture, gamma=pm.gamma)
 
 			crs.heliostatfield(field=pm.field_type, hst_rho=pm.rho_helio, slope=pm.slope_error, hst_w=pm.W_helio, hst_h=pm.H_helio, tower_h=pm.H_tower, tower_r=pm.R_tower, hst_z=pm.Z_helio, num_hst=pm.n_helios, R1=pm.R1, fb=pm.fb, dsep=pm.dsep)
 
@@ -74,16 +75,13 @@ class TestMultiAperture(unittest.TestCase):
 		else:
 			self.n_helios, A_helio, self.eff_des, self.eff_annual, Q_in_rcv, A_land, solar_hour, declination, oelt=read_motab(self.tablefile)
 			eta_max=np.max(oelt)
-			
-		field=np.loadtxt(self.casedir+'/pos_and_aiming.csv', skiprows=2, delimiter=',',dtype=str)
-		num_hst=len(field)
+
 
 		#print(num_hst, self.n_helios, self.eff_des, self.eff_annual)
 		if os.path.exists(self.tablefile):
 			oelt_generated='successful'
 		self.assertEqual(oelt_generated,'successful')
-		self.assertEqual(num_hst, self.n_helios)
-		self.assertTrue(abs(num_hst-719) < 10)
+		self.assertTrue(abs(self.n_helios-719) < 10)
 		self.assertTrue(abs(self.eff_des- 0.7797) < 0.01)
 		self.assertTrue(abs(self.eff_annual-0.6622) < 0.01)
 		#os.system('rm -rf %s'%self.casedir)

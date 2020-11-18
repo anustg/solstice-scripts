@@ -6,7 +6,7 @@ from uncertainties import ufloat
 from uncertainties.umath import *
 from .output_motab import output_motab 
 
-def process_raw_results(rawfile, savedir,rho_mirror,dni):
+def process_raw_results(rawfile, savedir,rho_mirror,dni,verbose=False):
 	"""Process the raw Solstice `simul` output into readable CSV files for central receiver systems
 
 	``Arguments``
@@ -15,6 +15,7 @@ def process_raw_results(rawfile, savedir,rho_mirror,dni):
 	  * savedir (str): the directory for saving the organised results
 	  * rho_mirror (float): mirror reflectivity (needed for reporting energy sums)
 	  * dni (float): the direct normal irradiance (W/m2), required to obtain performance of individual heliostat
+	  * verbose (bool), write results to disk or not
 
 	``Returns``
 
@@ -176,7 +177,7 @@ def process_raw_results(rawfile, savedir,rho_mirror,dni):
 	#sys.stderr.write(repr(raw_res))
 	#sys.stderr.write("SHAPE = %s" % (repr(raw_res.shape)))
 
-	np.savetxt(savedir+'/result-raw.csv', raw_res, fmt='%s', delimiter=',')
+
 
 	Qtotal=ufloat(potential, 0)
 	Fcos=ufloat(Fcos,Fcos_err) 
@@ -202,7 +203,7 @@ def process_raw_results(rawfile, savedir,rho_mirror,dni):
 		,['Qabs (kW)', Qabs.n/1000., Qabs.s/1000.]
 		,['rays', num_rays,'-']
 	])
-	np.savetxt(savedir+'/result-formatted.csv', organised, fmt='%s', delimiter=',')
+
 	efficiency_total=Qabs/Qtotal
 
 	# per heliostat results, and
@@ -291,9 +292,13 @@ def process_raw_results(rawfile, savedir,rho_mirror,dni):
 
 	heliostats_details=np.vstack((heliostats_title, heliostats))
 
-	np.savetxt(savedir+'/heliostats-raw.csv', heliostats_details, fmt='%s', delimiter=',')
 
-
+	if verbose:
+		np.savetxt(savedir+'/result-formatted.csv', organised, fmt='%s', delimiter=',')
+		np.savetxt(savedir+'/heliostats-raw.csv', heliostats_details, fmt='%s', delimiter=',')
+		np.savetxt(savedir+'/result-raw.csv', raw_res, fmt='%s', delimiter=',')
+	else:
+		os.system('rm -rf %s'%savedir)
 	return efficiency_total, performance_hst
 
 
@@ -302,6 +307,7 @@ def get_breakdown(casedir):
 
 	``Argument``
 		* casedir (str): the directory of the case that contains the folder of sunpos_1, sunpos_2, ..., and all the other case-related details
+	    * verbose (bool), write results to disk or not
 
 	``Outputs``
 		* output file: OELT_Solstice_breakdown.motab, it contains the annual lookup tables of each breakdown of energy  

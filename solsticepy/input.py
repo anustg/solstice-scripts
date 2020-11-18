@@ -101,9 +101,11 @@ class Parameters:
 			(8) n_H_rcv   :   int, number of discretisation of the receiver in the height direction
 			(9) n_W_rcv   :   int, number of discretisation of the receiver in the width direction (for a flat receiver) 
 				                    or in the circular direction (for a cylindrical receiver) 
-			(10) X_rcv     : float, x location of the receiver (m)
-			(11) Y_rcv     : float, y location of the receiver (m)
-			---(*) z_rcv  : float, z location of the receiver (m)
+			(10) X_rcv    : float, x location of the receiver (m)
+			(11) Y_rcv    : float, y location of the receiver (m)
+			(12) Z_rcv    : float, z location of the receiver (m)
+			(13) num_aperture: int, number of apertures for a multi-aperture configuration
+			(14) gamma    : float, the angular range of the multi-aperture configuration (deg)
 
 		'''
 		self.rcv_type='flat'
@@ -115,8 +117,9 @@ class Parameters:
 		self.n_W_rcv=10
 		self.X_rcv=0. # receiver location
 		self.Y_rcv=0.
+		self.Z_rcv=120.
 		self.num_aperture=0
-		self.alpha=0.
+		self.gamma=0.
 
 
 	def simulation(self):
@@ -139,8 +142,7 @@ class Parameters:
 	def dependent_par(self):
 		'''
 		'''
-		self.Z_helio=self.H_helio*0.7
-		self.Z_rcv=self.H_tower        
+		self.Z_helio=self.H_helio*0.7       
 		if self.lat>=0:
 			self.hemisphere='North'
 		elif self.lat<0:
@@ -178,7 +180,7 @@ class Parameters:
 				['dsep', self.dsep, 'm'],    
 				['rcv_type', self.rcv_type, '-'],  
 				['num_aperture', self.num_aperture, '-'],
-				['aperture angular space',self.alpha , 'deg'],
+				['aperture angular range',self.gamma , 'deg'],
 				['H_rcv', self.H_rcv, 'm'],
 				['W_rcv', self.W_rcv, 'm'],   
 				['tilt_rcv', self.tilt_rcv, 'deg'],  

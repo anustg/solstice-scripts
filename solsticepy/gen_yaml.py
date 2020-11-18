@@ -1,10 +1,12 @@
 from __future__ import print_function
 import numpy as np
+import matplotlib.pyplot as plt
 
 #for python 2:
 #from builtins import super
 
 from .data_spectral import SolarSpectrum, MirrorRhoSpectrum
+from .cal_layout import multi_aperture_pos
 import sys
 
 class Sun:
@@ -94,7 +96,7 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims,hst_w, hst_h
 	  * if ``receiver == 'flat'``: np.array([width, height, grid_w, grid_h,, x, y, z, tilt angle (deg))]
 	  * if ``receiver == 'cylinder'``: np.array([radius, height, grid_circ, grid_h, x, y, z, tilt angle (deg)])
 	  * if ``receiver == 'stl'``: the directory of the stl file
-	  * if ``receiver == 'multi-aperture'``:  np.array([width, height, grid_w, grid_h,, x, y, z, tilt angle (deg),num_aperture, alpha (deg) ])
+	  * if ``receiver == 'multi-aperture'``:  np.array([width, height, grid_w, grid_h,, x, y, z, tilt angle (deg),num_aperture, gamma (deg) ])
 	"""
 	# FIXME Parameters should be named according to what they are, eg
 	# the parameter should be called 'csr', not 'sunsize', to avoid confusion.
@@ -543,7 +545,7 @@ def STL_receiver(rec_param, hemisphere='North'):
 
 	return entt, rcv
 
-def multi_aperture_receiver(rec_param, hemisphere='North'):
+def multi_aperture_receiver(rec_param, hemisphere='North', plot=False):
 	"""
 	hemisphere : 'North' or 'South' hemisphere of the earth where the field located
 		        if North: the field is in the positive y direction
@@ -555,29 +557,26 @@ def multi_aperture_receiver(rec_param, hemisphere='North'):
 	"""
 	# rec_w and rec_h is the size of one aperture
 	# rec_grid_w and rec_gird_h is the number of elements of one aperture
-	# rec_x, rec_y, rec_z is the location of the central point of the multi-aperture receiver
-	# rec_tilt is the tilt angle of each aperture
+	# rec_z is a list of the elevation height of the center of apertures
+	# rec_tilt is the tilt angle of each aperture (the default is facing to the horizon)
 	# num_aperture is the number of apertures
-	# alpha is the angle between each two apertures 
+	# gamma is the angular range of the multi-aperture configration 
 
 
 	rec_w=rec_param[0]
 	rec_h=rec_param[1]
 	rec_grid_w=rec_param[2]
 	rec_grid_h=rec_param[3]
-	rec_x=rec_param[4]
-	rec_y=rec_param[5]
-	rec_z=rec_param[6]
-	rec_tilt=rec_param[7] 
+
+	rec_z=rec_param[4]
+	rec_tilt=rec_param[5] 
 	# receiver tilt angle:
 	# 0 is vertical
 	# the standby posiion of a plane in solstice is normal points to the +z axis
 	# rotation anagle, positive is anti-clockwise
-	num_aperture=int(rec_param[8]) 
-	alpha=rec_param[9]*np.pi/180. 
+	num_aperture=int(rec_param[6]) 
+	gamma=rec_param[7]  # angular range of the multi-aperture configration (deg)
 
-	W=rec_w*1.2 # 20% space
-	r=W/2./np.tan(alpha/2.)
 
 	geom=''
 	pts=[ [-rec_w*0.5, -rec_h*0.5], [-rec_w*0.5, rec_h*0.5], [rec_w*0.5, rec_h*0.5], [rec_w*0.5,-rec_h*0.5] ]
@@ -593,25 +592,13 @@ def multi_aperture_receiver(rec_param, hemisphere='North'):
 
 
 	entt=''
-	for i in range(int(num_aperture)):
-		# center of the i-th aperture
-		# count from the left
-		# the angular position of the center
-		if num_aperture%2==1:
-			ang_pos=np.pi/2.-((num_aperture-1.)/2.-i)*alpha
-		else:
-			if i<num_aperture-1:
-				ang_pos=np.pi/2.-(num_aperture/2.-1.-i)*alpha
-			else:
-				ang_pos=-np.pi/2.
+	vir_z=0.
+	for i in range(num_aperture):
 
-		# the angular position of the left and right edge
-		#delta_a=np.arctan(rec_w/r)
-		#ang_left=ang_pos-delta_a
-		#ang_righ=ang_pos+delta_a
-		xc=r*np.cos(ang_pos)
-		yc=r*np.sin(ang_pos)
-		zc=rec_z
+		ang_pos, xc, yc=multi_aperture_pos(rec_w, gamma, num_aperture, i)
+
+		zc=rec_z[i]		
+		vir_z+=zc
 
 		# CREATE a receiver entity from "target_g" geometry (primary = 0)
 
@@ -619,10 +606,12 @@ def multi_aperture_receiver(rec_param, hemisphere='North'):
 		entt+='    name: target_e_%.0f\n'%(i)
 		entt+='    primary: 0\n'
 		if hemisphere=='North':
-			entt+='    transform: { translation: %s, rotation: %s }\n' % ([xc, yc, zc], [-90.-rec_tilt, 90.-ang_pos*180/np.pi,0]) 
+			entt+='    transform: { translation: %s, rotation: %s }\n' % ([xc, yc, zc], [-90.-rec_tilt, 90.-ang_pos,0]) 
 		else:
-			entt+='    transform: { translation: %s, rotation: %s }\n' % ([-xc, -yc, zc], [90.+rec_tilt, 90.-ang_pos*180/np.pi,0]) 
+			entt+='    transform: { translation: %s, rotation: %s }\n' % ([-xc, -yc, zc], [90.+rec_tilt, 90.-ang_pos,0]) 
 		entt+='    geometry: *%s\n' % 'target_g'
+
+	vir_z/=float(num_aperture)
 
 	# CREATE a virtual target entity from "target_g" geometry (primary = 0)
 	slices = 16
@@ -630,7 +619,7 @@ def multi_aperture_receiver(rec_param, hemisphere='North'):
 	entt+='\n- entity:\n'
 	entt+='    name: virtual_target_e\n'
 	entt+='    primary: 0\n'
-	entt+='    transform: { translation: %s}\n' % ([0., 0., rec_z])
+	entt+='    transform: { translation: %s}\n' % ([0., 0., vir_z])
 	entt+='    geometry: \n' 
 	entt+='      - material: *%s\n' % 'material_virtual' 
 	entt+='        sphere: \n'
@@ -647,5 +636,8 @@ def multi_aperture_receiver(rec_param, hemisphere='North'):
 	rcv+='  per_primitive: %s \n' % 'INCOMING'
 
 	return geom, entt, rcv
+
+
+
 #------------------------------
 

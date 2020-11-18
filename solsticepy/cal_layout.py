@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 from .cal_sun import *
 from .gen_vtk import gen_vtk
 
-def radial_stagger(latitude, num_hst, width, height, hst_z, towerheight, R1, fb, dsep=0., field='polar', num_aperture=0., alpha=0., rec_w=0., savedir='.', plot=False, plt_aiming=None):
+def radial_stagger(latitude, num_hst, width, height, hst_z, towerheight, R1, fb, dsep=0., field='polar', num_aperture=0, gamma=0., rec_w=0., rec_z=[], savedir='.', verbose=False, plot=False, plt_aiming=None):
 	'''Generate a radial-stagger heliostat field, ref. Collado and Guallar, 2012, Campo: Generation of regular heliostat field.
 
 	``Arguments``
@@ -21,8 +21,10 @@ def radial_stagger(latitude, num_hst, width, height, hst_z, towerheight, R1, fb,
 	  * dsep (float)    : separation distance (m)
 	  * field (str)     : 'polar-half' or 'surround-half' or 'polar' or 'surround' field or 'multi-aperture', the 'half' option is for simulation a symmetric field
 	  * num_aperture(int): number of apertures, for a multi-aperture configuration
-	  * alpha (float): the angular space between two adjacent apertures (except the aperture faces to the South) (deg)	 
+	  * gamma (float)   : the anangular range of the multi-aperture configration (deg)	 
+	  * rec_z (list)    : a list of the elevation heights of the apertures 
 	  * savedir (str)   : directory of saving the pos_and_aiming.csv
+	  * verbose(bool)   : write results to disk or not
 	  * plot (bool)     : True - plot the layout by Matplotlib
 
 	``Returns``
@@ -201,7 +203,6 @@ def radial_stagger(latitude, num_hst, width, height, hst_z, towerheight, R1, fb,
 	num_hst=int(num_hst)
 
 	if field=='multi-aperture':
-		assert(alpha<=360./num_aperture), "\n\nThe angular space is too big to arange %s apertures in the circle\n\n\n"%num_aperture
 
 		nt=len(XX)
 		hstpos=np.zeros(nt*3).reshape(nt, 3)
@@ -211,26 +212,16 @@ def radial_stagger(latitude, num_hst, width, height, hst_z, towerheight, R1, fb,
 
 		ANGLE=np.array([])
 		C=np.array([])
-		alpha*=np.pi/180.
-		W=rec_w*1.2 # 20% space
-		r=W/2./np.tan(alpha/2.)
-		for i in range(int(num_aperture)):
-			if num_aperture%2==1:
-				ang_pos=np.pi/2.-((num_aperture-1.)/2.-i)*alpha
-			else:
-				if i<num_aperture-1:
-					ang_pos=np.pi/2.-(num_aperture/2.-1.-i)*alpha
-				else:
-					ang_pos=-np.pi/2.
-			print('aperture', i, 'angle', ang_pos*90./np.pi)
 
-			xc=r*np.cos(ang_pos)
-			yc=r*np.sin(ang_pos)
-			zc=towerheight
-			c=np.r_[xc, yc, towerheight]
+		APOS=np.array([])
+		for i in range(num_aperture):
+			ang_pos, xc, yc=multi_aperture_pos(rec_w, gamma, num_aperture, i)
+			zc=rec_z[i]
+			APOS=np.append(APOS, ang_pos)
+
+			c=np.r_[xc, yc, zc]
 
 			oc=np.r_[xc, yc, 0]
-
 			C=np.append(C, c)
 
 			norm_rcv=oc/np.linalg.norm(oc)		
@@ -243,8 +234,8 @@ def radial_stagger(latitude, num_hst, width, height, hst_z, towerheight, R1, fb,
 			angle=np.arccos(np.sum(norm_rcv*norm_CH, axis=1))
 			ANGLE=np.append(ANGLE, angle)
 
-		ANGLE=ANGLE.reshape(int(num_aperture), len(angle))
-		C=C.reshape(int(num_aperture), 3)
+		ANGLE=ANGLE.reshape(num_aperture, len(angle))
+		C=C.reshape(num_aperture, 3)
 
 		idx_aim=np.argmin(ANGLE, axis=0)
 		angle_min=np.amin(ANGLE, axis=0)
@@ -301,7 +292,8 @@ def radial_stagger(latitude, num_hst, width, height, hst_z, towerheight, R1, fb,
 	pos_and_aiming=np.append(title, pos_and_aiming.T)
 	pos_and_aiming=pos_and_aiming.reshape(num_hst+2, 13)
 
-	np.savetxt('%s/pos_and_aiming.csv'%savedir, pos_and_aiming, fmt='%s', delimiter=',')
+	if verbose:
+		np.savetxt('%s/pos_and_aiming.csv'%savedir, pos_and_aiming, fmt='%s', delimiter=',')
 
 	if plot:
 		fts=24
@@ -434,6 +426,38 @@ def aiming_cylinder(r_height,r_diameter, pos_and_aiming, savefolder, c_aiming=0.
 
 	return hst_info_ranked	
 
+def multi_aperture_pos(rec_w, gamma, n, i):
+	"""
+	This function returens the angular position of each aperture
+	in the multi-aperture configration that has n apertures
+	in the angular range of gamma
+
+	Arguments:
+	rec_w, float, width of the aperture
+	gamma, float, angular range (deg) of the multi-aperture configration
+			      which is defined as the angle from the most right to 
+				  the most left aperture
+	n, int, number of apertures
+	i, int, the i-th aperture (starts from 0 for the most right aperture)
+
+	Return:
+	omega_i, float, the angular position of the i-th aperture
+					in the coordinate system, the angular position 
+					starts from +x and increases counter-clockwise
+	"""	
+	if gamma%360.==0:
+		omega_i=360./float(n)*float(i)-90.
+	else:
+		omega_i=90.-gamma/2.+gamma/float(n-1)*float(i)
+
+	W=rec_w*1.2 # 20% space
+	alpha=gamma/float(n-1)*np.pi/180.
+	r=W/2./np.tan(alpha/2.)
+
+	xc=r*np.cos(omega_i*np.pi/180.)
+	yc=r*np.sin(omega_i*np.pi/180.)
+
+	return omega_i, xc, yc
 
 
 if __name__=='__main__':

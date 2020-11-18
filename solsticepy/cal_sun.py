@@ -276,7 +276,7 @@ class SunPosition:
 		return sol_azi, sol_ele        
 		                   
 
-	def annual_angles(self, latitude, casefolder='NOTSAVE', nd=5, nh=5):
+	def annual_angles(self, latitude, casefolder=None, nd=5, nh=5, verbose=False):
 		"""Generate a range of sun positions (azimuth-zenith angles and declination-solarhour angles) for annual optical lookup table simulation. Automatically detect the time when the sun is below the horizon (elevation<0), where a ray-tracing simulation is not required.
 		
 		``Arguments``
@@ -285,6 +285,7 @@ class SunPosition:
 		  * casefolder (str): directory to save the table and case_list in .csv files, or 'NOTSAVE' (by default) to not write the output to files
 		  * nd (int): number of rows of the lookup table (points in the declination movement, suggest nd>=5)
 		  * nh (int): number of columns of the lookup table (hours in a day, i.e. 24h)
+		  * verbose (bool): write results to disk or not
 
 		``Returns``
 
@@ -408,7 +409,7 @@ class SunPosition:
 		#azimuth=case_list[1:,-2].astype(float)
 		#zenith=case_list[1:,-1].astype(float)
 
-		if casefolder!='NOTSAVE':    
+		if casefolder!=None and verbose:    
 		    np.savetxt(casefolder+'/table_view.csv', table, fmt='%s', delimiter=',')  
 		    np.savetxt(casefolder+'/annual_simulation_list.csv', case_list, fmt='%s', delimiter=',')          
 
