@@ -33,13 +33,18 @@ def run_prog(name,args,output_file=None,verbose=True):
 
 class Master:
 
-	def __init__(self, casedir='.'):
+	def __init__(self, casedir='.', nproc=None):
 		"""Set up the Solstice simulation, i.e. establishing the case folder, calling the Solstice program and post-processing the results
 
 		``Argument``
 		  * casedir (str): the case directory
+	      * nproc   (int): number of processors, e.g. nproc=1 will run in serial mode, 
+                                                      nproc=4 will run with 4 processors in parallel
+													  nproc=None will run with any number of processors that are available
 		"""
 		self.casedir=os.path.abspath(casedir)
+		self.nproc=nproc
+
 		if not os.path.exists(self.casedir):
 		    os.makedirs(self.casedir)
 		    assert os.path.isdir(casedir)
@@ -68,13 +73,13 @@ class Master:
 
 		"""Run an optical simulation (one sun position) using Solstice 
 
-		* `azimuth` (float): the azimuth angle of the ray-tracing simulation in Solstice, counted from East towards to North
+		* `azimuth`   (float): the azimuth angle of the ray-tracing simulation in Solstice, counted from East towards to North
 		* `elevation` (float): the elevation angle of the ray-tracing simulation in Solstice
-		* `num_rays` (int): number of rays to be cast in the ray-tracing simulation
-		* `rho_mirror` (float): reflectivity of mirrors, required for results post-processing 
-		* `dni` (float): the direct normal irradiance (W/m2), required to obtain performance of individual heliostat
+		* `num_rays`    (int): number of rays to be cast in the ray-tracing simulation
+		* `rho_mirror`(float): reflectivity of mirrors, required for results post-processing 
+		* `dni`       (float): the direct normal irradiance (W/m2), required to obtain performance of individual heliostat
 		* `gen_vtk` (boolean): if True, generate .vtk files for rendering in Paraview
-		* `system` (str): 'crs' for a central receiver system, or 'dish' for a parabolic dish system				
+		* `system`      (str): 'crs' for a central receiver system, or 'dish' for a parabolic dish system				
 
 		Returns: no return value (results files are created and written)
 		"""
@@ -83,10 +88,13 @@ class Master:
 		RECV_IN = self.in_case(self.casedir, 'input-rcv.yaml')
 
 		# main raytrace
-		run_prog("solstice",['-D%s,%s'%(azimuth,elevation),'-v','-n',num_rays,'-R',RECV_IN,'-fo',self.in_case(folder, 'simul'),YAML_IN])
+		if self.nproc==None:
+			run_prog("solstice",['-D%s,%s'%(azimuth,elevation),'-v','-n',num_rays,'-R',RECV_IN,'-fo',self.in_case(folder, 'simul'),YAML_IN])
+		else:
+			run_prog("solstice",['-D%s,%s'%(azimuth,elevation),'-v', '-t', self.nproc, '-n',num_rays,'-R',RECV_IN,'-fo',self.in_case(folder, 'simul'),YAML_IN])
 
 		folder=os.path.abspath(folder)
-		if gen_vtk:
+		if gen_vtk and verbose:
 			dirn = os.getcwd()
 			try:
 				os.chdir(folder)
@@ -126,7 +134,7 @@ class Master:
 				sys.stderr.write(green("Completed successfully.\n"))
 			return eta, performance_hst
 
-	def run_annual(self, nd, nh, latitude, num_rays, num_hst,rho_mirror,dni,gen_vtk=False,verbose=False):
+	def run_annual(self, nd, nh, latitude, num_rays, num_hst,rho_mirror,dni, gen_vtk=False,verbose=False):
 
 		"""Run a list of optical simulations to obtain annual performance (lookup table) using Solstice 
 
@@ -137,6 +145,10 @@ class Master:
 		  * latitude (float): the latitude angle of the plan location (deg)
 		  * num_rays (int): number of rays to be cast in the ray-tracing simulation
 		  * num_hst (int): number of heliostats 
+	      * nproc (int): number of processors, e.g. nproc=1 will run in serial mode, 
+                                                      nproc=4 will run with 4 processors in parallel
+											    	  nproc=None will run with any number of processors that are available
+
 		  * rho_mirror (float): reflectivity of mirrors, required for results post-processing 
 		  * dni (float): the direct normal irradiance (W/m2), required to obtain performance of individual heliostat
 		  * gen_vtk (bool): True - perform postprocessing for visualisation of  each individual ray-tracing scene (each sun position), False - no postprocessing for visualisation 

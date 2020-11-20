@@ -34,7 +34,7 @@ class TestDesignCRS(unittest.TestCase):
 		nd=5
 		nh=9
 
-		dish=Dish(self.casedir)
+		dish=Dish(self.casedir, nproc=1, verbose=False)
 		dish.yaml(dish_radius, dish_foc, rho_refl, slope_error, rec_r, rec_x, rec_y, rec_z, rec_grid_r, rec_abs, dni=dni, sunshape=sunshape, half_angle_deg=half_angle_deg)
 		self.eta=dish.get_opt_eff(dni_des, num_rays, zipfiles=False, gen_vtk=True, plot=False)
 
@@ -44,7 +44,7 @@ class TestDesignCRS(unittest.TestCase):
 	def test_touching(self):
 
 		self.assertEqual(round(self.eta, 3), 0.757)		
-		os.system('rm -rf %s'%self.casedir)
+		#os.system('rm -rf %s'%self.casedir)
 
 if __name__ == '__main__':
 	unittest.main()

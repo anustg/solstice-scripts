@@ -25,10 +25,13 @@ class CRS:
 	the sun, the field and the receiver.
 	'''
 
-	def __init__(self, latitude, casedir, verbose=False):
+	def __init__(self, latitude, casedir, nproc=None, verbose=False):
 		'''
 		Arguements:
 			casedir : str, the directory of the case 
+			nproc (int): number of processors, e.g. nproc=1 will run in serial mode, 
+                                                    nproc=4 will run with 4 processors in parallel
+											        nproc=None will run with any number of processors that are available
 			verbose : bool, write results to files or not
 		'''
 		self.casedir=casedir
@@ -38,7 +41,7 @@ class CRS:
 			os.makedirs(casedir)
 		self.latitude=latitude
 		self.sun=SunPosition()
-		self.master=Master(casedir)
+		self.master=Master(casedir, nproc)
 
 	def receiversystem(self, receiver, rec_w=0., rec_h=0., rec_x=0., rec_y=0., rec_z=100., rec_tilt=0., rec_grid_w=10, rec_grid_h=10, rec_abs=1., num_aperture=1, gamma=0.):
 

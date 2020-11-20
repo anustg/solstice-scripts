@@ -433,7 +433,7 @@ def get_breakdown(casedir):
 	])
 	np.savetxt(casedir+'/des_point/result-formatted-designed.csv', res, fmt='%s', delimiter=',')	
 
-def process_raw_results_dish(rawfile, savedir,rho_mirror,dni):
+def process_raw_results_dish(rawfile, savedir,rho_mirror,dni,verbose=False):
 	"""Process the raw Solstice `simul` output into readable CSV files for dish systems
 
 	``Arguments``
@@ -566,7 +566,6 @@ def process_raw_results_dish(rawfile, savedir,rho_mirror,dni):
 	#sys.stderr.write(repr(raw_res))
 	#sys.stderr.write("SHAPE = %s" % (repr(raw_res.shape)))
 
-	np.savetxt(savedir+'/result-raw.csv', raw_res, fmt='%s', delimiter=',')
 
 	Qtotal=ufloat(potential, 0)
 	Qshad=ufloat(shadow_loss, shadow_err)
@@ -586,8 +585,13 @@ def process_raw_results_dish(rawfile, savedir,rho_mirror,dni):
 		,['Qabs (kW)', Qabs.n/1000., Qabs.s/1000.]
 		,['rays', num_rays,'-']
 	])
-	np.savetxt(savedir+'/result-formatted.csv', organised, fmt='%s', delimiter=',')
+
 	efficiency_total=Qabs/Qtotal
+
+	if verbose:
+		np.savetxt(savedir+'/result-formatted.csv', organised, fmt='%s', delimiter=',')
+		np.savetxt(savedir+'/result-raw.csv', raw_res, fmt='%s', delimiter=',')
+
 
 
 	return efficiency_total

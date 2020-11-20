@@ -45,7 +45,7 @@ class TestMultiAperture(unittest.TestCase):
 			pm.dependent_par()
 			#pm.saveparam(self.casedir)
 
-			crs=CRS(latitude=pm.lat, casedir=self.casedir, verbose=True)   
+			crs=CRS(latitude=pm.lat, casedir=self.casedir, nproc=1, verbose=False)   
 			weafile='../example/demo_TMY3_weather.motab'
 			crs.receiversystem(receiver=pm.rcv_type, rec_w=float(pm.W_rcv), rec_h=float(pm.H_rcv), rec_x=float(pm.X_rcv), rec_y=float(pm.Y_rcv), rec_z=pm.Z_rcv, rec_tilt=float(pm.tilt_rcv), rec_grid_w=int(pm.n_W_rcv), rec_grid_h=int(pm.n_H_rcv), rec_abs=float(pm.alpha_rcv), num_aperture=pm.num_aperture, gamma=pm.gamma)
 
