@@ -211,6 +211,7 @@ def radial_stagger(latitude, num_hst, width, height, hst_z, towerheight, R1, fb,
 		hstpos[:,2]=hst_z
 
 		ANGLE=np.array([])
+		NORMRCV=np.array([])
 		C=np.array([])
 
 		APOS=np.array([])
@@ -226,7 +227,8 @@ def radial_stagger(latitude, num_hst, width, height, hst_z, towerheight, R1, fb,
 			oc=np.r_[xc, yc, 0]
 			C=np.append(C, c)
 
-			norm_rcv=oc/np.linalg.norm(oc)		
+			norm_rcv=oc/np.linalg.norm(oc)	
+			NORMRCV=np.append(NORMRCV, norm_rcv)	
 
 			vec_CH=hstpos-c	
 			L_CH=np.linalg.norm(vec_CH, axis=1)
@@ -311,9 +313,13 @@ def radial_stagger(latitude, num_hst, width, height, hst_z, towerheight, R1, fb,
 		plt.close()
 
 	if plt_aiming!=None:
+		NORMRCV=NORMRCV.reshape(num_aperture, 3)
 		plt.figure(dpi=100.,figsize=(12,9))
 		plt.scatter(XX, YY, c=aim_x)
 		plt.scatter(C[:,0], C[:,1], s=1)
+
+		origin = np.array([[0, 0, 0],[0, 0, 0]]) 	
+		plt.quiver(*origin, NORMRCV[:,0], NORMRCV[:,1],scale=10)
 		#plt.colorbar()
 		#plt.grid()
 		plt.savefig(savedir+'/aiming_%s.png'%plt_aiming, bbox_inches='tight')
