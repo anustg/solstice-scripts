@@ -313,9 +313,12 @@ def radial_stagger(latitude, num_hst, width, height, hst_z, towerheight, R1, fb,
 		plt.close()
 
 	if plt_aiming!=None:
+
 		NORMRCV=NORMRCV.reshape(num_aperture, 3)
 		plt.figure(dpi=100.,figsize=(12,9))
-		plt.scatter(XX, YY, c=aim_x)
+		plt.scatter(XX, YY, c=np.arctan(aim_x/aim_y))
+		
+
 		plt.scatter(C[:,0], C[:,1], s=1)
 
 		origin = np.array([[0, 0, 0],[0, 0, 0]]) 	
