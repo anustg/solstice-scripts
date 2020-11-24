@@ -614,7 +614,7 @@ def multi_aperture_receiver(rec_param, hemisphere='North', plot=False):
 
 	# CREATE a virtual target entity from "target_g" geometry (primary = 0)
 	slices = 16
-	radius=vir_z*0.3
+	radius=vir_z*0.5
 	entt+='\n- entity:\n'
 	entt+='    name: virtual_target_e\n'
 	entt+='    primary: 0\n'
