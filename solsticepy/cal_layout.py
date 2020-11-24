@@ -359,18 +359,16 @@ def cal_cosw_coset(latitude, towerheight, xx, yy, zz):
 	delta=sun.declination(dd)
 	h=np.arange(8, 17)
 
-	latitude=latitude/180.*np.pi
-	delta=delta/180.*np.pi
-	omega=(-180.+15.*h)/180.*np.pi
-	theta=np.arccos(np.cos(latitude)*np.cos(delta)*np.cos(omega)+np.sin(latitude)*np.sin(delta))
+	omega= -180.+15.*h
+	theta=sun.zenith(latitude, delta, omega) # solar zenith angle 
 
-	a1=np.cos(theta)*np.sin(latitude)-np.sin(delta)
-	a2=np.sin(theta)*np.cos(latitude)
-	b=a1/a2
-	phi=abs(np.arccos((np.cos(theta)*np.sin(latitude)-np.sin(delta))/(np.sin(theta)*np.cos(latitude)))) # unit radian
-	phi[abs(b+1.)<1e-10]=np.pi
-	phi[abs(b-1.)<1e-10]=0.
-	phi[omega<0]=-phi[omega<0]
+	phi=np.array([]) # solar azimuth angle
+	for i in range(len(h)):
+		p=sun.azimuth(latitude, theta[i], delta, omega[i])
+		phi=np.append(phi, p)
+
+	theta*=np.pi/180.
+	phi*=np.pi/180.
 	 
 	cosw=np.zeros(len(tower_vec[0]))
 	sun_z = np.cos(theta)
