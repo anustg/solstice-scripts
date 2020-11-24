@@ -579,21 +579,20 @@ def multi_aperture_receiver(rec_param, hemisphere='North', plot=False):
 
 
 	geom=''
-	pts=[ [-rec_w*0.5, -rec_h*0.5], [-rec_w*0.5, rec_h*0.5], [rec_w*0.5, rec_h*0.5], [rec_w*0.5,-rec_h*0.5] ]
-
-	geom+='- geometry: &%s\n' % 'target_g'
-	geom+='  - material: *%s\n' % 'material_target'
-	geom+='    plane: \n'
-	geom+='      clip: \n' 
-	geom+='      - operation: AND \n'
-	geom+='        vertices: %s\n' % pts
-	geom+='      slices: %d\n' % rec_grid_w 
-	geom+='\n'
-
-
 	entt=''
 	vir_z=0.
 	for i in range(num_aperture):
+
+		pts=[ [-rec_w[i]*0.5, -rec_h[i]*0.5], [-rec_w[i]*0.5, rec_h[i]*0.5], [rec_w[i]*0.5, rec_h[i]*0.5], [rec_w[i]*0.5,-rec_h[i]*0.5] ]
+
+		geom+='- geometry: &%s\n' % 'target_g_%.0f\n'%(i)
+		geom+='  - material: *%s\n' % 'material_target'
+		geom+='    plane: \n'
+		geom+='      clip: \n' 
+		geom+='      - operation: AND \n'
+		geom+='        vertices: %s\n' % pts
+		geom+='      slices: %d\n' % rec_grid_w 
+		geom+='\n'
 
 		ang_pos, xc, yc=multi_aperture_pos(rec_w, gamma, num_aperture, i)
 
@@ -609,13 +608,13 @@ def multi_aperture_receiver(rec_param, hemisphere='North', plot=False):
 			entt+='    transform: { translation: %s, rotation: %s }\n' % ([xc, yc, zc], [-90.-rec_tilt, 90.-ang_pos,0]) 
 		else:
 			entt+='    transform: { translation: %s, rotation: %s }\n' % ([-xc, -yc, zc], [90.+rec_tilt, 90.-ang_pos,0]) 
-		entt+='    geometry: *%s\n' % 'target_g'
+		entt+='    geometry: *%s\n' % 'target_g_%.0f\n'%(i)
 
 	vir_z/=float(num_aperture)
 
 	# CREATE a virtual target entity from "target_g" geometry (primary = 0)
 	slices = 16
-	radius=np.sqrt(rec_w**2+rec_h**2)*5.
+	radius=vir_z*0.3
 	entt+='\n- entity:\n'
 	entt+='    name: virtual_target_e\n'
 	entt+='    primary: 0\n'

@@ -442,7 +442,7 @@ def multi_aperture_pos(rec_w, gamma, n, i):
 	in the angular range of gamma
 
 	Arguments:
-	rec_w, float, width of the aperture
+	rec_w, list, a list of the width of all the apertures
 	gamma, float, angular range (deg) of the multi-aperture configration
 			      which is defined as the angle from the most right to 
 				  the most left aperture
@@ -459,7 +459,7 @@ def multi_aperture_pos(rec_w, gamma, n, i):
 	else:
 		omega_i=90.-gamma/2.+gamma/float(n-1)*float(i)
 
-	W=rec_w*1.2 # 20% space
+	W=max(rec_w)*1.2 # 20% space
 	alpha=gamma/float(n-1)*np.pi/180.
 	if np.tan(alpha/2.)<1e-20:
 		r=W/2.

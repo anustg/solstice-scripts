@@ -30,8 +30,8 @@ class TestMultiAperture(unittest.TestCase):
 			pm.n_row_oelt=5
 			pm.n_col_oelt=22
 			pm.H_tower=120.
-			pm.H_rcv=12.
-			pm.W_rcv=12.
+			pm.H_rcv=[12.,12.,12.]
+			pm.W_rcv=[12.,12.,12.]
 			pm.Z_rcv=[pm.H_tower,pm.H_tower,pm.H_tower]
 			pm.fb=0.5
 			pm.R1=50.
@@ -47,7 +47,7 @@ class TestMultiAperture(unittest.TestCase):
 
 			crs=CRS(latitude=pm.lat, casedir=self.casedir, nproc=1, verbose=False)   
 			weafile='../example/demo_TMY3_weather.motab'
-			crs.receiversystem(receiver=pm.rcv_type, rec_w=float(pm.W_rcv), rec_h=float(pm.H_rcv), rec_x=float(pm.X_rcv), rec_y=float(pm.Y_rcv), rec_z=pm.Z_rcv, rec_tilt=float(pm.tilt_rcv), rec_grid_w=int(pm.n_W_rcv), rec_grid_h=int(pm.n_H_rcv), rec_abs=float(pm.alpha_rcv), num_aperture=pm.num_aperture, gamma=pm.gamma)
+			crs.receiversystem(receiver=pm.rcv_type, rec_w=pm.W_rcv, rec_h=pm.H_rcv, rec_x=pm.X_rcv, rec_y=pm.Y_rcv, rec_z=pm.Z_rcv, rec_tilt=pm.tilt_rcv, rec_grid_w=int(pm.n_W_rcv), rec_grid_h=int(pm.n_H_rcv), rec_abs=pm.alpha_rcv, num_aperture=pm.num_aperture, gamma=pm.gamma)
 
 			crs.heliostatfield(field=pm.field_type, hst_rho=pm.rho_helio, slope=pm.slope_error, hst_w=pm.W_helio, hst_h=pm.H_helio, tower_h=pm.H_tower, tower_r=pm.R_tower, hst_z=pm.Z_helio, num_hst=pm.n_helios, R1=pm.R1, fb=pm.fb, dsep=pm.dsep)
 
