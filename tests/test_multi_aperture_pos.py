@@ -15,10 +15,10 @@ class TestMultiAperturePos(unittest.TestCase):
 
 	def test_pos(self):
 
-		omega, xc, yc=multi_aperture_pos(rec_w=10., gamma=180., n=3, i=2)
+		omega, xc, yc=multi_aperture_pos(rec_w=[10.,10.,10.], gamma=180., n=3, i=2)
 		self.assertEqual(omega, 180)
 
-		omega, xc, yc=multi_aperture_pos(rec_w=10., gamma=240., n=3, i=2)
+		omega, xc, yc=multi_aperture_pos(rec_w=[10.,10.,10.], gamma=240., n=3, i=2)
 		self.assertEqual(omega, 210)
 
 		# to plot some figures

@@ -258,10 +258,15 @@ def radial_stagger(latitude, num_hst, width, height, hst_z, towerheight, R1, fb,
 		aiming=C[idx_aim]
 		aim_x=aiming[:,0]
 		aim_y=aiming[:,1]	
+
 		aim_x=aim_x[:num_hst]
 		aim_y=aim_y[:num_hst]	
-		aim_z=np.ones(num_hst)*towerheight
 		idx_aim=idx_aim[:num_hst]
+
+		aim_z=np.array([])
+		for i in range(num_hst):
+			aim_z=np.append(aim_z, rec_z[idx_aim[i]])
+
 
 	else:
 		aim_x=np.zeros(num_hst)
@@ -314,6 +319,7 @@ def radial_stagger(latitude, num_hst, width, height, hst_z, towerheight, R1, fb,
 		plt.savefig(savedir+'/field_layout.png', bbox_inches='tight')
 		plt.close()
 
+	'''
 	if plt_aiming!=None:
 
 		NORMRCV=NORMRCV.reshape(num_aperture, 3)
@@ -329,7 +335,7 @@ def radial_stagger(latitude, num_hst, width, height, hst_z, towerheight, R1, fb,
 		#plt.grid()
 		plt.savefig(savedir+'/aiming_%s.png'%plt_aiming, bbox_inches='tight')
 		plt.close()
-
+	'''
 	return pos_and_aiming, Nzones, Nrows_zone
 
 def cal_cosw_coset(latitude, towerheight, xx, yy, zz):

@@ -212,12 +212,12 @@ class CRS:
 					performance_hst=np.zeros((nhst, 9))  
 					efficiency_hst=np.zeros(nhst)
 				else:
-					#efficiency_total, performance_hst=self.master.run(azimuth, elevation, num_rays, self.hst_rho, dni, folder=onesunfolder, gen_vtk=gen_vtk, printresult=False, verbose=self.verb, system=system)
+					efficiency_total, performance_hst=self.master.run(azimuth, elevation, num_rays, self.hst_rho, dni, folder=onesunfolder, gen_vtk=gen_vtk, printresult=False, verbose=self.verb, system=system)
 					
-					res=np.loadtxt(onesunfolder+'/result-formatted.csv', dtype=str, delimiter=',')
-					res_hst=np.loadtxt(onesunfolder+'/heliostats-raw.csv', dtype=str, delimiter=',')
-					efficiency_total=res[-2,1].astype(float)/res[1,1].astype(float)
-					performance_hst=res_hst[1:,-9:].astype(float)
+					#res=np.loadtxt(onesunfolder+'/result-formatted.csv', dtype=str, delimiter=',')
+					#res_hst=np.loadtxt(onesunfolder+'/heliostats-raw.csv', dtype=str, delimiter=',')
+					#efficiency_total=res[-2,1].astype(float)/res[1,1].astype(float)
+					#performance_hst=res_hst[1:,-9:].astype(float)
 					
 					efficiency_hst=performance_hst[:,-1]/performance_hst[:,0]
 
@@ -275,12 +275,12 @@ class CRS:
 		azi_des, ele_des=self.sun.convert_convention('solstice', azi, zen) 
 
 		sys.stderr.write("\n"+green('Design Point: \n'))		
-		#efficiency_total, performance_hst_des=self.master.run(azi_des, ele_des, num_rays, self.hst_rho, dni_des, folder=designfolder, gen_vtk=gen_vtk, printresult=False, verbose=self.verb, system=system)
+		efficiency_total, performance_hst_des=self.master.run(azi_des, ele_des, num_rays, self.hst_rho, dni_des, folder=designfolder, gen_vtk=gen_vtk, printresult=False, verbose=self.verb, system=system)
 		
-		res=np.loadtxt(designfolder+'/result-formatted.csv', dtype=str, delimiter=',')
-		res_hst=np.loadtxt(designfolder+'/heliostats-raw.csv', dtype=str, delimiter=',')
-		efficiency_total=res[-2,1].astype(float)/res[1,1].astype(float)
-		performance_hst_des=res_hst[1:,-9:].astype(float)
+		#res=np.loadtxt(designfolder+'/result-formatted.csv', dtype=str, delimiter=',')
+		#res_hst=np.loadtxt(designfolder+'/heliostats-raw.csv', dtype=str, delimiter=',')
+		#efficiency_total=res[-2,1].astype(float)/res[1,1].astype(float)
+		#performance_hst_des=res_hst[1:,-9:].astype(float)
 		
 
 		Qin=performance_hst_des[:,-1]
