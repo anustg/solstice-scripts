@@ -88,13 +88,72 @@ class Case:
 			plt.savefig(savefig, bbox_inches='tight')
 		plt.close()	
 
+	def plot_oelt(self, num_aperture=1, vmax=0.85, vmin=0.45,savefig=None):
+
+		if num_aperture==1:
+			table=np.loadtxt(self.casedir+'/lookup_table.csv', dtype=str, delimiter=',')
+
+			## comparison
+			dec=table[3:,2].astype(float)
+			hra=table[2, 3:].astype(float)
+			oelt=table[3:,3:].astype(float)
+
+			plt.figure(1)
+			plt.pcolormesh(hra, dec, oelt)
+			plt.colorbar()
+			plt.xlabel('Solar hour angle (deg)')
+			plt.ylabel('Declination angle (deg)')
+			plt.show()
+			plt.close()
+
+		else:
+			for i in range(num_aperture):
+				table=np.loadtxt(self.casedir+'/lookup_table_%s.csv'%i, dtype=str, delimiter=',')
+
+				## comparison
+				dec=table[3:,2].astype(float)
+				hra=table[2, 3:].astype(float)
+				oelt=table[3:,3:].astype(float)
+
+				plt.figure(1)
+				plt.pcolormesh(hra, dec, oelt, vmax=vmax, vmin=vmin)
+				plt.colorbar()
+				plt.xlabel('Solar hour angle (deg)')
+				plt.ylabel('Declination angle (deg)')
+
+				if savefig==None:
+					plt.show()
+				else:
+					plt.savefig(self.casedir+'/oelt_aperture_%s.png'%i, bbox_inches='tight')
+				plt.close()
+
+			table=np.loadtxt(self.casedir+'/lookup_table_total.csv', dtype=str, delimiter=',')
+
+			## comparison
+			dec=table[3:,2].astype(float)
+			hra=table[2, 3:].astype(float)
+			oelt=table[3:,3:].astype(float)
+
+			plt.figure(1)
+			plt.pcolormesh(hra, dec, oelt, vmax=vmax, vmin=vmin)
+			plt.colorbar()
+			plt.xlabel('Solar hour angle (deg)')
+			plt.ylabel('Declination angle (deg)')
+			if savefig==None:
+				plt.show()
+			else:
+				plt.savefig(self.casedir+'/oelt_total.png', bbox_inches='tight')
+
+			plt.close()
+		
+
 
 if __name__=='__main__':
 	casedir='../tests/test-multi-aperture'
 	Case=Case(casedir)
-	Case.plot_initial_layout()
-	Case.plot_designed_layout()
-	Case.plot_aiming()
-
+	#Case.plot_initial_layout()
+	#Case.plot_designed_layout()
+	#Case.plot_aiming()
+	Case.plot_oelt(num_aperture=3, savefig=True)
 
 	

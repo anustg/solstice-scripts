@@ -127,7 +127,10 @@ class Master:
 			return eta
 
 		else:
-			eta, performance_hst=process_raw_results(self.in_case(folder, 'simul'), folder,rho_mirror, dni, verbose=verbose)
+			if system=='multi-aperture':
+				eta, performance_hst=process_raw_results_multi_aperture(self.in_case(folder, 'simul'), folder,rho_mirror, dni, verbose=verbose)
+			else:
+				eta, performance_hst=process_raw_results(self.in_case(folder, 'simul'), folder,rho_mirror, dni, verbose=verbose)
 
 			if printresult:
 				sys.stderr.write('\n' + yellow("Total efficiency: {:f}\n".format(eta)))

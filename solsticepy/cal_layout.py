@@ -257,17 +257,19 @@ def radial_stagger(latitude, num_hst, width, height, hst_z, towerheight, R1, fb,
 
 		aiming=C[idx_aim]
 		aim_x=aiming[:,0]
-		aim_y=aiming[:,1]		
+		aim_y=aiming[:,1]	
+		aim_x=aim_x[:num_hst]
+		aim_y=aim_y[:num_hst]	
 		aim_z=np.ones(num_hst)*towerheight
-
+		idx_aim=idx_aim[:num_hst]
 
 	else:
 		aim_x=np.zeros(num_hst)
 		aim_y=np.zeros(num_hst)
 		aim_z=np.ones(num_hst)*towerheight
+		idx_aim=np.zeros(num_hst)
 
-	aim_x=aim_x[:num_hst]
-	aim_y=aim_y[:num_hst]
+
 	XX=XX[:num_hst]
 	YY=YY[:num_hst]
 	ZONE=ZONE[:num_hst]
@@ -290,11 +292,11 @@ def radial_stagger(latitude, num_hst, width, height, hst_z, towerheight, R1, fb,
 
 	foc=np.sqrt((XX-aim_x)**2+(YY-aim_y)**2+(hstpos[:,2]-aim_z)**2)
 
-	pos_and_aiming=np.append(XX, (YY, hstpos[:,2], foc, aim_x, aim_y, aim_z, AZIMUTH, ZONE, ROW, NHEL, TTROW, np.arange(num_hst)))
-	title=np.array(['x', 'y', 'z', 'foc', 'aim x', 'aim y', 'aim z', 'Azimuth pos','Zone', 'Row', 'No.', 'row index', 'No. index',  'm', 'm', 'm', 'm', 'm', 'm', 'm', 'deg','-', '-', '-', '-', '-'])
-	pos_and_aiming=pos_and_aiming.reshape(13, num_hst)
+	pos_and_aiming=np.append(XX, (YY, hstpos[:,2], foc, aim_x, aim_y, aim_z, idx_aim, AZIMUTH, ZONE, ROW, NHEL, TTROW, np.arange(num_hst)))
+	title=np.array(['x', 'y', 'z', 'foc', 'aim x', 'aim y', 'aim z', 'aim-rec-index','Azimuth pos','Zone', 'Row', 'No.', 'row index', 'No. index',  'm', 'm', 'm', 'm', 'm', 'm', 'm', '-', 'deg','-', '-', '-', '-', '-'])
+	pos_and_aiming=pos_and_aiming.reshape(14, num_hst)
 	pos_and_aiming=np.append(title, pos_and_aiming.T)
-	pos_and_aiming=pos_and_aiming.reshape(num_hst+2, 13)
+	pos_and_aiming=pos_and_aiming.reshape(num_hst+2, 14)
 
 	if verbose:
 		np.savetxt('%s/pos_and_aiming.csv'%savedir, pos_and_aiming, fmt='%s', delimiter=',')

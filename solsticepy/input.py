@@ -118,7 +118,7 @@ class Parameters:
 		self.X_rcv=0. # receiver location
 		self.Y_rcv=0.
 		self.Z_rcv=120.
-		self.num_aperture=0
+		self.num_aperture=1
 		self.gamma=0.
 
 
@@ -151,7 +151,10 @@ class Parameters:
 		# estimate a rough number of large field
 		eta_field=0.4 # assumed field effieicy at design point
 		if self.method==1:
-			self.n_helios=self.Q_in_rcv/self.W_helio/self.H_helio/self.dni_des/eta_field
+			if self.num_aperture==1:
+				self.n_helios=self.Q_in_rcv/self.W_helio/self.H_helio/self.dni_des/eta_field
+			else:
+				self.n_helios=sum(self.Q_in_rcv)/self.W_helio/self.H_helio/self.dni_des/eta_field
 			  
 			if self.field_type!='surround':
 				self.n_helios*=2.  
