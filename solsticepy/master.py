@@ -33,14 +33,14 @@ def run_prog(name,args,output_file=None,verbose=True):
 
 class Master:
 
-	def __init__(self, casedir='.', nproc=None):
+	def __init__(self, casedir='.', nproc=0):
 		"""Set up the Solstice simulation, i.e. establishing the case folder, calling the Solstice program and post-processing the results
 
 		``Argument``
 		  * casedir (str): the case directory
 	      * nproc   (int): number of processors, e.g. nproc=1 will run in serial mode, 
                                                       nproc=4 will run with 4 processors in parallel
-													  nproc=None will run with any number of processors that are available
+													  nproc=0 will run with any number of processors that are available
 		"""
 		self.casedir=os.path.abspath(casedir)
 		self.nproc=nproc
@@ -88,7 +88,7 @@ class Master:
 		RECV_IN = self.in_case(self.casedir, 'input-rcv.yaml')
 
 		# main raytrace
-		if self.nproc==None:
+		if self.nproc==0:
 			run_prog("solstice",['-D%s,%s'%(azimuth,elevation),'-v','-n',num_rays,'-R',RECV_IN,'-fo',self.in_case(folder, 'simul'),YAML_IN])
 		else:
 			run_prog("solstice",['-D%s,%s'%(azimuth,elevation),'-v', '-t', self.nproc, '-n',num_rays,'-R',RECV_IN,'-fo',self.in_case(folder, 'simul'),YAML_IN])
@@ -150,7 +150,7 @@ class Master:
 		  * num_hst (int): number of heliostats 
 	      * nproc (int): number of processors, e.g. nproc=1 will run in serial mode, 
                                                       nproc=4 will run with 4 processors in parallel
-											    	  nproc=None will run with any number of processors that are available
+											    	  nproc=0 will run with any number of processors that are available
 
 		  * rho_mirror (float): reflectivity of mirrors, required for results post-processing 
 		  * dni (float): the direct normal irradiance (W/m2), required to obtain performance of individual heliostat

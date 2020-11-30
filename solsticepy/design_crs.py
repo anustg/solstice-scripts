@@ -25,7 +25,7 @@ class CRS:
 	the sun, the field and the receiver.
 	'''
 
-	def __init__(self, latitude, casedir, nproc=None, verbose=False):
+	def __init__(self, latitude, casedir, nproc=0, verbose=False):
 		'''
 		Arguements:
 			casedir : str, the directory of the case 
@@ -102,7 +102,7 @@ class CRS:
 		    (2) hst_w     : float, width of a heliostat (m) 
 		    (3) hst_h     : float, height of a heliostat (m)
 		    (4) hst_z     : float, the installation height of the heliostat
-		    (5) hst_rho   : float, reflectivity of heliostat 
+		    (5) hst_rho   : float, effective reflectivity of heliostat, which includes soiling, surface availability and surface reflectivity 
 		    (6) slope     : float, slope error(radians)
 		    (7) R1        : float, layout parameter, the distance of the first row of heliostat 
 		    (8) dsep      : float, layout parameter, the separation distance of heliostats (m)
@@ -167,7 +167,7 @@ class CRS:
 		, spectral=False , medium=att_factor, one_heliostat=False)
 
 
-	def field_design_annual(self,  dni_des, num_rays, nd, nh, weafile, method, Q_in_des=None, n_helios=None, zipfiles=False, gen_vtk=False, plot=False):
+	def field_design_annual(self, dni_des, num_rays, nd, nh, weafile, method, Q_in_des=None, n_helios=None, zipfiles=False, gen_vtk=False, plot=False):
 		'''
 		Design a field according to the ranked annual performance of heliostats 
 		(DNI weighted)
@@ -296,15 +296,12 @@ class CRS:
 		ID=np.lexsort((self.hst_foc,-ann_rank))
 		#ID=np.lexsort((-ann_rank, self.hst_foc))
 
+
 		if method==1:
 			hst_aim_idx=self.hst_aim_idx[ID]
 			print('')			
 			print('Method 1')
 			self.Q_in_rcv=Q_in_des
-			if self.receiver=='multi-aperture':
-				self.Q_in_rcv_i=[] # the incident power on each aperture
-				for ap in range(self.num_aperture):
-					self.Q_in_rcv_i.append(0.)
 			power=0.
 			select_hst=np.array([])
 			if self.receiver=='multi-aperture-individual':
@@ -330,6 +327,11 @@ class CRS:
 				# for single-aperture receiver 
 				# or multi-aperture receiver configuration that selects heliostats based on the total required heat
 				assert isinstance(Q_in_des, float), "Q_in_des should be float, which is the total required incident power to the receiver"
+
+				# initilise the incident power on each aperture
+				self.Q_in_rcv_i=[]
+				for ap in range(self.num_aperture):
+					self.Q_in_rcv_i.append(0.)
 
 				for i in range(len(ID)):
 					if power<Q_in_des:
@@ -418,7 +420,10 @@ class CRS:
 					Qtot=res_hst[select_hst,0]
 					Qin=res_hst[select_hst,-1]
 
-					eff=np.sum(Qin[idx_apt_i])/np.sum(Qtot[idx_apt_i])
+					if np.sum(Qtot[idx_apt_i])<1.e-16:
+						eff=0.
+					else:
+						eff=np.sum(Qin[idx_apt_i])/np.sum(Qtot[idx_apt_i])
 
 					print('sun position:', (c), 'eff', eff)
 

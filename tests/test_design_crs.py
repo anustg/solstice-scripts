@@ -35,15 +35,20 @@ class TestDesignCRS(unittest.TestCase):
 			pm.W_rcv=12.
 			pm.fb=0.5
 			pm.R1=50.
+			pm.helio_rho=0.9
+			pm.helio_soil=1.
+			pm.helio_sf_ratio=1.
+
 			pm.dependent_par()
 			pm.saveparam(self.casedir)
 			print(pm.fb)
 			print(pm.H_tower)
-			crs=CRS(latitude=pm.lat, casedir=self.casedir, nproc=1, verbose=False)   
+			crs=CRS(latitude=pm.lat, casedir=self.casedir, nproc=1, verbose=True)   
 			weafile='../example/demo_TMY3_weather.motab'
 
 			crs.receiversystem(receiver=pm.rcv_type, rec_w=float(pm.W_rcv), rec_h=float(pm.H_rcv), rec_x=float(pm.X_rcv), rec_y=float(pm.Y_rcv), rec_z=float(pm.Z_rcv), rec_tilt=float(pm.tilt_rcv), rec_grid_w=int(pm.n_W_rcv), rec_grid_h=int(pm.n_H_rcv), rec_abs=float(pm.alpha_rcv))
-			crs.heliostatfield(field=pm.field_type, hst_rho=pm.rho_helio, slope=pm.slope_error, hst_w=pm.W_helio, hst_h=pm.H_helio, tower_h=pm.H_tower, tower_r=pm.R_tower, hst_z=pm.Z_helio, num_hst=pm.n_helios, R1=pm.R1, fb=pm.fb, dsep=pm.dsep)
+
+			crs.heliostatfield(field=pm.field_type, hst_rho=pm.helio_refl, slope=pm.slope_error, hst_w=pm.W_helio, hst_h=pm.H_helio, tower_h=pm.H_tower, tower_r=pm.R_tower, hst_z=pm.Z_helio, num_hst=pm.n_helios, R1=pm.R1, fb=pm.fb, dsep=pm.dsep)
 
 
 

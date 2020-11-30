@@ -75,7 +75,7 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims,hst_w, hst_h
 	  * `hst_w` (float): heliostat mirror width  (in x direction)
 	  * `hst_h` (float): heliostat mirror height (in y direction)
 	  * `hst_z` (float): heliostat center height (in z direction)
-	  * `rho_refl` (float): reflector reflectivity
+	  * `rho_refl` (float): reflector effective reflectivity
 	  * `slope_error` (float): reflector surface slope error rms, radians
 	  * `tower_h` (float): tower height (m)
 	  * `tower_r` (float): tower radius (a cylindrical shape tower) (m)

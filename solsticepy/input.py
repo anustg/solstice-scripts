@@ -55,20 +55,22 @@ class Parameters:
 				   - the first three columns are X, Y, Z coordinates of each heliostat
 				   - the fourth column is the focal length
 				   - the last three columns are the aiming points
-			(2) Q_in_rcv   : float, required heat of the receiver (W)
-			(3) W_helio    : float, width of a heliostat (m) 
-			(4) H_helio    : float, height of a heliostat (m)
-			(5) slope_error: float, slope error(radians)
-			(6) rho_helio  : float, reflectivity of heliostat 
-			(7) H_tower    : float, tower height (m)
-			(8) R_tower    : float, radius of tower (m)
-			(9) concret_tower: bool, True-a solid concrete tower, or False-a truss tower
-			(10)single_filed : bool, True-one tower one field, or False-multi-tower
-			(11)R1         : float, layout parameter, the distance of the first row of heliostat 
-			(12)dsep       : float, layout parameter, the separation distance of heliostats (m)
-			(13)fb         : float, in (0-1), a factor to expand the field to reduce block 
-			---(*) n_helios:   int, number of heliostats for the designed field 
-			---(*) Z_helio : float, the installation height of the heliostat
+			(2) Q_in_rcv      : float, required heat of the receiver (W)
+			(3) W_helio       : float, width of a heliostat (m) 
+			(4) H_helio       : float, height of a heliostat (m)
+			(5) slope_error   : float, slope error(radians)
+			(6) helio_rho     : float, reflectivity of heliostat 
+			(7) helio_soil    : float, percentage of the heliostat surface that is not soiled
+			(8) helio_sf_ratio: float, percentage of avaiable heliostat reflective surface area 
+			(9) H_tower       : float, tower height (m)
+			(10) R_tower      : float, radius of tower (m)
+			(11) concret_tower:  bool, True-a solid concrete tower, or False-a truss tower
+			(12)single_filed  :  bool, True-one tower one field, or False-multi-tower
+			(13)R1            : float, layout parameter, the distance of the first row of heliostat 
+			(14)dsep          : float, layout parameter, the separation distance of heliostats (m)
+			(15)fb            : float, in (0-1), a factor to expand the field to reduce block 
+			---(*) n_helios   :   int, number of heliostats for the designed field 
+			---(*) Z_helio    : float, the installation height of the heliostat
 		'''
 
 		self.field_type='polar'
@@ -79,12 +81,13 @@ class Parameters:
 		self.W_helio=10.
 		self.H_helio=10.
 		self.slope_error=2.e-3 # radian
-		self.rho_helio=0.9
+		self.helio_rho=0.95 # heliostat reflectivity
+		self.helio_soil=0.95 # soiling factor of heliostats
+		self.helio_sf_ratio=0.97 # heliostat reflective surface availability
 		self.H_tower=100.
 		self.R_tower=0.001  # shading effect of tower is neglected at the moment
 		self.concret_tower=False
 		self.single_field=True 
-
 		self.R1=90.
 		self.dsep=0.
 		self.fb=0.7
@@ -117,7 +120,7 @@ class Parameters:
 		self.n_W_rcv=10
 		self.X_rcv=0. # receiver location
 		self.Y_rcv=0.
-		self.Z_rcv=120.
+		self.Z_rcv=None
 		self.num_aperture=1
 		self.gamma=0.
 
@@ -148,6 +151,10 @@ class Parameters:
 		elif self.lat<0:
 			self.hemisphere='South'
 
+		self.helio_refl=self.helio_rho*self.helio_soil*self.helio_sf_ratio
+		if not isinstance(self.Z_rcv, list):
+			self.Z_rcv=self.H_tower
+
 		# estimate a rough number of large field
 		eta_field=0.4 # assumed field effieicy at design point
 		if self.method==1:
@@ -172,7 +179,10 @@ class Parameters:
 				['W_helio', self.W_helio, 'm'],    
 				['H_helio', self.H_helio, 'm'],
 				['Z_helio', self.Z_helio, 'm'],      
-				['rho_helio', self.rho_helio, '-'],    
+				['helio_rho', self.helio_rho, '-'],  
+				['helio_soil', self.helio_soil, '-'],   
+				['helio_sf_ratio', self.helio_sf_ratio, '-'],   
+				['helio effective reflectivity', self.helio_refl, '-'],     
 				['slope_error', self.slope_error, 'rad'],
 				['H_tower', self.H_tower, 'm'],    
 				['R_tower', self.R_tower, 'm'], 
