@@ -26,7 +26,7 @@ class TestMultiAperture(unittest.TestCase):
 			self.newcase=True
 
 			pm=Parameters()
-			pm.Q_in_rcv=[56e6*0.25,56e6*0.5,56e6*0.25]
+			pm.Q_in_rcv=56e6
 			pm.n_row_oelt=5
 			pm.n_col_oelt=22
 			pm.H_tower=120.
@@ -45,7 +45,7 @@ class TestMultiAperture(unittest.TestCase):
 			pm.dependent_par()
 			#pm.saveparam(self.casedir)
 
-			crs=CRS(latitude=pm.lat, casedir=self.casedir, nproc=1, verbose=False)   
+			crs=CRS(latitude=pm.lat, casedir=self.casedir, nproc=1, verbose=True)   
 			weafile='../example/demo_TMY3_weather.motab'
 			crs.receiversystem(receiver=pm.rcv_type, rec_w=pm.W_rcv, rec_h=pm.H_rcv, rec_x=pm.X_rcv, rec_y=pm.Y_rcv, rec_z=pm.Z_rcv, rec_tilt=pm.tilt_rcv, rec_grid_w=int(pm.n_W_rcv), rec_grid_h=int(pm.n_H_rcv), rec_abs=pm.alpha_rcv, num_aperture=pm.num_aperture, gamma=pm.gamma)
 
@@ -73,9 +73,9 @@ class TestMultiAperture(unittest.TestCase):
 							H_tower    = pm.H_tower, 
 							A_helio    = A_helio, 
 							n_helios_total = crs.n_helios, 
-							Q_in_rcv_total = sum(crs.Q_in_rcv), 
+							Q_in_rcv_total = crs.Q_in_rcv, 
 							num_aperture   = pm.num_aperture, 
-							Q_in_rcv   = crs.Q_in_rcv, 
+							Q_in_rcv   = crs.Q_in_rcv_i, 
 							n_helios   = crs.n_helios_i, 
 							H_rcv      = pm.H_rcv, 
 							W_rcv      = pm.W_rcv,  

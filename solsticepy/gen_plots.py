@@ -151,9 +151,9 @@ class Case:
 if __name__=='__main__':
 	casedir='../tests/test-multi-aperture'
 	Case=Case(casedir)
-	#Case.plot_initial_layout()
-	#Case.plot_designed_layout()
-	#Case.plot_aiming()
+	Case.plot_initial_layout()
+	Case.plot_designed_layout()
+	Case.plot_aiming()
 	Case.plot_oelt(num_aperture=3, savefig=True)
 
 	

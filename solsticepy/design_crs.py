@@ -109,7 +109,7 @@ class CRS:
 		    (9) tower_h    : float, tower height (m)
 		    (10)tower_r   : float, radius of tower (m)
 		    (11)num_hst  :   int, number of heliostats used in the field design 
-		    (12)Q_in_rcv :   int, required heat of the receiver in the field design 
+
 		 '''
 	   
 		if field[-3:]=='csv':
@@ -212,12 +212,12 @@ class CRS:
 					performance_hst=np.zeros((nhst, 9))  
 					efficiency_hst=np.zeros(nhst)
 				else:
-					efficiency_total, performance_hst=self.master.run(azimuth, elevation, num_rays, self.hst_rho, dni, folder=onesunfolder, gen_vtk=gen_vtk, printresult=False, verbose=self.verb, system=system)
+					#efficiency_total, performance_hst=self.master.run(azimuth, elevation, num_rays, self.hst_rho, dni, folder=onesunfolder, gen_vtk=gen_vtk, printresult=False, verbose=self.verb, system=system)
 					
-					#res=np.loadtxt(onesunfolder+'/result-formatted.csv', dtype=str, delimiter=',')
-					#res_hst=np.loadtxt(onesunfolder+'/heliostats-raw.csv', dtype=str, delimiter=',')
-					#efficiency_total=res[-2,1].astype(float)/res[1,1].astype(float)
-					#performance_hst=res_hst[1:,-9:].astype(float)
+					res=np.loadtxt(onesunfolder+'/result-formatted.csv', dtype=str, delimiter=',')
+					res_hst=np.loadtxt(onesunfolder+'/heliostats-raw.csv', dtype=str, delimiter=',')
+					efficiency_total=res[-2,1].astype(float)/res[1,1].astype(float)
+					performance_hst=res_hst[1:,-9:].astype(float)
 					
 					efficiency_hst=performance_hst[:,-1]/performance_hst[:,0]
 
@@ -275,12 +275,12 @@ class CRS:
 		azi_des, ele_des=self.sun.convert_convention('solstice', azi, zen) 
 
 		sys.stderr.write("\n"+green('Design Point: \n'))		
-		efficiency_total, performance_hst_des=self.master.run(azi_des, ele_des, num_rays, self.hst_rho, dni_des, folder=designfolder, gen_vtk=gen_vtk, printresult=False, verbose=self.verb, system=system)
+		#efficiency_total, performance_hst_des=self.master.run(azi_des, ele_des, num_rays, self.hst_rho, dni_des, folder=designfolder, gen_vtk=gen_vtk, printresult=False, verbose=self.verb, system=system)
 		
-		#res=np.loadtxt(designfolder+'/result-formatted.csv', dtype=str, delimiter=',')
-		#res_hst=np.loadtxt(designfolder+'/heliostats-raw.csv', dtype=str, delimiter=',')
-		#efficiency_total=res[-2,1].astype(float)/res[1,1].astype(float)
-		#performance_hst_des=res_hst[1:,-9:].astype(float)
+		res=np.loadtxt(designfolder+'/result-formatted.csv', dtype=str, delimiter=',')
+		res_hst=np.loadtxt(designfolder+'/heliostats-raw.csv', dtype=str, delimiter=',')
+		efficiency_total=res[-2,1].astype(float)/res[1,1].astype(float)
+		performance_hst_des=res_hst[1:,-9:].astype(float)
 		
 
 		Qin=performance_hst_des[:,-1]
@@ -301,11 +301,16 @@ class CRS:
 			print('')			
 			print('Method 1')
 			self.Q_in_rcv=Q_in_des
+			if self.receiver=='multi-aperture':
+				self.Q_in_rcv_i=[] # the incident power on each aperture
+				for ap in range(self.num_aperture):
+					self.Q_in_rcv_i.append(0.)
 			power=0.
 			select_hst=np.array([])
 			if self.receiver=='multi-aperture-individual':
 				# selecting heliostats based on the required heat from individual receiver
 				# initial selection
+				assert isinstance(Q_in_des, list), "Q_in_des should be a list that specify the reuquired incident power to each aperture"
 
 				for ap in range(self.num_aperture):
 					power_i=0.
@@ -318,16 +323,21 @@ class CRS:
 							select_hst=np.append(select_hst, idx)
 							power_i+=Qin[idx]
 					power+=power_i
+				self.Q_in_rcv_i=Q_in_des
 
 			else:
 				# initial selection
 				# for single-aperture receiver 
 				# or multi-aperture receiver configuration that selects heliostats based on the total required heat
+				assert isinstance(Q_in_des, float), "Q_in_des should be float, which is the total required incident power to the receiver"
+
 				for i in range(len(ID)):
 					if power<Q_in_des:
 						idx=ID[i]
 						select_hst=np.append(select_hst, idx)
 						power+=Qin[idx]
+						ap_idx=int(hst_aim_idx[i])
+						self.Q_in_rcv_i[ap_idx]+=Qin[idx]
 
 				
 		else:

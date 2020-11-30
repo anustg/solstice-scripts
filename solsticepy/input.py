@@ -151,7 +151,7 @@ class Parameters:
 		# estimate a rough number of large field
 		eta_field=0.4 # assumed field effieicy at design point
 		if self.method==1:
-			if self.num_aperture==1:
+			if isinstance(self.Q_in_rcv, float):
 				self.n_helios=self.Q_in_rcv/self.W_helio/self.H_helio/self.dni_des/eta_field
 			else:
 				self.n_helios=sum(self.Q_in_rcv)/self.W_helio/self.H_helio/self.dni_des/eta_field
