@@ -21,20 +21,40 @@ class TestLayout(unittest.TestCase):
 		self.savedir='.'	
 		self.plot=False
 
-	'''
+
 	def test_polarfield(self):
 		field='polar'
 		pos_and_aim, Nzones, Nrows_zone=radial_stagger(self.latitude, self.num_hst, self.width, self.height, self.hst_z, self.towerheight, self.R1, self.fb, self.dsep, field, savedir=self.savedir, plot=self.plot)
 		num=len(pos_and_aim)-2
 		self.assertEqual(num, self.num_hst)
 		#os.system('rm *.csv')
-	'''
+
 	def test_multiaperture(self):
 		field='multi-aperture'
 		num_aperture=3
 		ang_rang=180.
-		rec_w=12.
-		pos_and_aim, Nzones, Nrows_zone=radial_stagger(self.latitude, self.num_hst, self.width, self.height, self.hst_z, self.towerheight, self.R1, self.fb, self.dsep, field, num_aperture, ang_rang,  rec_w, self.savedir, self.plot)
+		rec_w=[12., 12., 12.]
+		rec_z=[self.towerheight, self.towerheight, self.towerheight]
+		pos_and_aim, Nzones, Nrows_zone=radial_stagger(
+				latitude=self.latitude, 
+				num_hst=self.num_hst, 
+				width=self.width, 
+				height=self.height, 
+				hst_z=self.hst_z, 
+				towerheight=self.towerheight, 
+				R1=self.R1, 
+				fb=self.fb, 
+				dsep=self.dsep, 
+				field=field, 
+				num_aperture=num_aperture, 
+				gamma=ang_rang, 
+				rec_w=rec_w, 
+				rec_z=rec_z,
+				savedir=self.savedir, 
+				verbose=False,
+				plot=self.plot,
+				plt_aiming=None)
+
 		num=len(pos_and_aim)-2
 		print(num)
 		self.assertEqual(num, self.num_hst)

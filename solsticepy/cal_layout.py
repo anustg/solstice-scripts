@@ -1,5 +1,6 @@
 import numpy as np
 import sys
+import os
 import matplotlib
 #matplotlib.use("agg")
 import matplotlib.pyplot as plt
@@ -304,9 +305,14 @@ def radial_stagger(latitude, num_hst, width, height, hst_z, towerheight, R1, fb,
 	pos_and_aiming=pos_and_aiming.reshape(num_hst+2, 14)
 
 	if verbose:
+		if not os.path.exists(savedir):
+			os.makedirs(savedir)
 		np.savetxt('%s/pos_and_aiming.csv'%savedir, pos_and_aiming, fmt='%s', delimiter=',')
 
 	if plot:
+		if not os.path.exists(savedir):
+			os.makedirs(savedir)
+
 		fts=24
 		plt.figure(dpi=100.,figsize=(12,9))
 		plt.plot(XX, YY, '.')

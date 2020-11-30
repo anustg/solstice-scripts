@@ -303,7 +303,8 @@ class CRS:
 			self.Q_in_rcv=Q_in_des
 			power=0.
 			select_hst=np.array([])
-			if self.receiver=='multi-aperture':
+			if self.receiver=='multi-aperture-individual':
+				# selecting heliostats based on the required heat from individual receiver
 				# initial selection
 
 				for ap in range(self.num_aperture):
@@ -320,7 +321,8 @@ class CRS:
 
 			else:
 				# initial selection
-
+				# for single-aperture receiver 
+				# or multi-aperture receiver configuration that selects heliostats based on the total required heat
 				for i in range(len(ID)):
 					if power<Q_in_des:
 						idx=ID[i]
