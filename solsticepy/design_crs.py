@@ -401,7 +401,6 @@ class CRS:
 		self.n_helios_i=[]
 		for ap in range(self.num_aperture):
 			# lookup table
-			print(ap)
 			oelt[ap]=np.zeros(np.shape(table))
 
 			idx_apt_i=(self.hst_aim_idx==ap)
@@ -459,10 +458,12 @@ class CRS:
 		if self.num_aperture==1:
 			return oelt[0], A_land
 		else:
+			# oelt of the total field
 			oelt[self.num_aperture]= np.divide(QIN, QTOT, out=np.zeros(QIN.shape, dtype=float), where=QTOT!=0) 
 			oelt[self.num_aperture][2, 3:]=table[2, 3:].astype(float)
 			oelt[self.num_aperture][3:,2]=table[3:,2].astype(float)
 
+			# morning and afternoon wrapping for the side apertures
 			if self.num_aperture==3:
 				oelt[0][3:,3+int(nh/2):]=oelt[2][3:, 3:3+int(nh/2)][:,::-1]
 				oelt[2][3:,3+int(nh/2):]=oelt[0][3:, 3:3+int(nh/2)][:,::-1]

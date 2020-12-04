@@ -451,7 +451,7 @@ def aiming_cylinder(r_height,r_diameter, pos_and_aiming, savefolder, c_aiming=0.
 
 def multi_aperture_pos(rec_w, gamma, n, i):
 	"""
-	This function returens the angular position of each aperture
+	This function returns the angular position of each aperture
 	in the multi-aperture configration that has n apertures
 	in the angular range of gamma
 
