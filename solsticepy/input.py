@@ -120,7 +120,7 @@ class Parameters:
 		self.n_W_rcv=10
 		self.X_rcv=0. # receiver location
 		self.Y_rcv=0.
-		self.Z_rcv=None
+		#self.Z_rcv=None
 		self.num_aperture=1
 		self.gamma=0.
 
@@ -152,8 +152,11 @@ class Parameters:
 			self.hemisphere='South'
 
 		self.helio_refl=self.helio_rho*self.helio_soil*self.helio_sf_ratio
-		if not isinstance(self.Z_rcv, list):
+
+
+		if self.num_aperture==1:
 			self.Z_rcv=self.H_tower
+
 
 		# estimate a rough number of large field
 		eta_field=0.4 # assumed field effieicy at design point
@@ -208,7 +211,6 @@ class Parameters:
 				['n_rays', self.n_rays, '-'] ,
 				['n_procs', self.n_procs, '-'] 
 				])
-
 		np.savetxt(savedir+'/simulated_parameters.csv', param, delimiter=',', fmt='%s')
     
 
