@@ -124,7 +124,7 @@ def output_matadata_motab(table, field_type, aiming, n_helios, A_helio, eff_desi
 
 
 
-def output_matadata_motab_multi_aperture(TABLE, eff_design, eff_annual, A_land, H_tower, A_helio, n_helios_total, Q_in_rcv_total, num_aperture, Q_in_rcv, n_helios, H_rcv, W_rcv,  savedir=None):
+def output_matadata_motab_multi_aperture(TABLE, eff_design, eff_annual, A_land, H_tower, A_helio, n_helios_total, Q_in_rcv_total, num_aperture, Q_in_rcv, n_helios, H_rcv, W_rcv, Z_rcv, savedir=None):
 	"""Output the .motab file to work with the SolarTherm program
 
 	``Arguments``
@@ -153,9 +153,9 @@ def output_matadata_motab_multi_aperture(TABLE, eff_design, eff_annual, A_land, 
 	data='#METADATA,%s,%s,%s,%s,%s,%s,%s,%s'%(eff_design, eff_annual, A_land, H_tower, A_helio, n_helios_total, Q_in_rcv_total, num_aperture)
 
 	for i in range(num_aperture):
-		labels+=',Q_in_rcv_%s,n_helios_%s,H_rcv_%s,W_rcv_%s'%(i, i, i, i)
+		labels+=',Q_in_rcv_%s,n_helios_%s,H_rcv_%s,W_rcv_%s, Z_rcv_%s'%(i, i, i, i, i)
 		units+=',W,real,m,m'
-		data+=',%s,%s,%s,%s'%(Q_in_rcv[i], n_helios[i], H_rcv[i], W_rcv[i])
+		data+=',%s,%s,%s,%s,%s'%(Q_in_rcv[i], n_helios[i], H_rcv[i], W_rcv[i], Z_rcv[i])
 
 	labels+='\n'
 	units+='\n'

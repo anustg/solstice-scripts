@@ -5,9 +5,10 @@ import matplotlib
 #matplotlib.use("agg")
 import matplotlib.pyplot as plt
 from .cal_sun import *
+from .design_multi_aperture import *
 from .gen_vtk import gen_vtk
 
-def radial_stagger(latitude, num_hst, width, height, hst_z, towerheight, R1, fb, dsep=0., field='polar', num_aperture=0, gamma=0., rec_w=0., rec_z=[], savedir='.', verbose=False, plot=False, plt_aiming=None):
+def radial_stagger(latitude, num_hst, width, height, hst_z, towerheight, R1, fb, dsep=0., field='polar', num_aperture=1, gamma=0., rec_w=0., rec_z=[], savedir='.', verbose=False, plot=False, plt_aiming=None):
 	'''Generate a radial-stagger heliostat field, ref. Collado and Guallar, 2012, Campo: Generation of regular heliostat field.
 
 	``Arguments``
@@ -211,11 +212,13 @@ def radial_stagger(latitude, num_hst, width, height, hst_z, towerheight, R1, fb,
 		hstpos[:, 1]=YY
 		hstpos[:,2]=hst_z
 
+		#MAC=MultiApertureConfiguration(n=num_aperture, gamma=gamma, H_tower=towerheight, H_rcv=rec_w, H_rcv=rec_h)
+
 		ANGLE=np.array([])
 		NORMRCV=np.array([])
-		C=np.array([])
+		C=np.array([]) # center of each aperture
+		APOS=np.array([]) #angular position of each aperture
 
-		APOS=np.array([])
 		for i in range(num_aperture):
 			ang_pos, xc, yc=multi_aperture_pos(rec_w, gamma, num_aperture, i)
 			print(ang_pos, xc, yc)

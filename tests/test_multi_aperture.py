@@ -82,6 +82,7 @@ class TestMultiAperture(unittest.TestCase):
 							n_helios   = crs.n_helios_i, 
 							H_rcv      = pm.H_rcv, 
 							W_rcv      = pm.W_rcv,  
+							Z_rcv      = pm.Z_rcv,  
 							savedir    = self.tablefile)
 
 		end=time.time()

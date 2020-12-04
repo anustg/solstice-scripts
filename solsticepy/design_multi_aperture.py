@@ -9,6 +9,7 @@ class MultiApertureConfiguration:
 			(1) angular position of each aperture
 			(2) elevation position and level index of each aperture
 			(3) index of the paired aperture
+			(4) normal vector of each aperture plane
 
 		by given 
 			(1) total number of apertures (n)
@@ -54,7 +55,7 @@ class MultiApertureConfiguration:
 	def angular_pos(self):
 		self.Omega=np.array([])
 
-		if gamma%360.==0:
+		if self.gamma%360.==0:
 			for i in range(self.n):
 				omega=360./float(self.n)*float(i)-90.				
 				self.Omega=np.append(self.Omega, omega)
@@ -67,7 +68,7 @@ class MultiApertureConfiguration:
 		self.Elev=np.array([])
 		self.LV=np.array([])
 
-		if self.mode='even':
+		if self.mode=='odd':
 			for i in range(self.n):
 				if i<=(self.n-1)/2:
 					lv=2*i+1
@@ -75,25 +76,25 @@ class MultiApertureConfiguration:
 					lv=-2*(i-self.n)
 				self.LV=np.append(self.LV, lv)
 
-		elif self.mode='odd':
+		elif self.mode=='even':
 			for i in range(self.n):		
 				if i<=(self.n/2-1):
 					lv=2*i+1
 				else:
-					lv=-2*(i-n)
+					lv=-2*(i-self.n)
 				self.LV=np.append(self.LV, lv)
 		
 		self.i_idx=self.LV.argsort()
 		
 		for lv in range(1, self.n+1):
 			if lv==1:
-				elev=H_tower
+				elev=self.H_tower
 			else:
-				idx=self.i_idx[lv]
-				idx1=self.i_idx[lv-1]
+				idx=self.i_idx[lv-1]
+				idx1=self.i_idx[lv-2]
 
-				h_lv=H_rcv[idx]
-				h_lv1=H_rcv[idx1]
+				h_lv=self.H_rcv[idx]
+				h_lv1=self.H_rcv[idx1]
 				elev-=(h_lv+h_lv1)/2.
 			self.Elev=np.append(self.Elev, elev)
 			
@@ -110,7 +111,7 @@ class MultiApertureConfiguration:
 
 	def get_i_index(self, lv):
 		"return the aperture index at level lv"
-		return self.i_idx[lv]
+		return self.i_idx[lv-1]
 
 	def get_pair_idx(self, i):
 		if self.mode=='even':
