@@ -124,11 +124,11 @@ def output_matadata_motab(table, field_type, aiming, n_helios, A_helio, eff_desi
 
 
 
-def output_matadata_motab_multi_aperture(TABLE, eff_design, eff_annual, A_land, H_tower, A_helio, n_helios_total, Q_in_rcv_total, num_aperture, Q_in_rcv, n_helios, H_rcv, W_rcv, Z_rcv, savedir=None):
+def output_matadata_motab_multi_aperture(TABLE, eff_design, eff_annual, A_land, H_tower, A_helio, n_helios_total, Q_in_rcv_total, num_aperture, Q_in_rcv, n_helios, H_rcv, W_rcv, Z_rcv, mac, savedir=None):
 	"""Output the .motab file to work with the SolarTherm program
 
 	``Arguments``
-		* TABLE   (numpy array): the oelt that returned by design_crs.CRS.field_design_annual, listed by declination and hour angles, for each aperture
+		* TABLE   (dic): each key is the index of each aperture, and the value is the corresponding oelt (numpy array) that returned by design_crs.CRS.field_design_annual, listed by declination and hour angles
 		* eff_design    (float): the optical efficiency at design point
 		* eff_annual    (float): the annual optical efficiency (dni weighted)
 		* A_land        (float): the total land area of the field (m2)
@@ -137,10 +137,12 @@ def output_matadata_motab_multi_aperture(TABLE, eff_design, eff_annual, A_land, 
 		* n_helios_total  (int): total number of heliostats
 		* Q_in_rcv_total(float): the total required incident power on the receiver at design point (W)
 		* num_aperture    (int): number of apertures in the multi-aperture configuration
-		* Q_in_rcv       (list): a list of the required incident power on all the apertures at design point (W)
+		* Q_in_rcv       (list): a list of the incident power on each of the aperture at design point (W)
 		* n_helios       (list): a list of number of heliostats that associated with each aperture
-		* H_rcv          (list): a list of heights of all the apertures (m)
-		* W_rcv          (list): a list of widthes of all the apertures (m)
+		* H_rcv          (list): a list of height of each aperture (m)
+		* W_rcv          (list): a list of width of each aperture (m)
+		* Z_rcv          (list): a list of elevation height of each aperture (m)
+		* mac                  : MultiApertureConfiguration class instance
 		* savedir         (str): the directory to save this .motab file
 		* details_en     (dict): the key of the dict is the name of the breakdown of energy (loss), the value of the dict is a numpy array that contains the value of the energy (loss) with the corresponding declination and hour angles
 	
@@ -151,7 +153,10 @@ def output_matadata_motab_multi_aperture(TABLE, eff_design, eff_annual, A_land, 
 	units='##METAUNITS,real,real,m2,m,m2,real,W,real'
 	data='#METADATA,%s,%s,%s,%s,%s,%s,%s,%s'%(eff_design, eff_annual, A_land, H_tower, A_helio, n_helios_total, Q_in_rcv_total, num_aperture)
 
-	for i in range(num_aperture):
+	# the sequence is correspondence to the level index, 
+	for lv in range(1, num_aperture+1):
+		i=mac.get_i_index(lv)
+
 		labels+=',Q_in_rcv_%s,n_helios_%s,H_rcv_%s,W_rcv_%s, Z_rcv_%s'%(i, i, i, i, i)
 		units+=',W,real,m,m'
 		data+=',%s,%s,%s,%s,%s'%(Q_in_rcv[i], n_helios[i], H_rcv[i], W_rcv[i], Z_rcv[i])
@@ -178,7 +183,8 @@ def output_matadata_motab_multi_aperture(TABLE, eff_design, eff_annual, A_land, 
 		if i==num_aperture:
 			f.write('double optical_efficiency_total(%s, %s)\n'%(m,n))
 		else:
-			f.write('double optical_efficiency_aperture_%s(%s, %s)\n'%(i, m,n))
+			lv=mac.get_lv_index(i)
+			f.write('double optical_efficiency_level_%.0f(%s, %s)\n'%(lv, m,n))
 
 		hour_angle=table[2, 3:]
 		declination=table[3:,2]
