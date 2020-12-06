@@ -102,8 +102,8 @@ class MultiApertureConfiguration:
 	def get_angular_pos(self, i):
 		return self.Omega[i]
 	
-	def get_elev_height(self, i):
-		return self.Elev[i]
+	def get_elev_height(self, lv):
+		return self.Elev[lv-1]
 
 	def get_lv_index(self, i):
 		"return the level index of aperture i"
