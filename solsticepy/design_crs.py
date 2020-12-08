@@ -483,7 +483,8 @@ class CRS:
 		'''  
 		self.master.casedir=self.casedir
 		self.n_helios=len(self.hst_pos) 
-		oelt, ANNUAL=self.master.run_annual(nd=nd, nh=nh, latitude=self.latitude, num_rays=num_rays, num_hst=self.n_helios,rho_mirror=self.hst_rho, dni=dni_des, verbose=self.verb)
+		system=self.receiver
+		oelt, ANNUAL=self.master.run_annual(nd=nd, nh=nh, latitude=self.latitude, num_rays=num_rays, num_hst=self.n_helios,rho_mirror=self.hst_rho, dni=dni_des,hst_aim_idx=self.hst_aim_idx, num_aperture=self.num_aperture, verbose=self.verb, system=system)
 
 		Xmax=max(self.hst_pos[:,0])
 		Xmin=min(self.hst_pos[:,0])
@@ -491,11 +492,7 @@ class CRS:
 		Ymin=min(self.hst_pos[:,1])
 		A_land=(Xmax-Xmin)*(Ymax-Ymin)
 		print('land area', A_land)
-
-		if self.verb:
-			np.savetxt(self.casedir+'/lookup_table.csv', oelt, fmt='%s', delimiter=',')
-
-
+		'''
 		designfolder=self.casedir+'/des_point'
 		day=self.sun.days(21, 'Mar')
 		dec=self.sun.declination(day)
@@ -507,7 +504,7 @@ class CRS:
 		sys.stderr.write("\n"+green('Design Point: \n'))		
 		efficiency_total, performance_hst_des=self.master.run(azi_des, ele_des, num_rays, self.hst_rho, dni_des, folder=designfolder, gen_vtk=False, printresult=False, verbose=self.verb)
 		self.eff_des=efficiency_total.n
-
+		'''
 		return oelt, A_land
 		
 

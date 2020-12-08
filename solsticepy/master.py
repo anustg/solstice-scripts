@@ -138,7 +138,7 @@ class Master:
 				sys.stderr.write(green("Completed successfully.\n"))
 			return eta, performance_hst
 
-	def run_annual(self, nd, nh, latitude, num_rays, num_hst,rho_mirror,dni, gen_vtk=False,verbose=False):
+	def run_annual(self, nd, nh, latitude, num_rays, num_hst, rho_mirror, dni, hst_aim_idx, num_aperture=1, gen_vtk=False,verbose=False, system='crs'):
 
 		"""Run a list of optical simulations to obtain annual performance (lookup table) using Solstice 
 
@@ -178,17 +178,28 @@ class Master:
 		ANNUAL=np.zeros((num_hst, 9))    
 		run=np.r_[0]
 
+		oelt={}
+		QTOT=np.zeros(np.shape(table))
+		QIN=np.zeros(np.shape(table))
+		self.n_helios_i=[]
+
+		for ap in range(num_aperture):
+			oelt[ap]=np.zeros(np.shape(table))
+			oelt[ap][2, 3:]=table[2, 3:].astype(float)
+			oelt[ap][3:,2]=table[3:,2].astype(float)
+			idx_apt_i=(hst_aim_idx==ap)
+			self.n_helios_i.append(np.sum(idx_apt_i))
+
 		for i in range(len(case_list)):     
 			c=int(case_list[i,0].astype(float))
 			if c not in run:
 				azimuth=SOLSTICE_AZI[c-1]
 				elevation=SOLSTICE_ELE[c-1]
-				#if np.sin(elevation*np.pi/180.)>=1.e-5:
-				#	dni=1618.*np.exp(-0.606/(np.sin(elevation*np.pi/180.)**0.491))
-				#else:
-				#	dni=0.
+				if np.sin(elevation*np.pi/180.)>=1.e-5:
+					dni=1618.*np.exp(-0.606/(np.sin(elevation*np.pi/180.)**0.491))
+				else:
+					dni=0.
 
-			   
 				sys.stderr.write("\n"+green('Sun position: %s \n'%c))
 				print('azimuth: %.2f'% azimuth, ', elevation: %.2f'%elevation)
 
@@ -196,10 +207,10 @@ class Master:
 
 				# run solstice
 				if elevation<1.: # 1 degree
-				    efficiency_total=ufloat(0,0)
-				    performance_hst=np.zeros((num_hst, 9))  
+					efficiency_total=ufloat(0,0)
+					performance_hst=np.zeros((num_hst, 9))  
 				else:
-					efficiency_total, performance_hst=self.run(azimuth, elevation, num_rays, rho_mirror, dni, folder=onesunfolder, gen_vtk=gen_vtk, printresult=False, verbose=verbose)
+					efficiency_total, performance_hst=self.run(azimuth, elevation, num_rays, rho_mirror, dni, folder=onesunfolder, gen_vtk=gen_vtk, printresult=False, verbose=verbose, system=system)
 
 					sys.stderr.write(yellow("Total efficiency: {:f}\n".format(efficiency_total)))
 
@@ -207,26 +218,60 @@ class Master:
 			else:
 				ANNUAL+=performance_hst
 
+			for ap in range(num_aperture):
+				idx_apt_i=(hst_aim_idx==ap)
+				for a in range(len(table[3:])):
+					for b in range(len(table[0,3:])):
+						val=re.findall(r'\d+',    table[a+3,b+3])
+						if val==[]:
+						    oelt[ap][a+3,b+3]=0
+						else:
+							if c==float(val[0]):
+								Qtot=performance_hst[idx_apt_i,0]
+								Qin=performance_hst[idx_apt_i,-1]	
+								eff=np.sum(Qin)/np.sum(Qtot)
 
-			for a in range(len(table[3:])):
-				for b in range(len(table[0,3:])):
-				    val=re.findall(r'\d+',    table[a+3,b+3])
-				    if val==[]:
-				        table[a+3,b+3]=0
-				    else:
-				        if c==float(val[0]):
-				            table[a+3,b+3]=efficiency_total.nominal_value
+								oelt[ap][a+3,b+3]=eff
+								QTOT[a+3,b+3]+=np.sum(Qtot)
+								QIN[a+3,b+3]+=np.sum(Qin)
 
 			run=np.append(run,c)   
 
-		annual_title=np.array(['Q_solar','Q_cosine', 'Q_shade', 'Q_hst_abs', 'Q_block', 'Q_atm', 'Q_spil', 'Q_refl', 'Q_rcv_abs']) 
-		ANNUAL=np.vstack((annual_title, ANNUAL))
-		if verbose:
-			np.savetxt(self.casedir+'/lookup_table.csv', table, fmt='%s', delimiter=',')
-			np.savetxt(self.casedir+'/result-heliostats-annual-performance.csv', ANNUAL, fmt='%s', delimiter=',')
 
-		sys.stderr.write("\n"+green("Lookup table saved.\n"))
+		if verbose:
+			annual_title=np.array(['Q_solar','Q_cosine', 'Q_shade', 'Q_hst_abs', 'Q_block', 'Q_atm', 'Q_spil', 'Q_refl', 'Q_rcv_abs']) 
+			ANNUAL=np.vstack((annual_title, ANNUAL))
+			np.savetxt(self.casedir+'/result-heliostats-annual-performance.csv', ANNUAL, fmt='%s', delimiter=',')
+			sys.stderr.write("\n"+green("Lookup table saved.\n"))
+
 		sys.stderr.write(green("Completed successfully.\n"+"\n"))
-		return table, ANNUAL
+
+		if num_aperture==1:
+			oelt=oelt[0]
+			if verbose:
+				np.savetxt(self.casedir+'/lookup_table.csv', oelt, fmt='%s', delimiter=',')
+
+		else:
+			# oelt of the total field
+			oelt[num_aperture]= np.divide(QIN, QTOT, out=np.zeros(QIN.shape, dtype=float), where=QTOT!=0) 
+			oelt[num_aperture][2, 3:]=table[2, 3:].astype(float)
+			oelt[num_aperture][3:,2]=table[3:,2].astype(float)
+
+			# morning and afternoon wrapping for the side apertures
+			if num_aperture==3:
+				oelt[0][3:,3+int(nh/2):]=oelt[2][3:, 3:3+int(nh/2)][:,::-1]
+				oelt[2][3:,3+int(nh/2):]=oelt[0][3:, 3:3+int(nh/2)][:,::-1]
+
+			if verbose:
+				for ap in range(num_aperture+1):
+					if ap==num_aperture:
+						np.savetxt(self.casedir+'/lookup_table_total.csv', oelt[ap], fmt='%s', delimiter=',')			
+					else:
+						np.savetxt(self.casedir+'/lookup_table_%s.csv'%ap, oelt[ap], fmt='%s', delimiter=',')	
+
+		return oelt, ANNUAL		
+
+
+
 
 
