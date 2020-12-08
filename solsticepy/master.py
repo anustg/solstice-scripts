@@ -94,6 +94,7 @@ class Master:
 			run_prog("solstice",['-D%s,%s'%(azimuth,elevation),'-v', '-t', self.nproc, '-n',num_rays,'-R',RECV_IN,'-fo',self.in_case(folder, 'simul'),YAML_IN])
 
 		folder=os.path.abspath(folder)
+
 		if gen_vtk and verbose:
 			dirn = os.getcwd()
 			try:

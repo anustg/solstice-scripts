@@ -80,7 +80,9 @@ class Parameters:
 			self.n_helios=1000
 		self.W_helio=10.
 		self.H_helio=10.
-		self.slope_error=2.e-3 # radian
+		self.slope_error=1.53e-3 # radian
+		self.slope_error_windy=2.e-3 # radian, a largher optical error in windy conditions
+		self.windy_optics=0 # simulate the windy oelt or not? 1 is yes, 0 is no
 		self.helio_rho=0.95 # heliostat reflectivity
 		self.helio_soil=0.95 # soiling factor of heliostats
 		self.helio_sf_ratio=0.97 # heliostat reflective surface availability
@@ -176,6 +178,7 @@ class Parameters:
     
 		param=np.array([
 				['method', self.method, '-'],    
+				['windy optics', bool(self.windy_optics), '-'],    
 				['field', self.field_type, '-'],  
 				['Q_in_rcv', self.Q_in_rcv, 'W'],     
 				['n_helios(pre_des if method ==1)', self.n_helios, '-'],    
@@ -187,6 +190,7 @@ class Parameters:
 				['helio_sf_ratio', self.helio_sf_ratio, '-'],   
 				['helio effective reflectivity', self.helio_refl, '-'],     
 				['slope_error', self.slope_error, 'rad'],
+				['slope_error_windy', self.slope_error_windy, 'rad'],
 				['H_tower', self.H_tower, 'm'],    
 				['R_tower', self.R_tower, 'm'], 
 				['concret_tower', self.concret_tower, '-'],    

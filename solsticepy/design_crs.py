@@ -481,6 +481,7 @@ class CRS:
 		'''
 		Annual performance of a known field
 		'''  
+		self.master.casedir=self.casedir
 		self.n_helios=len(self.hst_pos) 
 		oelt, ANNUAL=self.master.run_annual(nd=nd, nh=nh, latitude=self.latitude, num_rays=num_rays, num_hst=self.n_helios,rho_mirror=self.hst_rho, dni=dni_des, verbose=self.verb)
 

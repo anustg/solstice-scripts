@@ -149,7 +149,7 @@ class Case:
 
 
 if __name__=='__main__':
-	casedir='../tests/test-multi-aperture'
+	casedir='../tests/test'
 	Case=Case(casedir)
 	Case.plot_initial_layout()
 	Case.plot_designed_layout()

@@ -202,6 +202,46 @@ def output_matadata_motab_multi_aperture(TABLE, eff_design, eff_annual, A_land, 
 	f.close()
 
 
+def append_oelts(table, num_tables, identifier, motabfile):
+	"""Append oelt(s) to an existing .motab file, 
+	   for example, the oelt(s) of windy conditions
+
+	``Arguments``
+		* table (numpy array): the additional oelt(s) that is to be appended  
+		* num_tables (int): the number of additional oelt(s) that is to be appended 
+		* identifier (str): the identified name of the new oelts 
+		* motabfile (str): the directory of the existing.motab file
+
+	``Return``
+		write the new table(s) to the .motab file
+	"""
+	f=open(motabfile, 'a+')
+	f.write("\n")
+	if num_tables==1:
+		# size of the lookup table  
+		m=np.shape(table)[0]-2
+		n=np.shape(table)[1]-2
+		f.write('double optics_%s(%s, %s)\n'%(identifier, m,n))
+
+		hour_angle=table[2, 3:]
+		declination=table[3:,2]
+
+		for i in range(m):
+			if i ==0:
+				row_i=np.append(0, hour_angle)
+			else:
+				row_i=np.append(declination[i-1], table[2+i, 3:])
+
+			f.write(" ".join(map(str, row_i)))
+			f.write("\n")
+
+	else:
+		#TODO append oelts of multi-aperture
+		pass	
+	f.close()
+
+
+
 def read_motab(filename, multi_aperture=False):
 
 	with open(filename) as f:
