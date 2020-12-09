@@ -149,9 +149,9 @@ def output_matadata_motab_multi_aperture(TABLE, eff_design, eff_annual, A_land, 
 	``Return``
 		write the table(s) to the .motab file
 	"""
-	labels='#METALABELS,eff_design,eff_annual,A_land,H_tower,A_helio,n_helios_total,Q_in_rcv_total,num_aperture'
-	units='##METAUNITS,real,real,m2,m,m2,real,W,real'
-	data='#METADATA,%s,%s,%s,%s,%s,%s,%s,%s'%(eff_design, eff_annual, A_land, H_tower, A_helio, n_helios_total, Q_in_rcv_total, num_aperture)
+	labels='#METALABELS,eff_design,eff_annual,A_land,H_tower,A_helio,n_helios_total,Q_in_rcv_total,num_aperture, radial_distance'
+	units='##METAUNITS,real,real,m2,m,m2,real,W,real, m'
+	data='#METADATA,%s,%s,%s,%s,%s,%s,%s,%s'%(eff_design, eff_annual, A_land, H_tower, A_helio, n_helios_total, Q_in_rcv_total, num_aperture, mac.r)
 
 	# the sequence is correspondence to the level index, 
 	for lv in range(1, num_aperture+1):

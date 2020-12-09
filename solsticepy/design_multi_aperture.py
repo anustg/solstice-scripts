@@ -1,3 +1,4 @@
+from __future__ import print_function
 import numpy as np
 
 
@@ -51,6 +52,7 @@ class MultiApertureConfiguration:
 		else:
 			self.r=W/2./np.tan(alpha/2.)
 
+		print('Aperture radial distance:', self.r)
 
 	def angular_pos(self):
 		self.Omega=np.array([])
