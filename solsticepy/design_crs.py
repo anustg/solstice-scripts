@@ -482,7 +482,7 @@ class CRS:
 		self.master.casedir=self.casedir
 		self.n_helios=len(self.hst_pos) 
 		system=self.receiver
-		oelt, ANNUAL=self.master.run_annual(nd=nd, nh=nh, latitude=self.latitude, num_rays=num_rays, num_hst=self.n_helios,rho_mirror=self.hst_rho, dni=dni_des,hst_aim_idx=self.hst_aim_idx, num_aperture=self.num_aperture, verbose=self.verb, system=system)
+		oelt, ANNUAL=self.master.run_annual(nd=nd, nh=nh, latitude=self.latitude, num_rays=num_rays, num_hst=self.n_helios,rho_mirror=self.hst_rho, dni=dni_des,hst_aim_idx=self.hst_aim_idx, num_aperture=self.num_aperture,gen_vtk=gen_vtk, verbose=self.verb, system=system)
 
 		Xmax=max(self.hst_pos[:,0])
 		Xmin=min(self.hst_pos[:,0])
