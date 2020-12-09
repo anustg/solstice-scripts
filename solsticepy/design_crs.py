@@ -125,7 +125,8 @@ class CRS:
 			pos_and_aiming, self.Nzones, self.Nrows=radial_stagger(latitude=self.latitude, num_hst=num_hst, width=hst_w, height=hst_h, hst_z=hst_z, towerheight=tower_h, R1=R1, fb=fb, dsep=0., field=field, num_aperture=self.num_aperture, gamma=self.gamma, rec_w=self.rec_w, rec_z=self.rec_z, savedir=savefolder, verbose=self.verb )        
 			  
 			layout=pos_and_aiming[2:, :]
-
+			self.hst_zone=layout[:,9].astype(float)     # zone number
+			self.hst_row=layout[:,10].astype(float)      # row index in the zone
 
 		self.hst_w=hst_w
 		self.hst_h=hst_h
@@ -137,11 +138,8 @@ class CRS:
 		self.hst_pos=layout[:,:3].astype(float)
 		self.hst_foc=layout[:,3].astype(float) 
 		self.hst_aims=layout[:,4:7].astype(float)
-
 		self.hst_aim_idx=layout[:,7].astype(float)
 
-		self.hst_zone=layout[:,9].astype(float)     # zone number
-		self.hst_row=layout[:,10].astype(float)      # row index in the zone
 
 
 	def yaml(self, dni=1000,sunshape=None,csr=0.01,half_angle_deg=0.2664,std_dev=0.2):
