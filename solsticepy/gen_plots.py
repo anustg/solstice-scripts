@@ -47,7 +47,7 @@ class Case:
 		plt.show()
 		plt.close()
 
-	def plot_designed_layout(self, perf=True, vmin=None, vmax=None, markersize=5, savefig=None, title=None, xlabel=None, ylabel=None):
+	def plot_designed_layout(self, perf=True, vmin=None, vmax=None, markersize=5, savefig=None, title=None, xlabel=None, ylabel=None, xlim=None, ylim=None):
 		'''
 		casedir: str, the case directory
 		'''
@@ -63,6 +63,7 @@ class Case:
 
 		else:
 			plt.plot(x, y, '.')
+		plt.axes().set_aspect('equal')
 		plt.colorbar()
 		if title!=None:
 			plt.title(title)
@@ -70,6 +71,10 @@ class Case:
 			plt.xlabel(xlabel)
 		if ylabel!=None:
 			plt.ylabel(ylabel)
+		if ylim!=None:
+			plt.ylim(ylim)
+		if xlim!=None:
+			plt.xlim(xlim)
 		if savefig==None:
 			plt.show()
 		else:
