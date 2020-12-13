@@ -168,8 +168,8 @@ class Parameters:
 			else:
 				self.n_helios=sum(self.Q_in_rcv)/self.W_helio/self.H_helio/self.dni_des/eta_field
 			  
-			if self.field_type!='surround':
-				self.n_helios*=2.  
+			#if self.field_type!='surround':
+			#	self.n_helios*=1.5  
 
 
 	def saveparam(self, savedir):

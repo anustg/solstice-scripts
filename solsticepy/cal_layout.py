@@ -171,11 +171,11 @@ def radial_stagger(latitude, num_hst, width, height, hst_z, towerheight, R1, fb,
 		rows=rows.flatten()
 
 		if field=='polar':
-			if i<2:
+			if i<4:
 				idx=(azimuth>1.5*np.pi)+(azimuth<0.5*np.pi)
 
 			else:
-				idx=(azimuth>(1.5*np.pi+i*np.pi/40.))+(azimuth<(np.pi/2.-i*np.pi/40.))
+				idx=(azimuth>(1.5*np.pi+i*np.pi/60.))+(azimuth<(np.pi/2.-i*np.pi/60.))
 
 			xx=R[idx]*np.sin(azimuth[idx])
 			yy=R[idx]*np.cos(azimuth[idx])
