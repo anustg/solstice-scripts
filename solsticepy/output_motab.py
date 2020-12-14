@@ -283,22 +283,26 @@ def read_motab(filename, multi_aperture=False):
 		eff_des=float(res[1])
 		eff_annual=float(res[2])
 		A_land=float(res[3])
-		n_helios=float(res[6])
+		H_tower=float(res[3])
 		A_helio=float(res[5])
+		n_helios=float(res[6])
 		Q_in_rcv=float(res[7])
 		num_aperture=int(res[8])
+		radial_distance=float(res[9])
 
 		OELT={}
 		Q_in_rcv_i=[]
 		n_helios_i=[]
 		H_rcv_i=[]
 		W_rcv_i=[]
+		Z_rcv_i=[]
 		for i in range(num_aperture+1):
 			if i<num_aperture:
-				Q_in_rcv_i.append(float(res[9+i*4]))
-				n_helios_i.append(float(res[10+i*4]))
-				H_rcv_i.append(float(res[11+i*4]))
-				W_rcv_i.append(float(res[12+i*4]))
+				Q_in_rcv_i.append(float(res[10+i*5]))
+				n_helios_i.append(float(res[11+i*5]))
+				H_rcv_i.append(float(res[12+i*5]))
+				W_rcv_i.append(float(res[13+i*5]))
+				Z_rcv_i.append(float(res[14+i*5]))
 
 			oelt=np.array([])
 			solar_hour=np.array([])
@@ -322,7 +326,7 @@ def read_motab(filename, multi_aperture=False):
 			oelt=oelt.reshape(len(declination), len(solar_hour))
 			OELT[i]=oelt
 
-		return n_helios, A_helio, eff_des, eff_annual, Q_in_rcv, A_land, solar_hour, declination, OELT, num_aperture, Q_in_rcv_i, n_helios_i, H_rcv_i, W_rcv_i
+		return eff_des, eff_annual, A_land, H_tower, A_helio, n_helios, Q_in_rcv, num_aperture, radial_distance, Q_in_rcv_i, n_helios_i, H_rcv_i, W_rcv_i, Z_rcv_i, solar_hour, declination, OELT
 
 	else:
 		n_helios=float(res[1])
