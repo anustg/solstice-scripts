@@ -83,9 +83,11 @@ class Parameters:
 		self.slope_error=1.53e-3 # radian
 		self.slope_error_windy=2.e-3 # radian, a largher optical error in windy conditions
 		self.windy_optics=0 # simulate the windy oelt or not? 1 is yes, 0 is no
-		self.helio_rho=0.95 # heliostat reflectivity
-		self.helio_soil=0.95 # soiling factor of heliostats
-		self.helio_sf_ratio=0.97 # heliostat reflective surface availability
+		#self.helio_rho=0.95 # heliostat reflectivity
+		#self.helio_soil=0.95 # soiling factor of heliostats
+		#self.helio_sf_ratio=0.97 # heliostat reflective surface availability
+		#self.helio_refl=self.helio_rho*self.helio_soil*self.helio_sf_ratio
+		self.helio_refl=0.9
 		self.H_tower=100.
 		self.R_tower=0.001  # shading effect of tower is neglected at the moment
 		self.concret_tower=False
@@ -138,7 +140,7 @@ class Parameters:
 		self.n_row_oelt=5
 		self.n_col_oelt=5
 		self.n_rays=int(5e6)
-		self.n_procs=1
+		self.n_procs=0
 		self.casedir='.'
 		self.method=1 # 1 - design the field based on the Q_in_rcv
 				      # 2 - design the field based on the n_helios
@@ -152,9 +154,6 @@ class Parameters:
 			self.hemisphere='North'
 		elif self.lat<0:
 			self.hemisphere='South'
-
-		self.helio_refl=self.helio_rho*self.helio_soil*self.helio_sf_ratio
-
 
 		if self.num_aperture==1:
 			self.Z_rcv=self.H_tower
@@ -185,9 +184,9 @@ class Parameters:
 				['W_helio', self.W_helio, 'm'],    
 				['H_helio', self.H_helio, 'm'],
 				['Z_helio', self.Z_helio, 'm'],      
-				['helio_rho', self.helio_rho, '-'],  
-				['helio_soil', self.helio_soil, '-'],   
-				['helio_sf_ratio', self.helio_sf_ratio, '-'],   
+				#['helio_rho', self.helio_rho, '-'],  
+				#['helio_soil', self.helio_soil, '-'],   
+				#['helio_sf_ratio', self.helio_sf_ratio, '-'],   
 				['helio effective reflectivity', self.helio_refl, '-'],     
 				['slope_error', self.slope_error, 'rad'],
 				['slope_error_windy', self.slope_error_windy, 'rad'],

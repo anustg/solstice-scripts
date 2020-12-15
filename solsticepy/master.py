@@ -105,8 +105,7 @@ class Master:
 				run_prog('solppraw',[self.in_case(folder, 'simul')])
 
 				# post processing
-				print(self.in_case(folder, 'geom'))
-				print(YAML_IN)
+
 				run_prog("solstice",['-D%s,%s'%(azimuth,elevation),'-g','format=obj:split=geometry','-fo',self.in_case(folder, 'geom'),YAML_IN])
 
 				# run a short raytrace to produce some ray paths

@@ -31,7 +31,7 @@ class CRS:
 			casedir : str, the directory of the case 
 			nproc (int): number of processors, e.g. nproc=1 will run in serial mode, 
                                                     nproc=4 will run with 4 processors in parallel
-											        nproc=None will run with any number of processors that are available
+											        nproc=0 will run with any number of processors that are available
 			verbose : bool, write results to files or not
 		'''
 		self.casedir=casedir
