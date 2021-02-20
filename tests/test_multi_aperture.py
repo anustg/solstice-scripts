@@ -56,7 +56,7 @@ class TestMultiAperture(unittest.TestCase):
 
 			crs.yaml(dni=900,sunshape=pm.sunshape,csr=pm.crs,half_angle_deg=pm.half_angle_deg,std_dev=pm.std_dev)
 
-			self.oelt, A_land=crs.field_design_annual(dni_des=900., num_rays=int(5e6), nd=pm.n_row_oelt, nh=pm.n_col_oelt, weafile=weafile, method=1, Q_in_des=pm.Q_in_rcv, n_helios=None, zipfiles=False, gen_vtk=False, plot=False)
+			self.oelt, A_land=crs.field_design_annual(dni_des=900., num_rays=int(5e6), nd=pm.n_row_oelt, nh=pm.n_col_oelt, weafile=weafile, method=1, Q_in_des=pm.Q_in_rcv, n_helios=None, zipfiles=False, gen_vtk=True, plot=False)
 
 			self.n_helios=crs.n_helios
 			self.eff_des=crs.eff_des

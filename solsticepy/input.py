@@ -144,6 +144,8 @@ class Parameters:
 		self.casedir='.'
 		self.method=1 # 1 - design the field based on the Q_in_rcv
 				      # 2 - design the field based on the n_helios
+		self.verbose=0 # save all the simulation details or not? 1 is yes, 0 is no
+		self.gen_vtk=0 # visualise the simulation scene or not? 1 is yes, 0 is no	
     
 
 	def dependent_par(self):

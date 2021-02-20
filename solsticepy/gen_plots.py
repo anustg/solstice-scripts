@@ -31,20 +31,39 @@ class Case:
 		return X[selected], Y[selected], self.annual[selected]
 
 
-	def plot_initial_layout(self, perf=True):
+	def plot_initial_layout(self, perf=True, vmin=None, vmax=None, markersize=5, savefig=None, title=None, xlabel=None, ylabel=None, xlim=None, ylim=None):
 		'''
 		casedir: str, the case directory
 		'''
 		x,y,annual=self.layout()
 		if perf:
 			# the initial large field
-			plt.scatter(self.pos_and_aim[:,0], self.pos_and_aim[:,1], c=self.annual)
+			if vmin==None:
+				plt.scatter(self.pos_and_aim[:,0], self.pos_and_aim[:,1], c=self.annual)
+			else:
+				plt.scatter(self.pos_and_aim[:,0], self.pos_and_aim[:,1], c=self.annual, s=markersize, vmin=vmin, vmax=vmax)
+
 			plt.plot(x, y, 'r.')
 		else:
 			plt.plot(self.pos_and_aim[:,0], self.pos_and_aim[:,1], '.')
 
+		plt.axes().set_aspect('equal')
 		plt.colorbar()
-		plt.show()
+		if title!=None:
+			plt.title(title)
+		if xlabel!=None:
+			plt.xlabel(xlabel)
+		if ylabel!=None:
+			plt.ylabel(ylabel)
+		if ylim!=None:
+			plt.ylim(ylim)
+		if xlim!=None:
+			plt.xlim(xlim)
+		if savefig==None:
+			plt.show()
+		else:
+			plt.savefig(savefig, bbox_inches='tight')
+
 		plt.close()
 
 	def plot_designed_layout(self, perf=True, vmin=None, vmax=None, markersize=5, savefig=None, title=None, xlabel=None, ylabel=None, xlim=None, ylim=None):
@@ -154,7 +173,7 @@ class Case:
 
 
 if __name__=='__main__':
-	casedir='../tests/test'
+	casedir='/media/yewang/Data/data-gen3p3-particle/study-single-aperture-optimisation-202012/optimisation-gadi/optimisation-particle/multi-aperture/integrated-storage/results/case_optimum'
 	Case=Case(casedir)
 	Case.plot_initial_layout()
 	Case.plot_designed_layout()

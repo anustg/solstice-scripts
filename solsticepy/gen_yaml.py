@@ -6,7 +6,6 @@ import matplotlib.pyplot as plt
 #from builtins import super
 
 from .data_spectral import SolarSpectrum, MirrorRhoSpectrum
-from .cal_layout import multi_aperture_pos
 import sys
 
 class Sun:
@@ -37,6 +36,7 @@ class Sun:
 				self.csr = csr
 			elif sunshape == "gaussian":
 				self.std_dev = std_dev
+
 	def yaml(self,spectrum = None):
 		"""YAML representation of the sun for solstice-input.
 
@@ -79,10 +79,12 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims,hst_w, hst_h
 	  * `slope_error` (float): reflector surface slope error rms, radians
 	  * `tower_h` (float): tower height (m)
 	  * `tower_r` (float): tower radius (a cylindrical shape tower) (m)
+
 	3. the receiver
 	  * `receiver` (str): ``'flat'``, ``'cylinder'``, or ``'stl' or 'multi-aperture'`` (first of the 'receiver' parameters)
 	  * `rec_abs` (float): receiver absorptivity
 	  * `rec_param` (numpy array or str): each element contains the geometrical parameter of the corresponding receiver.
+
 	4. others
 	  * `spectral` (bool): True - simulate the spectral dependent performance (first of the 'other' parameters)
 	  * `medium` (float): if the atmosphere is surrounded by non-participant medium, medium=0; otherwise it is the extinction coefficient in m-1
@@ -319,7 +321,7 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims,hst_w, hst_h
 	iyaml+='\n- entity:\n'
 	iyaml+='    name: tower_e\n'
 	iyaml+='    primary: 0\n' 
-	iyaml+='    transform: { translation: %s, rotation: %s }\n' % ([0, -tower_r, tower_h*0.5], [0, 0, 0]) 
+	iyaml+='    transform: { translation: %s, rotation: %s }\n' % ([0, 0, tower_h*0.5], [0, 0, 0]) 
 	iyaml+='    geometry: *%s\n' % 'tower_g'    
 	#
 	# heliostat entities from the template
@@ -555,6 +557,7 @@ def multi_aperture_receiver(rec_param, hemisphere='North', plot=False):
 		             if the front surface always facing to the field is desirable
 		         (2) the position of the virtual target
 	"""
+	# mac is the instance of class MultiApertureConfiguration (see design_multi_aperture.py)
 	# rec_w and rec_h is the size of one aperture
 	# rec_grid_w and rec_gird_h is the number of elements of one aperture
 	# rec_z is a list of the elevation height of the center of apertures
@@ -562,20 +565,19 @@ def multi_aperture_receiver(rec_param, hemisphere='North', plot=False):
 	# num_aperture is the number of apertures
 	# gamma is the angular range of the multi-aperture configration 
 
-
-	rec_w=rec_param[0]
-	rec_h=rec_param[1]
+	mac=rec_param[0]
+	rec_tilt=rec_param[1] 
 	rec_grid_w=rec_param[2]
-	rec_grid_h=rec_param[3]
+	rec_grid_h=rec_param[3]	
 
-	rec_z=rec_param[4]
-	rec_tilt=rec_param[5] 
+	rec_w=mac.W_rcv
+	rec_h=mac.H_rcv
+
 	# receiver tilt angle:
 	# 0 is vertical
 	# the standby posiion of a plane in solstice is normal points to the +z axis
 	# rotation anagle, positive is anti-clockwise
-	num_aperture=int(rec_param[6]) 
-	gamma=rec_param[7]  # angular range of the multi-aperture configration (deg)
+	num_aperture=int(mac.n) 
 
 
 	geom=''
@@ -594,9 +596,8 @@ def multi_aperture_receiver(rec_param, hemisphere='North', plot=False):
 		geom+='      slices: %d\n' % rec_grid_w 
 		geom+='\n'
 
-		ang_pos, xc, yc=multi_aperture_pos(rec_w, gamma, num_aperture, i)
-
-		zc=rec_z[i]		
+		xc, yc, zc=mac.get_cood_pos(i)
+		ang_pos=mac.get_angular_pos(i)
 		vir_z+=zc
 
 		# CREATE a receiver entity from "target_g" geometry (primary = 0)

@@ -43,7 +43,7 @@ class CRS:
 		self.sun=SunPosition()
 		self.master=Master(casedir, nproc)
 
-	def receiversystem(self, receiver, rec_w=0., rec_h=0., rec_x=0., rec_y=0., rec_z=100., rec_tilt=0., rec_grid_w=10, rec_grid_h=10, rec_abs=1., num_aperture=1, gamma=0.):
+	def receiversystem(self, receiver, rec_w=0., rec_h=0., rec_x=0., rec_y=0., rec_z=100., rec_tilt=0., rec_grid_w=10, rec_grid_h=10, rec_abs=1., mac=None):
 
 		'''
 		Arguements:
@@ -57,15 +57,14 @@ class CRS:
 		    (8) rec_grid_w  :   int, number of elements in the horizontal(x)/circumferential direction
 		    (9) rec_grid_h  :   int, number of elements in the vertical(z) direction
 		    (10) rec_abs    : float, receiver surface absorptivity, e.g. 0.9
-		    (11) num_aperture :   int, number of apertures if it is a multi-aperture receiver
-		    (12) gamma   : float, the anangular range of the multi-aperture configration (deg)	 
+		    (11) mac        : instant,  an instance of the class MultiApertureConfiguration (see design_multi_aperture.py, or None if it is a single aperture-configuration    
 		'''
 		self.receiver=receiver
 		self.rec_abs=rec_abs
-		self.rec_w=rec_w
-		self.rec_z=rec_z
-		self.num_aperture=num_aperture
-		self.gamma=gamma
+		if mac==None:
+			self.num_aperture=1
+		else:
+			self.num_aperture=mac.n
 
 		if receiver[-3:]=='stl':
 			self.rec_param=[rec_w, rec_h, receiver, rec_x, rec_y, rec_z, rec_tilt]
@@ -80,12 +79,10 @@ class CRS:
 			# rec_tilt is the tilt angle of each aperture
 			# num_aperture is the number of apertures
 			# gamma is the anangular range of the multi-aperture configration (deg)	 
-			self.rec_param=[rec_w, rec_h, rec_grid_w, rec_grid_h, rec_z, rec_tilt, num_aperture, gamma]  
-			self.rec_w=rec_w
+			self.rec_param=[mac, rec_tilt, rec_grid_w, rec_grid_h]  
 
 
-
-	def heliostatfield(self, field, hst_rho, slope, hst_w, hst_h, tower_h, tower_r=0.01, hst_z=0., num_hst=0., R1=0., fb=0., dsep=0.):
+	def heliostatfield(self, field, hst_rho, slope, hst_w, hst_h, tower_h, tower_r=0.01, hst_z=0., num_hst=0., R1=0., fb=0., dsep=0., mac=None):
 
 		'''
 		Arguements:
@@ -99,16 +96,18 @@ class CRS:
 		           - the first three columns are X, Y, Z coordinates of each heliostat
 		           - the fourth column is the focal length
 		           - the last three columns are the aiming points
-		    (2) hst_w     : float, width of a heliostat (m) 
-		    (3) hst_h     : float, height of a heliostat (m)
-		    (4) hst_z     : float, the installation height of the heliostat
-		    (5) hst_rho   : float, effective reflectivity of heliostat, which includes soiling, surface availability and surface reflectivity 
-		    (6) slope     : float, slope error(radians)
-		    (7) R1        : float, layout parameter, the distance of the first row of heliostat 
-		    (8) dsep      : float, layout parameter, the separation distance of heliostats (m)
-		    (9) tower_h    : float, tower height (m)
-		    (10)tower_r   : float, radius of tower (m)
-		    (11)num_hst  :   int, number of heliostats used in the field design 
+		    (2) hst_rho : float, effective reflectivity of heliostat, which includes soiling, surface availability and surface reflectivity 
+		    (3) slope   : float, slope error(radians)
+		    (4) hst_w   : float, width of a heliostat (m) 
+		    (5) hst_h   : float, height of a heliostat (m)
+		    (6) tower_h : float, tower height (m)
+		    (7)tower_r  : float, radius of tower (m)
+		    (8) hst_z   : float, the installation height of the heliostat
+		    (9)num_hst  :   int, number of heliostats used in the field design 
+		    (10) R1     : float, layout parameter, the distance of the first row of heliostat 
+		    (11) fb     : float, the field layout growing factor, in (0, 1)
+		    (12) dsep   : float, layout parameter, the separation distance of heliostats (m)
+		    (13) mac    : instant,  an instance of the class MultiApertureConfiguration (see design_multi_aperture.py, or None if it is a single aperture-configuration    
 
 		 '''
 	   
@@ -122,7 +121,7 @@ class CRS:
 			if not os.path.exists(savefolder):
 				os.makedirs(savefolder)
 
-			pos_and_aiming, self.Nzones, self.Nrows=radial_stagger(latitude=self.latitude, num_hst=num_hst, width=hst_w, height=hst_h, hst_z=hst_z, towerheight=tower_h, R1=R1, fb=fb, dsep=0., field=field, num_aperture=self.num_aperture, gamma=self.gamma, rec_w=self.rec_w, rec_z=self.rec_z, savedir=savefolder, verbose=self.verb )        
+			pos_and_aiming, self.Nzones, self.Nrows=radial_stagger(latitude=self.latitude, num_hst=num_hst, width=hst_w, height=hst_h, hst_z=hst_z, towerheight=tower_h, R1=R1, fb=fb, dsep=0., field=field, mac=mac, savedir=savefolder, verbose=self.verb )        
 			  
 			layout=pos_and_aiming[2:, :]
 			self.hst_zone=layout[:,9].astype(float)     # zone number

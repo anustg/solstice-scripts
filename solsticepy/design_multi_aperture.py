@@ -4,7 +4,7 @@ import numpy as np
 
 class MultiApertureConfiguration:
 
-	def __init__(self, n, gamma, H_tower, W_rcv, H_rcv):
+	def __init__(self, n, gamma, H_tower, R_tower, W_rcv, H_rcv):
 		"""
 		The functions in this class configurate a multi-aperture receiver model, including
 			(1) angular position of each aperture
@@ -16,7 +16,8 @@ class MultiApertureConfiguration:
 			(1) total number of apertures (n)
 			(2) total angular range (gamma)
 			(3)	tower height (H_tower)
-			(4) width and height of each aperture (W_rcv, H_rcv)
+			(4)	tower radius (R_tower)
+			(5) width and height of each aperture (W_rcv, H_rcv)
 
 		Note:
 			* the index of each aperture (i) starts from the most right aperture and increases counter clockwise
@@ -27,30 +28,47 @@ class MultiApertureConfiguration:
 			n      :   int, number of apertures (n>=2)
 			gamma  : float, the total angular range (the angle btw the most right and left aperture) in deg
 			H_tower: float, tower height (m)
+			R_tower: float, radius of the tower (m)
 			w_rcv  : a list of float that contains the width of each aperture (m)
 			h_rcv  : a list of float that contains the height of each aperture (m)
 		"""
 		self.n=n
 		self.gamma=gamma
 		self.H_tower=H_tower
-		self.W_rcv=W_rcv
-		self.H_rcv=H_rcv
 
 		if n%2==0:
 			self.mode='even'
 		else:
 			self.mode='odd'
 
+		self.elevation_level()
 		self.angular_pos()
+
+		self.W_rcv=[]
+		self.H_rcv=[]
+		if 'lv_1' in W_rcv:	
+			# the receiver dimension is given in the sequence of receiver level
+			for i in range(self.n):
+				lv=self.get_lv_index(i)
+				self.W_rcv.append(W_rcv['lv_%.0f'%lv])
+				self.H_rcv.append(H_rcv['lv_%.0f'%lv])
+
+		else:
+			self.W_rcv=W_rcv
+			self.H_rcv=H_rcv
+
+
 		self.elevation_height()
 
-		W=max(W_rcv)*1.2 # 20% space
+		W=max(self.W_rcv)*1.2 # 20% space
 		alpha=gamma/float(n-1)*np.pi/180.
 
 		if np.tan(alpha/2.)<1e-20:
 			self.r=W/2.
 		else:
 			self.r=W/2./np.tan(alpha/2.)
+		if self.r<R_tower:
+			self.r=R_tower
 
 		print('Aperture radial distance:', self.r)
 
@@ -66,8 +84,7 @@ class MultiApertureConfiguration:
 				omega=90.-self.gamma/2.+self.gamma/float(self.n-1)*float(i)
 				self.Omega=np.append(self.Omega, omega)
 
-	def elevation_height(self):
-		self.Elev=np.array([])
+	def elevation_level(self):
 		self.LV=np.array([])
 
 		if self.mode=='odd':
@@ -85,6 +102,9 @@ class MultiApertureConfiguration:
 				else:
 					lv=-2*(i-self.n)
 				self.LV=np.append(self.LV, lv)
+
+	def elevation_height(self):
+		self.Elev=np.array([])
 		
 		self.i_idx=self.LV.argsort()
 		
@@ -109,11 +129,11 @@ class MultiApertureConfiguration:
 
 	def get_lv_index(self, i):
 		"return the level index of aperture i"
-		return self.LV[i]
+		return int(self.LV[i])
 
 	def get_i_index(self, lv):
 		"return the aperture index at level lv"
-		return self.i_idx[lv-1]
+		return int(self.i_idx[lv-1])
 
 	def get_pair_idx(self, i):
 		if self.mode=='even':
@@ -124,7 +144,8 @@ class MultiApertureConfiguration:
 
 	def get_cood_pos(self, i):
 		omega_i=self.get_angular_pos(i)
-		z_i=self.get_elev_height(i)
+		lv=self.get_lv_index(i)
+		z_i=self.get_elev_height(lv)
 		
 		x_i=self.r*np.cos(omega_i*np.pi/180.)
 		y_i=self.r*np.sin(omega_i*np.pi/180.)
