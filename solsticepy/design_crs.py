@@ -160,7 +160,7 @@ class CRS:
 		gen_yaml(sun, self.hst_pos, self.hst_foc, self.hst_aims, self.hst_w
 		, self.hst_h, self.hst_rho, self.slope, self.receiver, self.rec_param
 		, self.rec_abs, outfile_yaml=outfile_yaml, outfile_recv=outfile_recv
-		, hemisphere='North', tower_h=self.tower_h, tower_r=self.tower_r
+		, hemisphere=hemisphere, tower_h=self.tower_h, tower_r=self.tower_r
 		, spectral=False , medium=att_factor, one_heliostat=False)
 
 
