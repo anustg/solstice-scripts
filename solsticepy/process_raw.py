@@ -589,12 +589,13 @@ def process_raw_results_multi_aperture(rawfile, savedir,rho_mirror,dni,verbose=F
 	return efficiency_total, performance_hst
 
 
-def get_breakdown(casedir):
+def get_breakdown(casedir, design=True, windy_optics=False):
 	"""Postprocess the .csv output files (heliostats-raw.csv, before trimming), to obtain the breakdown of total energy losses of the designed field (after trimming) for central receiver systems
 
 	``Argument``
 		* casedir (str): the directory of the case that contains the folder of sunpos_1, sunpos_2, ..., and all the other case-related details
-	    * verbose (bool), write results to disk or not
+		* design (bool): true if the field is designed (with selected idx from the large field) or False for an existing field 
+	    * windy_optics (bool): true if additional lookup tables for windy conditions 
 
 	``Outputs``
 		* output file: OELT_Solstice_breakdown.motab, it contains the annual lookup tables of each breakdown of energy  
@@ -602,7 +603,8 @@ def get_breakdown(casedir):
 	
 	"""
 	table=np.loadtxt(casedir+'/table_view.csv', dtype=str, delimiter=',')
-	idx=np.loadtxt(casedir+'/selected_hst.csv', dtype=int, delimiter=',') #index of the selected heliostats
+	if design:
+		idx=np.loadtxt(casedir+'/selected_hst.csv', dtype=int, delimiter=',') #index of the selected heliostats
 
 	cosn=table
 	shad=table
@@ -612,16 +614,33 @@ def get_breakdown(casedir):
 	spil=table
 	refl=table
 	absr=table
+
 	breakdown=np.array([absr, cosn, shad, hsta, blck, attn, spil, refl])
 	title_breakdown=['eta_rcv_absorption','eta_cosine', 'eta_shading', 'eta_helios_absorption', 'eta_blocking', 'eta_attenuation', 'eta_spillage', 'eta_rcv_reflection']
-	tot=len(title_breakdown)
 
+	if windy_optics:
+		cosn_w=table
+		shad_w=table
+		hsta_w=table
+		blck_w=table
+		attn_w=table
+		spil_w=table
+		refl_w=table
+		absr_w=table
+
+		breakdown_w=np.array([absr_w, cosn_w, shad_w, hsta_w, blck_w, attn_w, spil_w, refl_w])
+		title_breakdown_w=['eta_rcv_absorption_windy','eta_cosine_windy', 'eta_shading_windy', 'eta_helios_absorption_windy', 'eta_blocking_windy', 'eta_attenuation_windy', 'eta_spillage_windy', 'eta_rcv_reflection_windy']
+
+
+	tot=len(title_breakdown)
 	for a in range(len(table[3:])):
 		for b in range(len(table[0,3:])):
 			val=re.findall(r'\d+',table[a+3,b+3])
 			if len(val)==0:
 				for i in range(tot):
 					breakdown[i][a+3,b+3]=0
+					if windy_optics:
+						breakdown_w[i][a+3,b+3]=0
 			else:
 				c=val[0]
 				resfile=casedir+'/sunpos_%s/result-formatted-designed.csv'%c
@@ -639,7 +658,11 @@ def get_breakdown(casedir):
 				else:
 					raw=np.loadtxt(casedir+'/sunpos_%s/heliostats-raw.csv'%c, delimiter=',', skiprows=1)
 					data=raw[:, -9:]
-					res_selected=data[idx]
+					if design:
+						res_selected=data[idx]
+					else:
+						res_selected=data
+
 					Qtot=np.sum(res_selected[:,0])
 					Qcos=np.sum(res_selected[:,1])
 					Qshad=np.sum(res_selected[:,2])
@@ -680,45 +703,115 @@ def get_breakdown(casedir):
 						breakdown[i][a+3,b+3]=0.
 					else:
 						breakdown[i][a+3,b+3]=eta_all[i]
-	output_motab(table=breakdown, savedir=casedir+'/OELT_Solstice_breakdown.motab', title=title_breakdown)
+
+
+
+				if windy_optics:
+					resfile=casedir+'/windy_optics/sunpos_%s/result-formatted-designed.csv'%c
+					if os.path.exists(resfile):
+						res=np.loadtxt(resfile, dtype=str, delimiter=',')
+						eta_cos=res[2,2].astype(float)
+						eta_shad=res[3,2].astype(float)
+						eta_hst=res[4,2].astype(float)
+						eta_block=res[5,2].astype(float)
+						eta_attn=res[6,2].astype(float)
+						eta_spil=res[7,2].astype(float)
+						eta_refl=res[8,2].astype(float)
+						eta_abs=res[9,2].astype(float)
+
+					else:
+						raw=np.loadtxt(casedir+'/windy_optics/sunpos_%s/heliostats-raw.csv'%c, delimiter=',', skiprows=1)
+						data=raw[:, -9:]
+						res_selected=data
+
+						Qtot=np.sum(res_selected[:,0])
+						Qcos=np.sum(res_selected[:,1])
+						Qshad=np.sum(res_selected[:,2])
+						Qhst=np.sum(res_selected[:,3])
+						Qblock=np.sum(res_selected[:,4])
+						Qattn=np.sum(res_selected[:,5])
+						Qspil=np.sum(res_selected[:,6])
+						Qrefl=np.sum(res_selected[:,7])
+						Qabs=np.sum(res_selected[:,8])
+
+						eta_cos=Qcos/Qtot
+						eta_shad=Qshad/Qtot
+						eta_hst=Qhst/Qtot
+						eta_block=Qblock/Qtot
+						eta_attn=Qattn/Qtot
+						eta_spil=Qspil/Qtot
+						eta_refl=Qrefl/Qtot
+						eta_abs=Qabs/Qtot	
+
+						res=np.array([
+						 ['Name', 'Value (kW)', 'eta Ratio']
+						,['Qall', Qtot,   1]
+						,['Qcos', Qcos,   eta_cos]
+						,['Qshad', Qshad, eta_shad]
+						,['Qfield_abs', Qhst, eta_hst]
+						,['Qblcok', Qblock, eta_block]
+						,['Qattn',Qattn,  eta_attn]
+						,['Qspil ', Qspil,eta_spil]
+						,['Qrefl', Qrefl, eta_refl]
+						,['Qabs ', Qabs,  eta_abs]
+						,['After trimming', 'postprocessed results','-']
+						])
+						np.savetxt(casedir+'/windy_optics/sunpos_%s/result-formatted-designed.csv'%c, res, fmt='%s', delimiter=',')
+
+					eta_all=[eta_abs, eta_cos, eta_shad, eta_hst, eta_block, eta_attn, eta_spil, eta_refl]
+					for i in range(tot):
+						if eta_all[i]<1e-8:
+							breakdown_w[i][a+3,b+3]=0.
+						else:
+							breakdown_w[i][a+3,b+3]=eta_all[i]
+
+	if windy_optics:
+		title=title_breakdown+title_breakdown_w
+		table=np.vstack((breakdown, breakdown_w))
+		output_motab(table=table, savedir=casedir+'/OELT_Solstice_breakdown.motab', title=title)
+	else:		
+		output_motab(table=breakdown, savedir=casedir+'/OELT_Solstice_breakdown.motab', title=title_breakdown)
 	
-	# at design point
-	raw=np.loadtxt(casedir+'/des_point/heliostats-raw.csv', delimiter=',', skiprows=1)
-	data=raw[:, -9:]
-	res_selected=data[idx]
-	Qtot=np.sum(res_selected[:,0])
-	Qcos=np.sum(res_selected[:,1])
-	Qshad=np.sum(res_selected[:,2])
-	Qhst=np.sum(res_selected[:,3])
-	Qblock=np.sum(res_selected[:,4])
-	Qattn=np.sum(res_selected[:,5])
-	Qspil=np.sum(res_selected[:,6])
-	Qrefl=np.sum(res_selected[:,7])
-	Qabs=np.sum(res_selected[:,8])
+	
+	if design:
+		# at design point
+		raw=np.loadtxt(casedir+'/des_point/heliostats-raw.csv', delimiter=',', skiprows=1)
+		data=raw[:, -9:]
+		res_selected=data[idx]
 
-	eta_cos=Qcos/Qtot
-	eta_shad=Qshad/Qtot
-	eta_hst=Qhst/Qtot
-	eta_block=Qblock/Qtot
-	eta_attn=Qattn/Qtot
-	eta_spil=Qspil/Qtot
-	eta_refl=Qrefl/Qtot
-	eta_abs=Qabs/Qtot	
+		Qtot=np.sum(res_selected[:,0])
+		Qcos=np.sum(res_selected[:,1])
+		Qshad=np.sum(res_selected[:,2])
+		Qhst=np.sum(res_selected[:,3])
+		Qblock=np.sum(res_selected[:,4])
+		Qattn=np.sum(res_selected[:,5])
+		Qspil=np.sum(res_selected[:,6])
+		Qrefl=np.sum(res_selected[:,7])
+		Qabs=np.sum(res_selected[:,8])
 
-	res=np.array([
-	 ['Name', 'Value (kW)', 'eta Ratio']
-    ,['Qall', Qtot,   1]
-	,['Qcos', Qcos,   eta_cos]
-	,['Qshad', Qshad, eta_shad]
-	,['Qfield_abs', Qhst, eta_hst]
-	,['Qblcok', Qblock, eta_block]
-	,['Qattn',Qattn,  eta_attn]
-	,['Qspil ', Qspil,eta_spil]
-	,['Qrefl', Qrefl, eta_refl]
-	,['Qabs ', Qabs,  eta_abs]
-	,['After trimming', 'postprocessed results','-']
-	])
-	np.savetxt(casedir+'/des_point/result-formatted-designed.csv', res, fmt='%s', delimiter=',')	
+		eta_cos=Qcos/Qtot
+		eta_shad=Qshad/Qtot
+		eta_hst=Qhst/Qtot
+		eta_block=Qblock/Qtot
+		eta_attn=Qattn/Qtot
+		eta_spil=Qspil/Qtot
+		eta_refl=Qrefl/Qtot
+		eta_abs=Qabs/Qtot	
+
+		res=np.array([
+		 ['Name', 'Value (kW)', 'eta Ratio']
+		,['Qall', Qtot,   1]
+		,['Qcos', Qcos,   eta_cos]
+		,['Qshad', Qshad, eta_shad]
+		,['Qfield_abs', Qhst, eta_hst]
+		,['Qblcok', Qblock, eta_block]
+		,['Qattn',Qattn,  eta_attn]
+		,['Qspil ', Qspil,eta_spil]
+		,['Qrefl', Qrefl, eta_refl]
+		,['Qabs ', Qabs,  eta_abs]
+		,['After trimming', 'postprocessed results','-']
+		])
+		np.savetxt(casedir+'/des_point/result-formatted-designed.csv', res, fmt='%s', delimiter=',')	
 
 def process_raw_results_dish(rawfile, savedir,rho_mirror,dni,verbose=False):
 	"""Process the raw Solstice `simul` output into readable CSV files for dish systems
