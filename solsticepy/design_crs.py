@@ -474,6 +474,101 @@ class CRS:
 			return oelt, A_land			
 
 
+	def field_design_dp(self, dni_des, num_rays, method, Q_in_des=None, n_helios=None, zipfiles=False, gen_vtk=False, plot=False):
+		'''
+		Design a field according to the ranked performance of heliostats at design point 
+
+		'''  
+		print('')
+		print('Start field design')	
+		system=self.receiver
+
+		day=self.sun.days(21, 'Mar')
+		dec=self.sun.declination(day)
+		hra=0. # solar noon
+		zen=self.sun.zenith(self.latitude, dec, hra)
+		azi=self.sun.azimuth(self.latitude, zen, dec, hra)        
+		azi_des, ele_des=self.sun.convert_convention('solstice', azi, zen) 
+  
+		sys.stderr.write("\n"+green('Design Point: \n'))
+		savefolder=self.casedir+'/des_point'
+		if not os.path.exists(savefolder):
+			os.makedirs(savefolder)		
+		efficiency_total, performance_hst_des=self.master.run(azi_des, ele_des, num_rays, self.hst_rho, dni_des, folder=savefolder, gen_vtk=gen_vtk, printresult=False, verbose=self.verb, system=system)
+		
+		Qin=performance_hst_des[:,-1]
+		Qsolar=performance_hst_des[0,0]
+
+
+		ID=np.lexsort((self.hst_foc,-Qin))
+
+		hst_aim_idx=self.hst_aim_idx[ID]
+		print('')			
+		print('Method 1')
+		self.Q_in_rcv=Q_in_des
+		power=0.
+		select_hst=np.array([])
+
+		if self.receiver=='multi-aperture-individual':
+			# selecting heliostats based on the required heat from individual receiver
+			# initial selection
+			assert isinstance(Q_in_des, list), "Q_in_des should be a list that specify the reuquired incident power to each aperture"
+
+			for ap in range(self.num_aperture):
+				power_i=0.
+				idx_apt_i=(hst_aim_idx==ap)
+				id_i=ID[idx_apt_i]
+
+				for i in range(len(id_i)):
+					if power_i<Q_in_des[ap]:
+						idx=id_i[i]
+						select_hst=np.append(select_hst, idx)
+						power_i+=Qin[idx]
+				power+=power_i
+			self.Q_in_rcv_i=Q_in_des
+
+		else:
+			# initial selection
+			# for single-aperture receiver 
+			# or multi-aperture receiver configuration that selects heliostats based on the total required heat
+			assert isinstance(Q_in_des, float), "Q_in_des should be float, which is the total required incident power to the receiver"
+
+			# initilise the incident power on each aperture
+			self.Q_in_rcv_i=[]
+			for ap in range(self.num_aperture):
+				self.Q_in_rcv_i.append(0.)
+
+			for i in range(len(ID)):
+				if power<Q_in_des:
+					idx=ID[i]
+					select_hst=np.append(select_hst, idx)
+					power+=Qin[idx]
+					ap_idx=int(hst_aim_idx[i])
+					self.Q_in_rcv_i[ap_idx]+=Qin[idx]
+
+		select_hst=select_hst.astype(int)
+
+		self.hst_pos= self.hst_pos[select_hst,:]
+		self.hst_foc=self.hst_foc[select_hst]
+		self.hst_aims=self.hst_aims[select_hst,:]
+		self.hst_aim_idx=self.hst_aim_idx[select_hst]
+
+		self.n_helios=len(select_hst) # total number of heliostats
+		self.eff_des=power/float(self.n_helios)/Qsolar
+
+		print('num_hst', self.n_helios)
+		print('power   @design', power)
+		print('opt_eff @design', self.eff_des)
+		Xmax=max(self.hst_pos[:,0])
+		Xmin=min(self.hst_pos[:,0])
+		Ymax=max(self.hst_pos[:,1])
+		Ymin=min(self.hst_pos[:,1])
+		A_land=(Xmax-Xmin)*(Ymax-Ymin)
+		print('land area', A_land)
+
+		return A_land			
+
+
 	def annual_oelt(self, dni_des, num_rays, nd, nh, zipfiles=False, gen_vtk=False, plot=False):
 		'''
 		Annual performance of a known field
