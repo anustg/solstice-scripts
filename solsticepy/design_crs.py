@@ -72,7 +72,7 @@ class CRS:
 			self.rec_param=[rec_w, rec_h, rec_grid_w, rec_grid_h, rec_x, rec_y, rec_z, rec_tilt]
 		elif receiver=='cylinder': 
 			self.rec_param=[rec_w, rec_h, rec_grid_w, rec_grid_h, rec_x, rec_y, rec_z, rec_tilt] 
-		elif receiver=='multi-aperture':	
+		elif 'multi-aperture' in receiver:	
 			# rec_w and rec_h is the size of one aperture
 			# rec_grid_w and rec_gird_h is the number of elements of one aperture
 			# rec_x, rec_y, rec_z is the location of the central point of the multi-aperture receiver

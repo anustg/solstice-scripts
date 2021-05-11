@@ -237,9 +237,11 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims,hst_w, hst_h
 	elif receiver=='stl':
 		rec_entt, rcv=STL_receiver(rec_param, hemisphere)
 
-	elif receiver=='multi-aperture':
+	elif 'multi-aperture' in receiver:
+		# the cascaded multi-aperture
 		geom, rec_entt, rcv =multi_aperture_receiver(rec_param, hemisphere)
 		iyaml+=geom
+
 	#
 	# Heliostats Geometry
 	#
@@ -321,7 +323,7 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims,hst_w, hst_h
 	iyaml+='\n- entity:\n'
 	iyaml+='    name: tower_e\n'
 	iyaml+='    primary: 0\n' 
-	if receiver=='multi-aperture':
+	if 'multi-aperture' in receiver:
 		iyaml+='    transform: { translation: %s, rotation: %s }\n' % ([0, 0, tower_h*0.5], [0, 0, 0]) 
 	else:
 		if hemisphere=='North':
