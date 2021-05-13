@@ -47,7 +47,7 @@ class CRS:
 
 		'''
 		Arguements:
-		    (1) receiver  :   str, type of the receiver, i.e. 'flat', 'cylinder', 'multi_aperture' or directory of the 'stl', 
+		    (1) receiver  :   str, type of the receiver, i.e. 'flat', 'cylinder', 'multi-aperture' or directory of the 'stl', 
 		    (2) rec_w     : float, width of a flat receiver or radius of a cylindrical receiver (m) 
 		    (3) rec_h     : float, height of the receiver (m)
 		    (4) rec_x     : float, x location of the receiver (m)

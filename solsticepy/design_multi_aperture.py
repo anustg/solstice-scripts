@@ -4,7 +4,7 @@ import numpy as np
 
 class MultiApertureConfiguration:
 
-	def __init__(self, n, gamma, H_tower, R_tower, W_rcv, H_rcv):
+	def __init__(self, n, gamma, H_tower, R_tower, W_rcv, H_rcv, parallel=False):
 		"""
 		The functions in this class configurate a multi-aperture receiver model, including
 			(1) angular position of each aperture
@@ -18,6 +18,7 @@ class MultiApertureConfiguration:
 			(3)	tower height (H_tower)
 			(4)	tower radius (R_tower)
 			(5) width and height of each aperture (W_rcv, H_rcv)
+		    (6) if the multiple apertures are in parallel or cascaded (default is cascaded)
 
 		Note:
 			* the index of each aperture (i) starts from the most right aperture and increases counter clockwise
@@ -31,10 +32,12 @@ class MultiApertureConfiguration:
 			R_tower: float, radius of the tower (m)
 			w_rcv  : a list of float that contains the width of each aperture (m)
 			h_rcv  : a list of float that contains the height of each aperture (m)
+			parallel: bool, the multiple apertures are in parallel or cascaded
 		"""
 		self.n=n
 		self.gamma=gamma
 		self.H_tower=H_tower
+		self.parallel=parallel
 
 		if n%2==0:
 			self.mode='even'
@@ -143,10 +146,15 @@ class MultiApertureConfiguration:
 		return -i-1
 
 	def get_cood_pos(self, i):
+		if self.parallel:
+			z_i=self.H_tower
+
+		else:
+		# cascaded
+			lv=self.get_lv_index(i)
+			z_i=self.get_elev_height(lv)
+
 		omega_i=self.get_angular_pos(i)
-		lv=self.get_lv_index(i)
-		z_i=self.get_elev_height(lv)
-		
 		x_i=self.r*np.cos(omega_i*np.pi/180.)
 		y_i=self.r*np.sin(omega_i*np.pi/180.)
 
