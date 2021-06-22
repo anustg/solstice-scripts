@@ -15,6 +15,7 @@ class Parameters:
 
 			for PS10, the annual capacity of the field is around 120GWh
 		'''
+
 		self.simulation()
 		self.Sun()
 		self.Heliostat()
@@ -65,7 +66,7 @@ class Parameters:
 			(9) H_tower       : float, tower height (m)
 			(10) R_tower      : float, radius of tower (m)
 			(11) concret_tower:  bool, True-a solid concrete tower, or False-a truss tower
-			(12)single_filed  :  bool, True-one tower one field, or False-multi-tower
+			(12)single_field  :  bool, True-one tower one field, or False-multi-tower
 			(13)R1            : float, layout parameter, the distance of the first row of heliostat 
 			(14)dsep          : float, layout parameter, the separation distance of heliostats (m)
 			(15)fb            : float, in (0-1), a factor to expand the field to reduce block 
@@ -95,14 +96,19 @@ class Parameters:
 		self.R1=90.
 		self.dsep=0.
 		self.fb=0.7
+		self.aimingstrategy=0 # use some sophisticated aiming strategy, e.g. MDBA that used for sodium receivers, 1 is yes, 0 is no
+		self.aim_pm1=0. # parameter 1 in aiming strategy
+		self.aim_pm2=0. # parameter 2 in aiming strategy
+		self.f_oversize=1. # oversising factor
+		
 
 	def Receiver(self):
 		'''
 			(1) rcv_type  :   str, 'flat', 'cylinder', 'particle', 'multi-aperture' or 'stl', type of the receiver
 			(2) num_aperture: int, number of apertures if it is a multi-aperture receiver
 			(3) alpha  : float, the angular space between two adjacent apertures (except the aperture faces to the South) (deg)	 
-			(4) H_rcv     : float, height of a flat receiver or radius of a cylindrical receiver (m) 
-			(5) W_rcv     : float, width of the receiver (m)
+			(4) H_rcv     : float, height of the receiver
+			(5) W_rcv     : float, width of a flat receiver or diameter of a cylindrical receiver (m)
 			(6) tilt_rcv  : float, tilt angle of the receiver (deg), 0 is where the receiver face to the horizontal
 			(7) alpha_rcv : float, receiver surface absorptivity (0-1), set as 1 if rcv_type='particle'
 			(8) n_H_rcv   :   int, number of discretisation of the receiver in the height direction
@@ -116,8 +122,8 @@ class Parameters:
 
 		'''
 		self.rcv_type='flat'
-		self.H_rcv=10.
-		self.W_rcv=10.
+		self.H_rcv=10. #  height of the receiver (m)
+		self.W_rcv=10. #  width of a flat receiver or diameter of a cylindrical receiver
 		self.tilt_rcv=0. # receiver tilt angle
 		self.alpha_rcv=1. 
 		self.n_H_rcv=10
@@ -127,6 +133,10 @@ class Parameters:
 		#self.Z_rcv=None
 		self.num_aperture=1
 		self.gamma=0.
+		self.therm=0 # integration with receiver thermal performance, 1 is yes, 0 is no
+		self.Nb=0. # number of banks
+		self.Nfp=0. # number of flow paths
+		self.Do=0. # tube outer diameter
 
 
 	def simulation(self):
@@ -179,7 +189,8 @@ class Parameters:
     
 		param=np.array([
 				['method', self.method, '-'],    
-				['windy optics', bool(self.windy_optics), '-'],    
+				['windy optics', bool(self.windy_optics), '-'],   
+				['','',''], 
 				['field', self.field_type, '-'],  
 				['Q_in_rcv', self.Q_in_rcv, 'W'],     
 				['n_helios(pre_des if method ==1)', self.n_helios, '-'],    
@@ -198,7 +209,12 @@ class Parameters:
 				['single_field', self.single_field, '-'],  
 				['fb factor', self.fb, '-'],     
 				['R1', self.R1, 'm'],    
-				['dsep', self.dsep, 'm'],    
+				['dsep', self.dsep, 'm'],  
+				['aiming strategy',self.aimingstrategy,''],
+				['self.aim_pm1', self.aim_pm1, ''],
+				['self.aim_pm2', self.aim_pm2, ''],
+				['f_oversize', self.f_oversize, ''],
+				['','',''],   
 				['rcv_type', self.rcv_type, '-'],  
 				['num_aperture', self.num_aperture, '-'],
 				['aperture angular range',self.gamma , 'deg'],
@@ -211,6 +227,12 @@ class Parameters:
 				['X_rcv', self.X_rcv, 'm'],   
 				['Y_rcv', self.Y_rcv, 'm'],   
 				['Z_rcv', self.Z_rcv, 'm'],   
+				['','',''], 
+				['receiver thermal pm', self.therm, ''],
+				['Nb',self.Nb, ''],
+				['Nfp', self.Nfp, ''],
+				['Do', self.Do, ''],
+				['','',''], 			
 				['n_row_oelt', self.n_row_oelt, '-'] , 
 				['n_col_oelt', self.n_col_oelt, '-'] ,
 				['n_rays', self.n_rays, '-'] ,
