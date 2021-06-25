@@ -277,11 +277,11 @@ class BD:
 		self.hst_row=layout[:,-1].astype(float)
 
 		Xmax = max(self.hst_pos[:,0])
-		if (x_max>R1) and (Xmax>x_max*1.0):
+		if (x_max>R1) and (Xmax>x_max*1.05):
 			select_hst=np.array([])
 			for i in range(len(self.hst_pos)):
 				Xhelio = self.hst_pos[i,0]
-				if np.abs(Xhelio)<x_max*1.0:
+				if np.abs(Xhelio)<x_max*1.05:
 					select_hst=np.append(select_hst, i)
 
 			select_hst=select_hst.astype(int)
@@ -292,11 +292,11 @@ class BD:
 			self.hst_row=self.hst_row[select_hst]
 
 		Ymax = max(self.hst_pos[:,1])
-		if (y_max>R1) and (Ymax>y_max*1.0):
+		if (y_max>R1) and (Ymax>y_max*1.05):
 			select_hst=np.array([])
 			for i in range(len(self.hst_pos)):
 				Yhelio = self.hst_pos[i,1]
-				if np.abs(Yhelio)<y_max*1.0:
+				if np.abs(Yhelio)<y_max*1.05:
 					select_hst=np.append(select_hst, i)
 
 			select_hst=select_hst.astype(int)
