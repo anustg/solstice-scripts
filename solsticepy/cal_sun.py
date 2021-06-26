@@ -95,7 +95,7 @@ class SunPosition:
 		return days
 
 
-	def declination(self, days, form=None):
+	def declination(self, days, form='detail'):
 		"""Calculate the solar declination angle for a specified day-of-the-year, ref. J Duffie page 13, declination angle: delta=23.45*sin(360*(284+day)/365)
 
 		``Arguments``
@@ -109,7 +109,6 @@ class SunPosition:
 		"""
 
 		if form=='detail':
-			#TODO this equation doesn't give symmetrical annual declination angles
 		    B=float(days-1)*360./365.*np.pi/180.
 
 		    delta=(180./np.pi)*(0.006918 - 0.399912*np.cos(B) +0.070257*np.sin(B)- 0.006758*np.cos(2.*B) + 0.000907*np.sin(2.*B)- 0.002697*np.cos(3.*B) + 0.00148*np.sin(3.*B))
@@ -276,7 +275,7 @@ class SunPosition:
 		return sol_azi, sol_ele        
 		                   
 
-	def annual_angles(self, latitude, casefolder=None, nd=5, nh=5, verbose=False):
+	def annual_angles(self, latitude, casefolder='NOTSAVE', nd=5, nh=5):
 		"""Generate a range of sun positions (azimuth-zenith angles and declination-solarhour angles) for annual optical lookup table simulation. Automatically detect the time when the sun is below the horizon (elevation<0), where a ray-tracing simulation is not required.
 		
 		``Arguments``
@@ -285,7 +284,6 @@ class SunPosition:
 		  * casefolder (str): directory to save the table and case_list in .csv files, or 'NOTSAVE' (by default) to not write the output to files
 		  * nd (int): number of rows of the lookup table (points in the declination movement, suggest nd>=5)
 		  * nh (int): number of columns of the lookup table (hours in a day, i.e. 24h)
-		  * verbose (bool): write results to disk or not
 
 		``Returns``
 
@@ -409,7 +407,7 @@ class SunPosition:
 		#azimuth=case_list[1:,-2].astype(float)
 		#zenith=case_list[1:,-1].astype(float)
 
-		if casefolder!=None and verbose:    
+		if casefolder!='NOTSAVE':    
 		    np.savetxt(casefolder+'/table_view.csv', table, fmt='%s', delimiter=',')  
 		    np.savetxt(casefolder+'/annual_simulation_list.csv', case_list, fmt='%s', delimiter=',')          
 

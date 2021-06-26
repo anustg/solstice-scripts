@@ -21,15 +21,15 @@ from .master import *
 
 class CRS:
 	'''
-	The Central Receiver System (CRS) model includes three parts: 
+	The Central Receiver System (CRS) model includes three parts:
 	the sun, the field and the receiver.
 	'''
 
 	def __init__(self, latitude, casedir, nproc=None, verbose=False):
 		'''
 		Arguements:
-			casedir : str, the directory of the case 
-			nproc (int): number of processors, e.g. nproc=1 will run in serial mode, 
+			casedir : str, the directory of the case
+			nproc (int): number of processors, e.g. nproc=1 will run in serial mode,
                                                     nproc=4 will run with 4 processors in parallel
 											        nproc=None will run with any number of processors that are available
 			verbose : bool, write results to files or not
@@ -47,18 +47,18 @@ class CRS:
 
 		'''
 		Arguements:
-		    (1) receiver  :   str, type of the receiver, i.e. 'flat', 'cylinder', 'multi_aperture' or directory of the 'stl', 
-		    (2) rec_w     : float, width of a flat receiver or radius of a cylindrical receiver (m) 
+		    (1) receiver  :   str, type of the receiver, i.e. 'flat', 'cylinder', 'multi_aperture' or directory of the 'stl',
+		    (2) rec_w     : float, width of a flat receiver or radius of a cylindrical receiver (m)
 		    (3) rec_h     : float, height of the receiver (m)
 		    (4) rec_x     : float, x location of the receiver (m)
 		    (5) rec_y     : float, y location of the receiver (m)
-		    (6) rec_z     : float, z location of the receiver (m), or a list (for multi-aperture) of elevation heights of apertures 
+		    (6) rec_z     : float, z location of the receiver (m), or a list (for multi-aperture) of elevation heights of apertures
 		    (7) rec_tilt  : float, tilt angle of the receiver (deg), 0 is where the receiver face to the horizontal
 		    (8) rec_grid_w  :   int, number of elements in the horizontal(x)/circumferential direction
 		    (9) rec_grid_h  :   int, number of elements in the vertical(z) direction
 		    (10) rec_abs    : float, receiver surface absorptivity, e.g. 0.9
 		    (11) num_aperture :   int, number of apertures if it is a multi-aperture receiver
-		    (12) gamma   : float, the anangular range of the multi-aperture configration (deg)	 
+		    (12) gamma   : float, the anangular range of the multi-aperture configration (deg)
 		'''
 		self.receiver=receiver
 		self.rec_abs=rec_abs
@@ -71,16 +71,16 @@ class CRS:
 			self.rec_param=[rec_w, rec_h, receiver, rec_x, rec_y, rec_z, rec_tilt]
 		elif receiver=='flat':
 			self.rec_param=[rec_w, rec_h, rec_grid_w, rec_grid_h, rec_x, rec_y, rec_z, rec_tilt]
-		elif receiver=='cylinder': 
-			self.rec_param=[rec_w, rec_h, rec_grid_w, rec_grid_h, rec_x, rec_y, rec_z, rec_tilt] 
-		elif receiver=='multi-aperture':	
+		elif receiver=='cylinder':
+			self.rec_param=[rec_w, rec_h, rec_grid_w, rec_grid_h, rec_x, rec_y, rec_z, rec_tilt]
+		elif receiver=='multi-aperture':
 			# rec_w and rec_h is the size of one aperture
 			# rec_grid_w and rec_gird_h is the number of elements of one aperture
 			# rec_x, rec_y, rec_z is the location of the central point of the multi-aperture receiver
 			# rec_tilt is the tilt angle of each aperture
 			# num_aperture is the number of apertures
-			# gamma is the anangular range of the multi-aperture configration (deg)	 
-			self.rec_param=[rec_w, rec_h, rec_grid_w, rec_grid_h, rec_z, rec_tilt, num_aperture, gamma]  
+			# gamma is the anangular range of the multi-aperture configration (deg)
+			self.rec_param=[rec_w, rec_h, rec_grid_w, rec_grid_h, rec_z, rec_tilt, num_aperture, gamma]
 			self.rec_w=rec_w
 
 
@@ -90,40 +90,40 @@ class CRS:
 		'''
 		Arguements:
 		    (1) field     : str,
-		        -- 'polar', 'polar-half', 'surround' or 'surround-half' or 'multi-aperture' for desiging a new field 
+		        -- 'polar', 'polar-half', 'surround' or 'surround-half' or 'multi-aperture' for desiging a new field
 		        -- or the directory of the layout file
 		            the layout file is a 'csv' file, (n+2, 7)
-		           - n is the total number of heliostats 
+		           - n is the total number of heliostats
 		           - the 1st row is the number of each column
-		           - the 2nd row is the unit 
+		           - the 2nd row is the unit
 		           - the first three columns are X, Y, Z coordinates of each heliostat
 		           - the fourth column is the focal length
 		           - the last three columns are the aiming points
-		    (2) hst_w     : float, width of a heliostat (m) 
+		    (2) hst_w     : float, width of a heliostat (m)
 		    (3) hst_h     : float, height of a heliostat (m)
 		    (4) hst_z     : float, the installation height of the heliostat
-		    (5) hst_rho   : float, reflectivity of heliostat 
+		    (5) hst_rho   : float, reflectivity of heliostat
 		    (6) slope     : float, slope error(radians)
-		    (7) R1        : float, layout parameter, the distance of the first row of heliostat 
+		    (7) R1        : float, layout parameter, the distance of the first row of heliostat
 		    (8) dsep      : float, layout parameter, the separation distance of heliostats (m)
 		    (9) tower_h    : float, tower height (m)
 		    (10)tower_r   : float, radius of tower (m)
-		    (11)num_hst  :   int, number of heliostats used in the field design 
+		    (11)num_hst  :   int, number of heliostats used in the field design
 
 		 '''
-	   
+
 		if field[-3:]=='csv':
 			print('KNOWN FIELD')
 			layout=np.loadtxt(field, delimiter=',', skiprows=2)
 
 		else:
-			# design a new field            
+			# design a new field
 			savefolder=self.casedir+'/des_point'
 			if not os.path.exists(savefolder):
 				os.makedirs(savefolder)
 
-			pos_and_aiming, self.Nzones, self.Nrows=radial_stagger(latitude=self.latitude, num_hst=num_hst, width=hst_w, height=hst_h, hst_z=hst_z, towerheight=tower_h, R1=R1, fb=fb, dsep=0., field=field, num_aperture=self.num_aperture, gamma=self.gamma, rec_w=self.rec_w, rec_z=self.rec_z, savedir=savefolder, verbose=self.verb )        
-			  
+			pos_and_aiming, self.Nzones, self.Nrows=radial_stagger(latitude=self.latitude, num_hst=num_hst, width=hst_w, height=hst_h, hst_z=hst_z, towerheight=tower_h, R1=R1, fb=fb, dsep=0., field=field, num_aperture=self.num_aperture, gamma=self.gamma, rec_w=self.rec_w, rec_z=self.rec_z, savedir=savefolder, verbose=self.verb )
+
 			layout=pos_and_aiming[2:, :]
 
 
@@ -131,11 +131,11 @@ class CRS:
 		self.hst_h=hst_h
 		self.hst_rho=hst_rho
 		self.slope=slope
-		self.tower_h=tower_h    
+		self.tower_h=tower_h
 		self.tower_r=tower_r
 
 		self.hst_pos=layout[:,:3].astype(float)
-		self.hst_foc=layout[:,3].astype(float) 
+		self.hst_foc=layout[:,3].astype(float)
 		self.hst_aims=layout[:,4:7].astype(float)
 
 		self.hst_aim_idx=layout[:,7].astype(float)
@@ -169,12 +169,12 @@ class CRS:
 
 	def field_design_annual(self,  dni_des, num_rays, nd, nh, weafile, method, Q_in_des=None, n_helios=None, zipfiles=False, gen_vtk=False, plot=False):
 		'''
-		Design a field according to the ranked annual performance of heliostats 
+		Design a field according to the ranked annual performance of heliostats
 		(DNI weighted)
 
-		'''  
+		'''
 		print('')
-		print('Start field design')	
+		print('Start field design')
 		system=self.receiver
 
 		AZI, ZENITH,table,case_list=self.sun.annual_angles(self.latitude, casefolder=self.casedir,nd=nd, nh=nh, verbose=self.verb)
@@ -182,14 +182,14 @@ class CRS:
 		SOLSTICE_AZI, SOLSTICE_ELE=self.sun.convert_convention('solstice', AZI, ZENITH)
 
 		run=np.r_[0]
-		nhst=len(self.hst_pos) 
+		nhst=len(self.hst_pos)
 
 		#oelt=table
-		ANNUAL=np.zeros(nhst) 
-		annual_solar=0.   
+		ANNUAL=np.zeros(nhst)
+		annual_solar=0.
 		hst_annual={}
 
-		for i in range(len(case_list)):    
+		for i in range(len(case_list)):
 			c=int(case_list[i,0].astype(float))
 			if c not in run:
 				# the morning positions
@@ -209,32 +209,32 @@ class CRS:
 				# run solstice
 				if elevation<1.:
 					efficiency_total=0
-					performance_hst=np.zeros((nhst, 9))  
+					performance_hst=np.zeros((nhst, 9))
 					efficiency_hst=np.zeros(nhst)
 				else:
 					efficiency_total, performance_hst=self.master.run(azimuth, elevation, num_rays, self.hst_rho, dni, folder=onesunfolder, gen_vtk=gen_vtk, printresult=False, verbose=self.verb, system=system)
-					
+
 					#res=np.loadtxt(onesunfolder+'/result-formatted.csv', dtype=str, delimiter=',')
 					#res_hst=np.loadtxt(onesunfolder+'/heliostats-raw.csv', dtype=str, delimiter=',')
 					#efficiency_total=res[-2,1].astype(float)/res[1,1].astype(float)
 					#performance_hst=res_hst[1:,-9:].astype(float)
-					
+
 					efficiency_hst=performance_hst[:,-1]/performance_hst[:,0]
 
 				hst_annual[c]=performance_hst
 				sys.stderr.write(yellow("Total efficiency: {:f}\n".format(efficiency_total)))
-				run=np.append(run,c)  
+				run=np.append(run,c)
 
 			cc=0
 			for a in range(len(table[3:])):
 				for b in range(len(table[0,3:])):
 					val=re.findall(r'\d+', table[a+3,b+3])
 					if str(c) in val:
-						if cc==0: 
+						if cc==0:
 							# i.e. morning positions
 							ANNUAL+=dni*efficiency_hst
 							annual_solar+=dni
-							cc+=1 
+							cc+=1
 						else:
 							# the symetrical points (i.e. afternoon)
 							eff_symetrical=np.array([])
@@ -251,37 +251,37 @@ class CRS:
 										eff_row=eff_row[::-1]
 									else:
 										eff_row[1:]=eff_row[1:][::-1]
-										
+
 									eff_symetrical=np.append(eff_symetrical, eff_row)
 
 							#print(np.shape(eff_symetrical))
 							#check=np.append(self.hst_zone, (self.hst_row, self.hst_num_idx, efficiency_hst, eff_symetrical))
 							#print(np.shape(check))
 							#check=check.reshape(5,int(len(check)/5))
-							#np.savetxt('./check.csv', check.T, fmt='%.5f', delimiter=',') 
-							ANNUAL+=dni*eff_symetrical	
-							annual_solar+=dni	
-					
-		ANNUAL/=annual_solar  
-		if self.verb:    
+							#np.savetxt('./check.csv', check.T, fmt='%.5f', delimiter=',')
+							ANNUAL+=dni*eff_symetrical
+							annual_solar+=dni
+
+		ANNUAL/=annual_solar
+		if self.verb:
 			np.savetxt(self.casedir+'/annual_hst.csv',ANNUAL, fmt='%.2f', delimiter=',')
-		
+
 		designfolder=self.casedir+'/des_point'
 		day=self.sun.days(21, 'Mar')
 		dec=self.sun.declination(day)
 		hra=0. # solar noon
 		zen=self.sun.zenith(self.latitude, dec, hra)
-		azi=self.sun.azimuth(self.latitude, zen, dec, hra)        
-		azi_des, ele_des=self.sun.convert_convention('solstice', azi, zen) 
+		azi=self.sun.azimuth(self.latitude, zen, dec, hra)
+		azi_des, ele_des=self.sun.convert_convention('solstice', azi, zen)
 
-		sys.stderr.write("\n"+green('Design Point: \n'))		
+		sys.stderr.write("\n"+green('Design Point: \n'))
 		efficiency_total, performance_hst_des=self.master.run(azi_des, ele_des, num_rays, self.hst_rho, dni_des, folder=designfolder, gen_vtk=gen_vtk, printresult=False, verbose=self.verb, system=system)
-		
+
 		#res=np.loadtxt(designfolder+'/result-formatted.csv', dtype=str, delimiter=',')
 		#res_hst=np.loadtxt(designfolder+'/heliostats-raw.csv', dtype=str, delimiter=',')
 		#efficiency_total=res[-2,1].astype(float)/res[1,1].astype(float)
 		#performance_hst_des=res_hst[1:,-9:].astype(float)
-		
+
 
 		Qin=performance_hst_des[:,-1]
 		Qsolar=performance_hst_des[0,0]
@@ -298,7 +298,7 @@ class CRS:
 
 		if method==1:
 			hst_aim_idx=self.hst_aim_idx[ID]
-			print('')			
+			print('')
 			print('Method 1')
 			self.Q_in_rcv=Q_in_des
 			if self.receiver=='multi-aperture':
@@ -327,7 +327,7 @@ class CRS:
 
 			else:
 				# initial selection
-				# for single-aperture receiver 
+				# for single-aperture receiver
 				# or multi-aperture receiver configuration that selects heliostats based on the total required heat
 				assert isinstance(Q_in_des, float), "Q_in_des should be float, which is the total required incident power to the receiver"
 
@@ -339,12 +339,12 @@ class CRS:
 						ap_idx=int(hst_aim_idx[i])
 						self.Q_in_rcv_i[ap_idx]+=Qin[idx]
 
-				
+
 		else:
 			select_hst=np.array([])
-			print('')			
-			print('Method 2')   
-			#TODO the Method 2 does not include multi-aperture option 
+			print('')
+			print('Method 2')
+			#TODO the Method 2 does not include multi-aperture option
 			num_hst=0
 			power=0.
 			for i in range(len(ID)):
@@ -356,7 +356,7 @@ class CRS:
 			        power+=Qin[idx]
 
 			self.Q_in_rcv=power
- 
+
 		select_hst=select_hst.astype(int)
 
 		self.hst_pos= self.hst_pos[select_hst,:]
@@ -390,9 +390,9 @@ class CRS:
 			np.savetxt(self.casedir+'/pos_and_aiming.csv', design_pos_and_aim, fmt='%s', delimiter=',')
 			np.savetxt(self.casedir+'/selected_hst.csv', select_hst, fmt='%.0f', delimiter=',')
 
-		annual_solar=0.  
+		annual_solar=0.
 		annual_field=0.
-		
+
 		oelt={}
 		QTOT=np.zeros(np.shape(table))
 		QIN=np.zeros(np.shape(table))
@@ -410,9 +410,9 @@ class CRS:
 			print('Aperture %s'%ap)
 			print('num helios', np.sum(idx_apt_i))
 
-			for i in range(len(case_list)):    
+			for i in range(len(case_list)):
 				c=int(case_list[i,0].astype(float))
-				if c not in run:                
+				if c not in run:
 					#sundir=designfolder+'/sunpos_%s'%c
 					res_hst=hst_annual[c]
 					Qtot=res_hst[select_hst,0]
@@ -443,8 +443,8 @@ class CRS:
 								QIN[a+3,b+3]+=np.sum(Qin[idx_apt_i])
 								annual_solar+=dni
 								annual_field+=dni*eff
-			
-		
+
+
 			oelt[ap][2, 3:]=table[2, 3:].astype(float)
 			oelt[ap][3:,2]=table[3:,2].astype(float)
 
@@ -454,7 +454,7 @@ class CRS:
 		if self.num_aperture==1:
 			return oelt[0], A_land
 		else:
-			oelt[self.num_aperture]= np.divide(QIN, QTOT, out=np.zeros(QIN.shape, dtype=float), where=QTOT!=0) 
+			oelt[self.num_aperture]= np.divide(QIN, QTOT, out=np.zeros(QIN.shape, dtype=float), where=QTOT!=0)
 			oelt[self.num_aperture][2, 3:]=table[2, 3:].astype(float)
 			oelt[self.num_aperture][3:,2]=table[3:,2].astype(float)
 
@@ -465,17 +465,17 @@ class CRS:
 			if self.verb:
 				for ap in range(self.num_aperture+1):
 					if ap==self.num_aperture:
-						np.savetxt(self.casedir+'/lookup_table_total.csv', oelt[ap], fmt='%s', delimiter=',')			
+						np.savetxt(self.casedir+'/lookup_table_total.csv', oelt[ap], fmt='%s', delimiter=',')
 					else:
-						np.savetxt(self.casedir+'/lookup_table_%s.csv'%ap, oelt[ap], fmt='%s', delimiter=',')	
-			return oelt, A_land			
+						np.savetxt(self.casedir+'/lookup_table_%s.csv'%ap, oelt[ap], fmt='%s', delimiter=',')
+			return oelt, A_land
 
 
 	def annual_oelt(self, dni_des, num_rays, nd, nh, zipfiles=False, gen_vtk=False, plot=False):
 		'''
 		Annual performance of a known field
-		'''  
-		self.n_helios=len(self.hst_pos) 
+		'''
+		self.n_helios=len(self.hst_pos)
 		oelt, ANNUAL=self.master.run_annual(nd=nd, nh=nh, latitude=self.latitude, num_rays=num_rays, num_hst=self.n_helios,rho_mirror=self.hst_rho, dni=dni_des, verbose=self.verb)
 
 		Xmax=max(self.hst_pos[:,0])
@@ -494,15 +494,15 @@ class CRS:
 		dec=self.sun.declination(day)
 		hra=0. # solar noon
 		zen=self.sun.zenith(self.latitude, dec, hra)
-		azi=self.sun.azimuth(self.latitude, zen, dec, hra)        
-		azi_des, ele_des=self.sun.convert_convention('solstice', azi, zen) 
+		azi=self.sun.azimuth(self.latitude, zen, dec, hra)
+		azi_des, ele_des=self.sun.convert_convention('solstice', azi, zen)
 
-		sys.stderr.write("\n"+green('Design Point: \n'))		
+		sys.stderr.write("\n"+green('Design Point: \n'))
 		efficiency_total, performance_hst_des=self.master.run(azi_des, ele_des, num_rays, self.hst_rho, dni_des, folder=designfolder, gen_vtk=False, printresult=False, verbose=self.verb)
 		self.eff_des=efficiency_total.n
 
 		return oelt, A_land
-		
+
 
 	def dni_TMY(self, weafile, nd, nh, plot=False):
 		'''
@@ -512,19 +512,19 @@ class CRS:
 		# col0 - time (s)
 		# col1 - GHI
 		# col2 -DNI (W/m2)
-		# col3 -DHI 
+		# col3 -DHI
 			...
 		'''
 		with open(weafile) as f:
 			content=f.read().splitlines()
 		f.close()
-	
+
 		lines=len(content)
 		seconds=np.array([])
 		dni=np.array([])
 		for i in range(2, lines-1):
-			l=content[i].split(",") 
-			seconds=np.append(seconds, l[0])         
+			l=content[i].split(",")
+			seconds=np.append(seconds, l[0])
 			dni=np.append(dni, l[2])
 		seconds=seconds.astype(float)+1800.
 		days=seconds/3600/24
@@ -543,36 +543,36 @@ class CRS:
 		hra_lim=180.+dh/2.
 		dec_lim=23.45+dd/2.
 
-		hra_bin=np.linspace(-hra_lim, hra_lim, nh+1) 
+		hra_bin=np.linspace(-hra_lim, hra_lim, nh+1)
 		dec_bin=np.linspace(-dec_lim, dec_lim, nd+1)
 		bins=np.array([hra_bin, dec_bin])
 
 		dni_weight, xbins, ybins=np.histogram2d(wea_hra, wea_dec, bins, weights=wea_dni)
 		dni_n, xbins, ybins=np.histogram2d(wea_hra, wea_dec, bins)
-	
+
 		dni_avg=np.divide(dni_weight, dni_n, out=np.zeros_like(dni_weight), where=dni_n!=0)
 
 		if plot:
 			X=np.linspace(-180.,  180. , nh)
-			Y=np.linspace(-23.45, 23.45, nd) 
+			Y=np.linspace(-23.45, 23.45, nd)
 			plt.pcolormesh(hra_bin, dec_bin, dni_avg.T)
 			cb=plt.colorbar()
 			plt.xlabel('Solar hour angle')
 			plt.ylabel('Delination angle')
 			plt.savefig(self.casedir+'/DNI_weather.png', bbox_inches='tight')
-			plt.close()		
+			plt.close()
 
-			# check the symmetricity of the weather dni data		
+			# check the symmetricity of the weather dni data
 			data=dni_avg.T
 			plt.pcolormesh(hra_bin[:int(nh/2)], dec_bin, data[:,:int(nh/2), ]-np.fliplr(data[:,-int(nh/2):]))
 			cb=plt.colorbar()
 			plt.xlabel('Solar hour angle')
 			plt.ylabel('Delination angle')
 			plt.savefig(self.casedir+'/DNI_weather_diff.png', bbox_inches='tight')
-			plt.close()	
+			plt.close()
 
 			np.savetxt(self.casedir+'/DNI_weather.csv', data, fmt='%.4f', delimiter=',')
- 
+
 		return dni_weight.T, dni_avg.T
 
 	def get_attenuation_factor(self):
@@ -604,12 +604,12 @@ class CRS:
 		hst_tot  =eta_hst[:,0]
 		rec_abs=eta_hst[:,1]
 
-		hst_eff=rec_abs/hst_tot 
+		hst_eff=rec_abs/hst_tot
 
 		savevtk=savevtk+'/results-field.vtk'
-		TOT=np.repeat(hst_tot, element) 
-		ABS=np.repeat(rec_abs, element)   
-		EFF=np.repeat(hst_eff, element) 
+		TOT=np.repeat(hst_tot, element)
+		ABS=np.repeat(rec_abs, element)
+		EFF=np.repeat(hst_eff, element)
 
 		DATA={'tot': TOT, 'rec_abs': ABS, 'efficiency':EFF}
 		gen_vtk(savedir=savevtk, points=COORD.T, indices=TRI, norms=NORMS, colormap=True, DATA=DATA)
@@ -618,7 +618,7 @@ if __name__=='__main__':
 	start=time.time()
 	casedir='./test-crs-design'
 	tablefile=casedir+'/OELT_Solstice.motab'
-	if os.path.exists(tablefile):    
+	if os.path.exists(tablefile):
 		print('')
 		print('Load exsiting OELT')
 
@@ -635,7 +635,7 @@ if __name__=='__main__':
 		pm.saveparam(casedir)
 		print(pm.fb)
 		print(pm.H_tower)
-		crs=CRS(latitude=pm.lat, casedir=casedir)   
+		crs=CRS(latitude=pm.lat, casedir=casedir)
 		weafile='/home/yewang/solartherm-master/SolarTherm/Data/Weather/gen3p3_Daggett_TMY3.motab'
 		crs.heliostatfield(field=pm.field_type, hst_rho=pm.rho_helio, slope=pm.slope_error, hst_w=pm.W_helio, hst_h=pm.H_helio, tower_h=pm.H_tower, tower_r=pm.R_tower, hst_z=pm.Z_helio, num_hst=pm.n_helios, R1=pm.R1, fb=pm.fb, dsep=pm.dsep)
 
@@ -646,15 +646,12 @@ if __name__=='__main__':
 		oelt, A_land=crs.field_design_annual(dni_des=900., num_rays=int(1e6), nd=pm.nd, nh=pm.nh, weafile=weafile, method=1, Q_in_des=pm.Q_in_rcv, n_helios=None, zipfiles=False, gen_vtk=False, plot=False)
 
 
-		if (A_land==0):    
+		if (A_land==0):
 		    tablefile=None
-		else:                                                
+		else:
 		    A_helio=pm.H_helio*pm.W_helio
 		    output_matadata_motab(table=oelt, field_type=pm.field_type, aiming='single', n_helios=self.n_helios, A_helio=A_helio, eff_design=self.eff_des, H_rcv=pm.H_rcv, W_rcv=pm.W_rcv, H_tower=pm.H_tower, Q_in_rcv=pm.Q_in_rcv, A_land=A_land, savedir=tablefile)
 
 
 	end=time.time()
 	print('total time %.2f'%((end-start)/60.), 'min')
-
-
-

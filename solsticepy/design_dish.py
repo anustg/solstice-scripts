@@ -21,18 +21,16 @@ class Dish:
 	the sun, the parabolic concentrator and the receiver.
 	'''
 
-	def __init__(self, casedir, nproc=None, verbose=False):
+	def __init__(self, casedir):
 		'''
 		Arguements:
 			casedir : str, the directory of the case 
 		'''
 		self.casedir=casedir
-		self.nproc=nproc
-		self.verbose=verbose
 
 		if not os.path.exists(casedir):
 			os.makedirs(casedir)
-		self.master=Master(casedir, nproc)
+		self.master=Master(casedir)
 
 	def yaml(self, dish_radius, dish_foc, rho_refl, slope_error, rec_r, rec_x, rec_y, rec_z, rec_grid_r, rec_abs, dni=1000, sunshape=None, csr=0.01, half_angle_deg=0.2664, std_dev=0.2):
 		'''
@@ -171,12 +169,12 @@ class Dish:
 		'''
 		Assume the optical efficiency of a dish system is constant 
 		at different sun positions
-		'''  
+                '''
 		azi_des=0
 		ele_des=90
 
 		sys.stderr.write("\n"+green('Optical efficiency: \n'))		
-		efficiency_total=self.master.run(azi_des, ele_des, num_rays, self.rho_refl, dni_des, folder=self.casedir, gen_vtk=gen_vtk, printresult=True, verbose=self.verbose, system='dish')
+		efficiency_total=self.master.run(azi_des, ele_des, num_rays, self.rho_refl, dni_des, folder=self.casedir, gen_vtk=gen_vtk, printresult=True, system='dish')
 		eff_des=efficiency_total.n
 
 		return eff_des
