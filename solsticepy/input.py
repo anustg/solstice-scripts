@@ -19,6 +19,7 @@ class Parameters:
 		self.Sun()
 		self.Heliostat()
 		self.Receiver()
+		self.BeamDown()
 		self.dependent_par()
 
 	def Sun(self):
@@ -113,6 +114,14 @@ class Parameters:
 		self.X_rcv=0. # receiver location
 		self.Y_rcv=0.
 
+	def BeamDown(self):
+		'''
+		'''
+		self.theta_deg=20.	# acceptance half angle of CPC
+		self.ratio_cpc_h=1. 	# ratio of CPC critical height [0.5,1]
+		self.field_rim_angle=45.	# field rim angle
+		self.secref_fratio=0.6	# ratio of the foci distance and apex distance to the origin [0.5,1]
+		self.rec_z=0.
 
 	def simulation(self):
 		'''
@@ -173,6 +182,11 @@ class Parameters:
 				['rcv_type', self.rcv_type, '-'],
 				['H_rcv', self.H_rcv, 'm'],
 				['W_rcv', self.W_rcv, 'm'],
+				['rec_z', self.rec_z, 'm'],
+				['theta_deg', self.theta_deg, 'deg'],
+				['ratio_cpc_h', self.ratio_cpc_h, '-'],
+				['field_rim_angle', self.field_rim_angle, '-'],
+				['secref_fratio', self.secref_fratio, '-'],
 				['tilt_rcv', self.tilt_rcv, 'deg'],
 				['alpha_rcv', self.alpha_rcv, '-'],
 				['n_H_rcv', self.n_H_rcv, '-'],

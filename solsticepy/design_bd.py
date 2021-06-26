@@ -128,7 +128,7 @@ class BD:
 		z_hyper = b_para*np.sqrt((x_hyper**2+y_hyper**2)/a_para_sqrt+1) - z0_hyper+g_para/2.
 		return z_hyper
 
-	def receiversystem(self, receiver, rec_abs=1., rec_w=1.2, rec_l=10., rec_z=0., rec_grid=200, cpc_nfaces=4, cpc_theta_deg=20., cpc_h=None,
+	def receiversystem(self, receiver, rec_abs=1., rec_w=1.2, rec_l=10., rec_z=0., rec_grid=200, cpc_nfaces=4, cpc_theta_deg=20., ratio_cpc_h=1.,
 	cpc_nZ=20., field_rim_angle=30., aim_z=62., secref_fratio=None, refl_sec=0.95, slope_error=0.0, secref_vert=np.array([[-15,25],[-15,-25],[15,-25],[15,25]])):
 
 		'''
@@ -148,7 +148,7 @@ class BD:
 			# Arguments for Compound Parabolic Concentrator (CPC)
             (7) cpc_nfaces : int, number of faces of the CPC
             (8) cpc_theta_deg : float, acceptance angle of CPC (deg)
-            (9) cpc_h     : float, vertical distance of the maximum and minimum point of the parabola
+            (9) ratio_cpc_h     : float, ratio of critical CPC height calculated with theta_deg
             in local coordinate system of the parabola in the xOy plan
             WARNING: cpc_h is different from the total height of the CPC
             (10) cpc_nZ     : int, number of number of incrementation for the clipping polygon for the construction of each CPC face
@@ -169,10 +169,9 @@ class BD:
 		rec_rad_ref, rec_rad = self.cpcradius(rec_w, rec_l, cpc_nfaces)
 
 		# Calculate the maximum height of the CPC if not defined
-		if cpc_h is None:
-			cpc_theta = cpc_theta = cpc_theta_deg*np.pi/180.
-			cpc_h = rec_rad_ref*(1+1/np.sin(cpc_theta))/np.tan(cpc_theta)
-			print('height of cpc: ', cpc_h)
+		cpc_theta = cpc_theta_deg*np.pi/180.
+		cpc_h = rec_rad_ref*(1+1/np.sin(cpc_theta))/np.tan(cpc_theta)*ratio_cpc_h
+		print('height of cpc: ', cpc_h)
 
 		assert aim_z > (cpc_h+rec_z), 'The imaginary foci of the hyperbol is lower than its real foci'
 
@@ -204,13 +203,11 @@ class BD:
 			else:
 				y_inter = x_inter
 			print('x_inter: ', x_inter)
-			print('THEY SHOULD BE EQUAL:', y_inter)
 			secref_vert = np.array([[-x_inter,y_inter],[-x_inter,-y_inter],[x_inter,-y_inter],[x_inter,y_inter]])
 
 		# calculate the field maxium radius along x and y axis
 		self.x_max = aim_z*np.tan(field_rim_angle*np.pi/180.)
 		y_inter = max(secref_vert[:,1])
-		print('THEY SHOULD BE EQUAL:', y_inter)
 		z_hyper = secref_z + self.zhyperboloid( 0.0, y_inter, vertex_dist, foci_dist)
 		phy = np.arctan(y_inter/(aim_z-z_hyper))
 		self.y_max = aim_z*np.tan(phy)
