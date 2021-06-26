@@ -163,9 +163,9 @@ class BD:
 		self.receiver=receiver
 		self.rec_abs=rec_abs
 
-		assert cpc_nfaces > 2, f'The number of faces for the CPC should be minimum 3, and it is {cpc_nfaces=}'
+		assert cpc_nfaces > 2, 'The number of faces for the CPC should be minimum 3, and it is {cpc_nfaces=}'
 		if secref_fratio != None:
-			assert 0.5<=secref_fratio<1, f'The ratio of the hyperbole distances to foci and apex should be between 0.5 and 1, and it is {secref_fratio=}'
+			assert 0.5<=secref_fratio<1, 'The ratio of the hyperbole distances to foci and apex should be between 0.5 and 1, and it is {secref_fratio=}'
 		rec_rad_ref, rec_rad = self.cpcradius(rec_w, rec_l, cpc_nfaces)
 
 		# Calculate the maximum height of the CPC if not defined
