@@ -47,8 +47,8 @@ pm.Q_in_rcv=40e6
 num_hst = 300
 pm.nd=5
 pm.nh=5
-pm.H_rcv=rec_l
-pm.W_rcv=rec_w
+pm.H_rcv=10.
+pm.W_rcv=1.2
 pm.W_helio=6.1 # ASTRI helio size
 pm.H_helio=6.1
 pm.dependent_par()
@@ -63,8 +63,8 @@ pm.lat = -27.16 #degree
 # enter the parameters for the beam-down components
 receiver='beam_down'
 # Polygon receiver
-rec_w=1.2
-rec_l=10.
+rec_w=pm.W_rcv
+rec_l=pm.H_rcv
 rec_z=0.
 # 2D-crossed cpc with n faces
 n_CPC_faces=4
