@@ -36,7 +36,7 @@ pm=Parameters()
 
 # Variables
 pm.H_tower=65. # tower height or vertical distance to aiming point (located at the center of xOy plan)
-cpc_theta_deg=20.   # acceptance half angle of the CPC in degree
+theta_deg=20.   # acceptance half angle of the CPC in degree
 rim_angle = 45. # rim angle of the heliostat field in the xOz plan in degree
 foci_ratio = 0.6 # ratio of the foci distance and apex distance to the origin [1/2,1]
 ratio_cpc_h=1. # must be inferior to 1
@@ -84,7 +84,7 @@ weafile='./demo_TMY3_weather.motab'
 
 bd=BD(latitude=pm.lat, casedir=casefolder)
 
-bd.receiversystem(receiver=receiver, rec_abs=float(pm.alpha_rcv), rec_w=float(rec_w), rec_l=float(rec_l), rec_z=float(rec_z), rec_grid=int(rec_grid), cpc_nfaces=int(n_CPC_faces), cpc_theta_deg=float(cpc_theta_deg), ratio_cpc_h=ratio_cpc_h, cpc_nZ=float(n_Z), field_rim_angle=float(rim_angle), aim_z=float(pm.H_tower), secref_fratio=foci_ratio, refl_sec=float(refl_sec), slope_error=float(slope_error),	secref_vert = secref_vert)
+bd.receiversystem(receiver=receiver, rec_abs=float(pm.alpha_rcv), rec_w=float(rec_w), rec_l=float(rec_l), rec_z=float(rec_z), rec_grid=int(rec_grid), cpc_nfaces=int(n_CPC_faces), cpc_theta_deg=float(theta_deg), ratio_cpc_h=ratio_cpc_h, cpc_nZ=float(n_Z), field_rim_angle=float(rim_angle), aim_z=float(pm.H_tower), secref_fratio=foci_ratio, refl_sec=float(refl_sec), slope_error=float(slope_error),	secref_vert = secref_vert)
 
 bd.heliostatfield(field=pm.field_type, hst_rho=pm.rho_helio, slope=pm.slope_error, hst_w=pm.W_helio, hst_h=pm.H_helio, tower_h=pm.H_tower, tower_r=pm.R_tower, hst_z=pm.Z_helio, num_hst=num_hst, R1=pm.R1, fb=pm.fb, dsep=pm.dsep, x_max=150., y_max=150.)
 

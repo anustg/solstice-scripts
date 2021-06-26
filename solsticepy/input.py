@@ -117,7 +117,7 @@ class Parameters:
 	def BeamDown(self):
 		'''
 		'''
-		self.cpc_theta_deg=20.	# acceptance half angle of CPC
+		self.theta_deg=20.	# acceptance half angle of CPC
 		self.ratio_cpc_h=1. 	# ratio of CPC critical height [0.5,1]
 		self.field_rim_angle=45.	# field rim angle
 		self.secref_fratio=0.6	# ratio of the foci distance and apex distance to the origin [0.5,1]
@@ -183,7 +183,7 @@ class Parameters:
 				['H_rcv', self.H_rcv, 'm'],
 				['W_rcv', self.W_rcv, 'm'],
 				['rec_z', self.rec_z, 'm'],
-				['cpc_theta_deg', self.cpc_theta_deg, 'deg'],
+				['theta_deg', self.theta_deg, 'deg'],
 				['ratio_cpc_h', self.ratio_cpc_h, '-'],
 				['field_rim_angle', self.field_rim_angle, '-'],
 				['secref_fratio', self.secref_fratio, '-'],
