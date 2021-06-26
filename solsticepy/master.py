@@ -119,7 +119,7 @@ class Master:
 
 		else:
 			if system=='beamdown':
-				eta, performance_hst=process_raw_results(self.in_case(folder, 'simul'), folder, rho_mirror, dni, verbose=True, num_virt=2)
+				eta, performance_hst=process_raw_results(self.in_case(folder, 'simul'), folder, rho_mirror, dni, verbose=False, num_virt=2)
 			else:
 				eta, performance_hst=process_raw_results(self.in_case(folder, 'simul'), folder, rho_mirror, dni)
 

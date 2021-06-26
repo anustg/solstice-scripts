@@ -68,7 +68,7 @@ rec_l=pm.H_rcv
 rec_z=0.
 # 2D-crossed cpc with n faces
 n_CPC_faces=4
-rec_grid=200
+rec_grid=50
 n_Z=30
 # Secondary refector 'hyperboloid'
 refl_sec = 0.95
@@ -93,7 +93,7 @@ bd.heliostatfield(field=pm.field_type, hst_rho=pm.rho_helio, slope=pm.slope_erro
 
 bd.yaml(sunshape=pm.sunshape,csr=pm.crs,half_angle_deg=pm.half_angle_deg,std_dev=pm.std_dev)
 
-oelt, A_land=bd.field_design_annual(dni_des=900., num_rays=int(1e5), nd=pm.nd, nh=pm.nh, weafile=weafile, method=1, Q_in_des=pm.Q_in_rcv, n_helios=None, zipfiles=False, gen_vtk=True, plot=False)
+oelt, A_land=bd.field_design_annual(dni_des=900., num_rays=int(5e7), nd=pm.nd, nh=pm.nh, weafile=weafile, method=1, Q_in_des=pm.Q_in_rcv, n_helios=None, zipfiles=False, gen_vtk=True, plot=False)
 
 
 if (A_land==0):

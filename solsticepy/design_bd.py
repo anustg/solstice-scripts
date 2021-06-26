@@ -374,7 +374,7 @@ class BD:
 				    performance_hst=np.zeros((nhst, 9))
 				    efficiency_hst=np.zeros(nhst)
 				else:
-					efficiency_total, performance_hst=self.master.run(azimuth, elevation, num_rays, self.hst_rho, dni, folder=onesunfolder, gen_vtk=False, printresult=False, system='beamdown')
+					efficiency_total, performance_hst=self.master.run(azimuth, elevation, num_rays, self.hst_rho, dni, folder=onesunfolder, gen_vtk=gen_vtk, printresult=False, system='beamdown')
 
 					efficiency_hst=performance_hst[:,-1]/performance_hst[:,0]
 
@@ -406,7 +406,7 @@ class BD:
 		azi_des, ele_des=self.sun.convert_convention('solstice', azi, zen)
 
 		sys.stderr.write("\n"+green('Design Point: \n'))
-		efficiency_total, performance_hst_des=self.master.run(azi_des, ele_des, num_rays, self.hst_rho, dni_des, folder=designfolder, gen_vtk=True, printresult=False, system='beamdown')
+		efficiency_total, performance_hst_des=self.master.run(azi_des, ele_des, num_rays, self.hst_rho, dni_des, folder=designfolder, gen_vtk=gen_vtk, printresult=False, system='beamdown')
 
 		Qin=performance_hst_des[:,-1]
 		Qsolar=performance_hst_des[0,0]
