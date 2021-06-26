@@ -47,17 +47,18 @@ pm.Q_in_rcv=40e6
 num_hst = 300
 pm.nd=5
 pm.nh=5
-pm.H_rcv=10.
-pm.W_rcv=10.
+pm.H_rcv=rec_l
+pm.W_rcv=rec_w
+pm.W_helio=6.1 # ASTRI helio size
+pm.H_helio=6.1
 pm.dependent_par()
 pm.saveparam(casefolder)
 print(pm.fb)
 print(pm.H_tower)
 pm.field_type = 'surround'
 pm.Zhelio = 0.
-pm.slope_error = 0.
 pm.R1 = 30.
-
+pm.lat = -27.16 #degree
 
 # enter the parameters for the beam-down components
 receiver='beam_down'
@@ -74,7 +75,7 @@ refl_sec = 0.95
 slope_error = 2.e-3 # radian
 
 # parameters recalculated (pre-optimized before optimization)
-secref_vert = None # np.array([[-15,25],[-15,-25],[15,-25],[15,25]])
+secref_vert=None # np.array([[-15,25],[-15,-25],[15,-25],[15,25]])
 cpc_h=None
 
 # create the environment and scene
