@@ -100,6 +100,9 @@ class Parameters:
 		self.aim_pm1=0. # parameter 1 in aiming strategy
 		self.aim_pm2=0. # parameter 2 in aiming strategy
 		self.f_oversize=1. # oversising factor
+		self.delta_r2=0. # field expanding for zone2
+		self.delta_r3=0. # field expanding for zone3
+		self.SM=0. # solar multiple
 		
 
 	def Receiver(self):
@@ -137,7 +140,7 @@ class Parameters:
 		self.Nb=0. # number of banks
 		self.Nfp=0. # number of flow paths
 		self.Do=0. # tube outer diameter
-
+		self.fluxlimitpath='' # directory of the files for flux limits
 
 	def simulation(self):
 		'''
@@ -192,14 +195,11 @@ class Parameters:
 				['windy optics', bool(self.windy_optics), '-'],   
 				['','',''], 
 				['field', self.field_type, '-'],  
-				['Q_in_rcv', self.Q_in_rcv, 'W'],     
+				['Q_in_rcv', self.Q_in_rcv, 'W'],   
+				['SM', self.SM, 'W'],    
 				['n_helios(pre_des if method ==1)', self.n_helios, '-'],    
 				['W_helio', self.W_helio, 'm'],    
 				['H_helio', self.H_helio, 'm'],
-				['Z_helio', self.Z_helio, 'm'],      
-				#['helio_rho', self.helio_rho, '-'],  
-				#['helio_soil', self.helio_soil, '-'],   
-				#['helio_sf_ratio', self.helio_sf_ratio, '-'],   
 				['helio effective reflectivity', self.helio_refl, '-'],     
 				['slope_error', self.slope_error, 'rad'],
 				['slope_error_windy', self.slope_error_windy, 'rad'],
@@ -210,6 +210,8 @@ class Parameters:
 				['fb factor', self.fb, '-'],     
 				['R1', self.R1, 'm'],    
 				['dsep', self.dsep, 'm'],  
+				['delta_r2', self.delta_r2, 'm'],  
+				['delta_r3', self.delta_r3, 'm'],  
 				['aiming strategy',self.aimingstrategy,''],
 				['self.aim_pm1', self.aim_pm1, ''],
 				['self.aim_pm2', self.aim_pm2, ''],
@@ -232,6 +234,7 @@ class Parameters:
 				['Nb',self.Nb, ''],
 				['Nfp', self.Nfp, ''],
 				['Do', self.Do, ''],
+				['fluxlimitpath', self.fluxlimitpath, ''],
 				['','',''], 			
 				['n_row_oelt', self.n_row_oelt, '-'] , 
 				['n_col_oelt', self.n_col_oelt, '-'] ,
