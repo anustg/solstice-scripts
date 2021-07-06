@@ -1,12 +1,11 @@
 from __future__ import print_function
 import numpy as np
-import matplotlib.pyplot as plt
 
 #for python 2:
 #from builtins import super
 
 from .data_spectral import SolarSpectrum, MirrorRhoSpectrum
-from .cal_layout import multi_aperture_pos
+from .design_cpc import *
 import sys
 
 class Sun:
@@ -48,9 +47,9 @@ class Sun:
 			s += ", spectrum = %s" % (spectrum,)
 		if self.sunshape is not None:
 			if self.sunshape=='pillbox':
-				s += ", pillbox: {half_angle: %6.4f}" % (self.half_angle_deg,)   
+				s += ", pillbox: {half_angle: %6.4f}" % (self.half_angle_deg,)
 			elif self.sunshape=='buie':
-				s += ", buie: {csr: %6.4f}" % (self.csr,) 
+				s += ", buie: {csr: %6.4f}" % (self.csr,)
 			elif self.sunshape=='gaussian':
 				s += ", gaussian: {std_dev: %6.4f}" % (self.std_dev,)
 		s += "}"
@@ -80,23 +79,23 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims,hst_w, hst_h
 	  * `tower_h` (float): tower height (m)
 	  * `tower_r` (float): tower radius (a cylindrical shape tower) (m)
 	3. the receiver
-	  * `receiver` (str): ``'flat'``, ``'cylinder'``, or ``'stl' or 'multi-aperture'`` (first of the 'receiver' parameters)
+	  * `receiver` (str): ``'flat'``, ``'cylinder'``, or ``'stl' or 'multi_cavity'`` (first of the 'receiver' parameters)
 	  * `rec_abs` (float): receiver absorptivity
 	  * `rec_param` (numpy array or str): each element contains the geometrical parameter of the corresponding receiver.
 	4. others
 	  * `spectral` (bool): True - simulate the spectral dependent performance (first of the 'other' parameters)
 	  * `medium` (float): if the atmosphere is surrounded by non-participant medium, medium=0; otherwise it is the extinction coefficient in m-1
 	  * `one_heliosat` (boolean): if `True`, implements ray tracing from just one heliostat.
-	  	
+
 	Returns: nothing (requested files are created and written)
 
-	Note that the parameters are in groups that relate to the `sun`, the `field` and the `receiver` then `others`. 
+	Note that the parameters are in groups that relate to the `sun`, the `field` and the `receiver` then `others`.
 
 	Note also the type for `rec_param` should be as follows.
-	  * if ``receiver == 'flat'``: np.array([width, height, grid_w, grid_h,, x, y, z, tilt angle (deg))]
-	  * if ``receiver == 'cylinder'``: np.array([radius, height, grid_circ, grid_h, x, y, z, tilt angle (deg)])
+	  * if ``receiver == 'flat'``: np.array([width, height, slices, x, y, z, tilt angle (deg))]
+	  * if ``receiver == 'cylinder'``: np.array([radius, height, slices])
 	  * if ``receiver == 'stl'``: the directory of the stl file
-	  * if ``receiver == 'multi-aperture'``:  np.array([width, height, grid_w, grid_h,, x, y, z, tilt angle (deg),num_aperture, gamma (deg) ])
+	  * if ``receiver == 'multi_cavity'``: the directory of the stl file
 	"""
 	# FIXME Parameters should be named according to what they are, eg
 	# the parameter should be called 'csr', not 'sunsize', to avoid confusion.
@@ -107,9 +106,9 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims,hst_w, hst_h
 
 	iyaml='' # the input yaml file
 
-	# 
+	#
 	### Section (1)
-	# set the spectral data: 
+	# set the spectral data:
 	# solar radiative intensity, refractive indexes, extinction coefficients, reflectivities
 	#------------------------------
 	if spectral:
@@ -117,9 +116,9 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims,hst_w, hst_h
 		# CREATE the spectrum for the sun
 		iyaml+='- spectrum: &solar_spectrum  \n'
 		for i in range(0,len(I_sun)-1):
-		    iyaml+='  - {wavelength: %s, data: %s }\n' % (I_sun[i][0],I_sun[i][1])  
+		    iyaml+='  - {wavelength: %s, data: %s }\n' % (I_sun[i][0],I_sun[i][1])
 		i = len(I_sun)-1
-		iyaml+='  - {wavelength: %s, data: %s }\n' % (I_sun[i][0],I_sun[i][1]) 
+		iyaml+='  - {wavelength: %s, data: %s }\n' % (I_sun[i][0],I_sun[i][1])
 		iyaml+='\n'
 
 		# CREATE the spectrum for the reflectivity (mirror)
@@ -131,14 +130,14 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims,hst_w, hst_h
 		mirror_ref.append([4,0.9])
 		iyaml+='- spectrum: &%s  \n' % 'ref_mirror'
 		for i in range(0,len(mirror_ref)-1):
-		    iyaml+='  - {wavelength: %15.8e, data: %15.8e }\n' % (float(mirror_ref[i][0]),float(mirror_ref[i][1])) 
+		    iyaml+='  - {wavelength: %15.8e, data: %15.8e }\n' % (float(mirror_ref[i][0]),float(mirror_ref[i][1]))
 		i = len(mirror_ref)-1
-		iyaml+='  - {wavelength: %15.8e, data: %15.8e }\n' % (float(mirror_ref[i][0]),float(mirror_ref[i][1])) 
+		iyaml+='  - {wavelength: %15.8e, data: %15.8e }\n' % (float(mirror_ref[i][0]),float(mirror_ref[i][1]))
 		iyaml+='\n'
 
-	# 
+	#
 	### Section (2)
-	# set the medium types: 
+	# set the medium types:
 	# air, glass, vacuum, etc. gathering spectral data
 	#------------------------------
 	#
@@ -150,15 +149,15 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims,hst_w, hst_h
 		spectrum = "*solar_spectrum"
 	else:
 		spectrum = None
-	
+
 	iyaml += "- sun: %s\n" % (sun.yaml(spectrum),)
 
 	if medium>1e-99:
-		iyaml+='- atmosphere: {extinction: %s}\n'%medium 
+		iyaml+='- atmosphere: {extinction: %s}\n'%medium
 		iyaml+='\n'
 
-		   
-	# 
+
+	#
 	### Section (3)
 	# set the materials
 	# (gathering media)
@@ -170,7 +169,7 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims,hst_w, hst_h
 	r_b = 0. # and back reflectivity
 	iyaml+='- material: &%s\n' % 'material_black'
 	iyaml+='   front:\n'
-	iyaml+='     matte: {reflectivity: %6.4f }\n' % r_f    
+	iyaml+='     matte: {reflectivity: %6.4f }\n' % r_f
 	iyaml+='   back:\n'
 	iyaml+='     matte: {reflectivity: %6.4f }\n' % r_b
 	iyaml+='\n'
@@ -181,12 +180,12 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims,hst_w, hst_h
 	iyaml+='- material: &%s\n' % 'material_mirror'
 	iyaml+='   front:\n'
 	if spectral:
-		iyaml+='     mirror: {reflectivity: *%s, slope_error: %15.8e }\n' % ('ref_mirror', slope_error ) 
+		iyaml+='     mirror: {reflectivity: *%s, slope_error: %15.8e }\n' % ('ref_mirror', slope_error )
 	else:
-		iyaml+='     mirror: {reflectivity: %6.4f, slope_error: %15.8e }\n' % (r_f, slope_error) 
+		iyaml+='     mirror: {reflectivity: %6.4f, slope_error: %15.8e }\n' % (r_f, slope_error)
 
 	iyaml+='   back:\n'
-	iyaml+='     matte: {reflectivity: %6.4f }\n' % r_b 
+	iyaml+='     matte: {reflectivity: %6.4f }\n' % r_b
 	iyaml+='\n'
 	#
 	# CREATE a material for the target
@@ -194,7 +193,7 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims,hst_w, hst_h
 	r_b = 1.-rec_abs # and back reflectivity
 	iyaml+='- material: &%s\n' % 'material_target'
 	iyaml+='   front:\n'
-	iyaml+='     matte: {reflectivity: %6.4f }\n' % r_f    
+	iyaml+='     matte: {reflectivity: %6.4f }\n' % r_f
 	iyaml+='   back:\n'
 	iyaml+='     matte: {reflectivity: %6.4f }\n' % r_b
 	iyaml+='\n'
@@ -205,7 +204,7 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims,hst_w, hst_h
 	iyaml+='\n'
 
 
-	# 
+	#
 	### Section (4)
 	# set the geometries
 	# (gathering shapes and materials)
@@ -216,10 +215,10 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims,hst_w, hst_h
 	# (cylindrical shape)
 	#
 	slices = 10 # slices for the envelop circle
-	iyaml+='- geometry: &%s\n' % 'tower_g' 
-	iyaml+='  - material: *%s\n' % 'material_black' 
-	#iyaml+='    transform: { translation: %s, rotation: %s }\n' % ([0, 0, h_tow*0.5], [0, 90, 0]) 
-	iyaml+='    cylinder: {height: %7.3f, radius: %7.3f, slices: %d }\n' % (tower_h, tower_r, slices) 
+	iyaml+='- geometry: &%s\n' % 'tower_g'
+	iyaml+='  - material: *%s\n' % 'material_black'
+	#iyaml+='    transform: { translation: %s, rotation: %s }\n' % ([0, 0, h_tow*0.5], [0, 90, 0])
+	iyaml+='    cylinder: {height: %7.3f, radius: %7.3f, slices: %d }\n' % (tower_h, tower_r, slices)
 	iyaml+='\n'
 	#
 	# Receiver Geometry
@@ -235,9 +234,13 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims,hst_w, hst_h
 	elif receiver=='stl':
 		rec_entt, rcv=STL_receiver(rec_param, hemisphere)
 
-	elif receiver=='multi-aperture':
-		geom, rec_entt, rcv =multi_aperture_receiver(rec_param, hemisphere)
-		iyaml+=geom
+	elif receiver=='multi_cavity':
+		geom, rec_entt, rcv =multi_cavity_receiver(rec_param, hemisphere)
+
+	elif receiver=='beam_down':
+		sys.stderr.write("You chose a beam-down system\n")
+		cpc=CPC()
+		rec_entt, rcv = cpc.beamdowncomponents(rec_param)
 	#
 	# Heliostats Geometry
 	#
@@ -245,7 +248,7 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims,hst_w, hst_h
 		hst_x=np.r_[hst_pos[0]]
 		hst_y=np.r_[hst_pos[1]]
 		hst_z=np.r_[hst_pos[2]]
-		aim_x=np.r_[hst_aims[0]] 
+		aim_x=np.r_[hst_aims[0]]
 		aim_y=np.r_[hst_aims[1]]
 		aim_z=np.r_[hst_aims[2]]
 		num_hst=1
@@ -263,50 +266,50 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims,hst_w, hst_h
 	# CREATE a reflective facet (mirror)
 	for i in range(0,num_hst):
 		name_hst_g = 'hst_g_'+str(i)
-		iyaml+='- geometry: &%s\n' % name_hst_g 
-		iyaml+='  - material: *%s\n' % 'material_mirror' 
+		iyaml+='- geometry: &%s\n' % name_hst_g
+		iyaml+='  - material: *%s\n' % 'material_mirror'
 		#iyaml+='    transform: { translation: %s, rotation: %s }\n' % ([hst_x[i], hst_y[i], hst_z[i]], [0, 0, 0]) )
 		iyaml+='    parabol: \n'
 		iyaml+='      focal: %s\n' % hst_foc[i]
-		iyaml+='      clip: \n'  
+		iyaml+='      clip: \n'
 		iyaml+='      - operation: AND \n'
 		iyaml+='        vertices: %s\n' % pts_hst
-		iyaml+='      slices: %d\n' % slices  
+		iyaml+='      slices: %d\n' % slices
 
 	# CREATE the pylon "pylon_g" geometry cylindrical shape
 	h_pyl = 0.001 # pylon height
 	r_pyl = 0.2 # pylon radius
 	slices = 4 # slices for the envelop circle
-	iyaml+='- geometry: &%s\n' % 'pylon_g' 
-	iyaml+='  - material: *%s\n' % 'material_black' 
-	iyaml+='    transform: { translation: %s, rotation: %s }\n' % ([0, 0, -h_pyl*3], [0, 90, 0]) 
-	iyaml+='    cylinder: {height: %7.3f, radius: %7.3f, slices: %d }\n' % (h_pyl,r_pyl,slices) 
-	#   
+	iyaml+='- geometry: &%s\n' % 'pylon_g'
+	iyaml+='  - material: *%s\n' % 'material_black'
+	iyaml+='    transform: { translation: %s, rotation: %s }\n' % ([0, 0, -h_pyl*3], [0, 90, 0])
+	iyaml+='    cylinder: {height: %7.3f, radius: %7.3f, slices: %d }\n' % (h_pyl,r_pyl,slices)
+	#
 
-	# 
+	#
 	### Section (5)
 	# set the templates
 	# (programming objects gathering geometries or pivot and geometries)
 	#------------------------------
 	# CREATE the heliostat templates
-	for i in range(0,num_hst):    
+	for i in range(0,num_hst):
 		name_hst_t = 'hst_t_'+str(i)
-		iyaml+='- template: &%s\n' % name_hst_t 
+		iyaml+='- template: &%s\n' % name_hst_t
 		name_hst_n = 'hst_'+ str(i)
-		iyaml+='    name: %s\n' % name_hst_n 
-		iyaml+='    primary: 0\n'   
+		iyaml+='    name: %s\n' % name_hst_n
+		iyaml+='    primary: 0\n'
 		iyaml+='    geometry: *pylon_g\n'
-		iyaml+='    children: \n' 
+		iyaml+='    children: \n'
 		iyaml+='    - name: pivot\n'
-		iyaml+='      zx_pivot: {target: {position: %s}} \n' % ([aim_x[i],aim_y[i],aim_z[i]]) 
+		iyaml+='      zx_pivot: {target: {position: %s}} \n' % ([aim_x[i],aim_y[i],aim_z[i]])
 		iyaml+='      children: \n'
 		iyaml+='      - name: reflect_surface\n'
 		iyaml+='        primary: 1\n'
-		iyaml+='        transform: {rotation: [-90,0,0]} \n'   
+		iyaml+='        transform: {rotation: [-90,0,0]} \n'
 		name_hst_g = 'hst_g_'+str(i)
-		iyaml+='        geometry: *%s\n' % name_hst_g 
+		iyaml+='        geometry: *%s\n' % name_hst_g
 
-	# 
+	#
 	### Section (6)
 	# set the entities
 	# (gather templates to be created and active in the scene)
@@ -318,9 +321,9 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims,hst_w, hst_h
 	# tower entities
 	iyaml+='\n- entity:\n'
 	iyaml+='    name: tower_e\n'
-	iyaml+='    primary: 0\n' 
-	iyaml+='    transform: { translation: %s, rotation: %s }\n' % ([0, -tower_r, tower_h*0.5], [0, 0, 0]) 
-	iyaml+='    geometry: *%s\n' % 'tower_g'    
+	iyaml+='    primary: 0\n'
+	iyaml+='    transform: { translation: %s, rotation: %s }\n' % ([0, -tower_r, tower_h*0.5], [0, 0, 0])
+	iyaml+='    geometry: *%s\n' % 'tower_g'
 	#
 	# heliostat entities from the template
 	for i in range(0,num_hst):
@@ -328,23 +331,23 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims,hst_w, hst_h
 		name_hst_t = 'hst_t_'+str(i)
 		iyaml+='\n- entity:\n'
 		iyaml+='    name: %s\n' % name_e
-		iyaml+='    transform: { translation: %s, rotation: %s }\n' % ([hst_x[i], hst_y[i], hst_z[i]], [0, 0, 0]) 
-		iyaml+='    children: [ *%s ]\n' % name_hst_t    
+		iyaml+='    transform: { translation: %s, rotation: %s }\n' % ([hst_x[i], hst_y[i], hst_z[i]], [0, 0, 0])
+		iyaml+='    children: [ *%s ]\n' % name_hst_t
 
 	with open(outfile_yaml,'w') as f:
 		f.write(iyaml)
 
 	with open(outfile_recv,'w') as f:
-		f.write(rcv) 
+		f.write(rcv)
 
 
 def flat_receiver(rec_param, hemisphere='North'):
 	"""
 	hemisphere : 'North' or 'South' hemisphere of the earth where the field located
 		        if North: the field is in the positive y direction
-		        if South: the field is in the negtive y direction
+                        if South: the field is in the negative y direction
 		        this will influence:
-		         (1) the setting of the receiver tilt angle, 
+		         (1) the setting of the receiver tilt angle,
 		             if the front surface always facing to the field is desirable
 		         (2) the position of the virtual target
 	"""
@@ -366,10 +369,10 @@ def flat_receiver(rec_param, hemisphere='North'):
 	geom+='- geometry: &%s\n' % 'target_g'
 	geom+='  - material: *%s\n' % 'material_target'
 	geom+='    plane: \n'
-	geom+='      clip: \n' 
+	geom+='      clip: \n'
 	geom+='      - operation: AND \n'
 	geom+='        vertices: %s\n' % pts
-	geom+='      slices: %d\n' % slices 
+	geom+='      slices: %d\n' % slices
 	geom+='\n'
 
 	# CREATE a receiver entity from "target_g" geometry (primary = 0)
@@ -378,9 +381,9 @@ def flat_receiver(rec_param, hemisphere='North'):
 	entt+='    name: target_e\n'
 	entt+='    primary: 0\n'
 	if hemisphere=='North':
-		entt+='    transform: { translation: %s, rotation: %s }\n' % ([x, y, z], [-90.-tilt, 0, 0]) 
+		entt+='    transform: { translation: %s, rotation: %s }\n' % ([x, y, z], [-90.-tilt, 0, 0])
 	else:
-		entt+='    transform: { translation: %s, rotation: %s }\n' % ([x, y, z], [90.+tilt, 0, 0]) 
+		entt+='    transform: { translation: %s, rotation: %s }\n' % ([x, y, z], [90.+tilt, 0, 0])
 	entt+='    geometry: *%s\n' % 'target_g'
 
 	# CREATE a virtual target entity from "target_g" geometry (primary = 0)
@@ -393,16 +396,16 @@ def flat_receiver(rec_param, hemisphere='North'):
 		entt+='    transform: { translation: %s, rotation: %s }\n' % ([x, y-5., z], [-90.-tilt, 0, 0])
 	else:
 		entt+='    transform: { translation: %s, rotation: %s }\n' % ([x, y+5., z], [90.+tilt, 0, 0])
-	entt+='    geometry: \n' 
-	entt+='      - material: *%s\n' % 'material_virtual' 
+	entt+='    geometry: \n'
+	entt+='      - material: *%s\n' % 'material_virtual'
 	entt+='        plane: \n'
-	entt+='          clip: \n'    
+	entt+='          clip: \n'
 	entt+='          - operation: AND \n'
 	entt+='            vertices: %s\n' % pts
-	entt+='          slices: %d\n' % slices  
+	entt+='          slices: %d\n' % slices
 
 	rcv=''
-	rcv+='- name: target_e \n' 
+	rcv+='- name: target_e \n'
 	rcv+='  side: %s \n' % 'FRONT_AND_BACK'
 	rcv+='  per_primitive: %s \n' % 'INCOMING_AND_ABSORBED'
 	rcv+='- name: virtual_target_e \n'
@@ -419,7 +422,7 @@ def cylindrical_receiver(rec_param, hemisphere='North'):
 		        if North: the field is in the positive y direction
 		        if South: the field is in the negtive y direction
 		        this will influence:
-		         (1) the setting of the receiver tilt angle, 
+		         (1) the setting of the receiver tilt angle,
 		             if the front surface always facing to the field is desirable
 		         (2) the position of the virtual target
 	'''
@@ -435,10 +438,10 @@ def cylindrical_receiver(rec_param, hemisphere='North'):
 	geom+='- geometry: &%s\n' % 'target_g'
 	geom+='  - material: *%s\n' % 'material_target'
 	geom+='    cylinder: \n'
-	geom+='      height: %s\n'%rec_h 
-	geom+='      radius: %s\n'%rec_r 
-	geom+='      slices: %d\n' % slices 
-	geom+='      stacks: %d\n' % stacks 
+	geom+='      height: %s\n'%rec_h
+	geom+='      radius: %s\n'%rec_r
+	geom+='      slices: %d\n' % slices
+	geom+='      stacks: %d\n' % stacks
 	geom+='\n'
 
 	# CREATE a receiver entity from "target_g" geometry (primary = 0)
@@ -447,7 +450,7 @@ def cylindrical_receiver(rec_param, hemisphere='North'):
 	entt+='    name: target_e\n'
 	entt+='    primary: 0\n'
 
-	entt+='    transform: { translation: %s, rotation: %s }\n' % ([x, y, z], [0., 0., 0.]) 
+	entt+='    transform: { translation: %s, rotation: %s }\n' % ([x, y, z], [0., 0., 0.])
 
 	entt+='    geometry: *%s\n' % 'target_g'
 
@@ -461,16 +464,16 @@ def cylindrical_receiver(rec_param, hemisphere='North'):
 
 	entt+='    transform: { translation: %s, rotation: %s }\n' % ([x, y, z+rec_h/2.+1], [-180., 0, 0])
 
-	entt+='    geometry: \n' 
-	entt+='      - material: *%s\n' % 'material_virtual' 
+	entt+='    geometry: \n'
+	entt+='      - material: *%s\n' % 'material_virtual'
 	entt+='        plane: \n'
-	entt+='          clip: \n'    
+	entt+='          clip: \n'
 	entt+='          - operation: AND \n'
 	entt+='            vertices: %s\n' % pts
-	entt+='          slices: %d\n' % slices  
+	entt+='          slices: %d\n' % slices
 
 	rcv=''
-	rcv+='- name: target_e \n' 
+	rcv+='- name: target_e \n'
 	rcv+='  side: %s \n' % 'FRONT_AND_BACK'
 	rcv+='  per_primitive: %s \n' % 'INCOMING_AND_ABSORBED'
 	rcv+='- name: virtual_target_e \n'
@@ -479,7 +482,7 @@ def cylindrical_receiver(rec_param, hemisphere='North'):
 
 	return geom, entt, rcv
 
-    
+
 
 def STL_receiver(rec_param, hemisphere='North'):
 	'''
@@ -487,7 +490,7 @@ def STL_receiver(rec_param, hemisphere='North'):
 		        if North: the field is in the positive y direction
 		        if South: the field is in the negtive y direction
 		        this will influence:
-		         (1) the setting of the receiver tilt angle, 
+		         (1) the setting of the receiver tilt angle,
 		             if the front surface always facing to the field is desirable
 		         (2) the position of the virtual target
 	'''
@@ -500,17 +503,17 @@ def STL_receiver(rec_param, hemisphere='North'):
 	z=rec_param[5].astype(float)
 	tilt=rec_param[6].astype(float) # need to figure out the initial mesh orientation
 
-	# CREATE a receiver entity from a STL file 
+	# CREATE a receiver entity from a STL file
 	entt=''
 	entt+='\n- entity:\n'
 	entt+='    name: STL_receiver_e\n'
 	entt+='    primary: 0\n'
 	if hemisphere=='North':
 
-		entt+='    transform: { translation: %s, rotation: %s }\n' % ([x, y, z], [-90.-tilt, 0, 0]) 
+		entt+='    transform: { translation: %s, rotation: %s }\n' % ([x, y, z], [-90.-tilt, 0, 0])
 	else:
 		# if it is the mesh model of the bladed receiver at CSIRO
-		entt+='    transform: { translation: %s, rotation: %s }\n' % ([x, y, z], [180.+tilt, 0, 0]) 
+		entt+='    transform: { translation: %s, rotation: %s }\n' % ([x, y, z], [180.+tilt, 0, 0])
 	entt+='    geometry:\n'
 	entt+='    - material: *material_target\n'
 	entt+='      transform: {translation: [0, 0, 0], rotation: [0, 0, 0]}\n'
@@ -527,16 +530,16 @@ def STL_receiver(rec_param, hemisphere='North'):
 		entt+='    transform: { translation: %s, rotation: %s }\n' % ([x, y-5., z], [-90.-tilt, 0, 0])
 	else:
 		entt+='    transform: { translation: %s, rotation: %s }\n' % ([x, y+5., z], [90.+tilt, 0, 0])
-	entt+='    geometry: \n' 
-	entt+='      - material: *%s\n' % 'material_virtual' 
+	entt+='    geometry: \n'
+	entt+='      - material: *%s\n' % 'material_virtual'
 	entt+='        plane: \n'
-	entt+='          clip: \n'    
+	entt+='          clip: \n'
 	entt+='          - operation: AND \n'
 	entt+='            vertices: %s\n' % pts
-	entt+='          slices: %d\n' % slices  
+	entt+='          slices: %d\n' % slices
 
 	rcv=''
-	rcv+='- name: STL_receiver_e \n' 
+	rcv+='- name: STL_receiver_e \n'
 	rcv+='  side: %s \n' % 'FRONT_AND_BACK'
 	rcv+='  per_primitive: %s \n' % 'INCOMING_AND_ABSORBED'
 	rcv+='- name: virtual_target_e \n'
@@ -545,98 +548,82 @@ def STL_receiver(rec_param, hemisphere='North'):
 
 	return entt, rcv
 
-def multi_aperture_receiver(rec_param, hemisphere='North', plot=False):
+def multi_cavity_receiver(rec_param, hemisphere='North'):
 	"""
 	hemisphere : 'North' or 'South' hemisphere of the earth where the field located
 		        if North: the field is in the positive y direction
 		        if South: the field is in the negtive y direction
 		        this will influence:
-		         (1) the setting of the receiver tilt angle, 
+		         (1) the setting of the receiver tilt angle,
 		             if the front surface always facing to the field is desirable
 		         (2) the position of the virtual target
 	"""
-	# rec_w and rec_h is the size of one aperture
-	# rec_grid_w and rec_gird_h is the number of elements of one aperture
-	# rec_z is a list of the elevation height of the center of apertures
-	# rec_tilt is the tilt angle of each aperture (the default is facing to the horizon)
-	# num_aperture is the number of apertures
-	# gamma is the angular range of the multi-aperture configration 
-
+	# x, y, z is the front center of the multi-cavity receiver
+	# n_c is the number of cavities
+	# rec_w, rec_h is the size of one cavity
+	# alpha is the angle between each two cavities
+	# num_cavity is the number of cavities
 
 	rec_w=rec_param[0]
 	rec_h=rec_param[1]
-	rec_grid_w=rec_param[2]
-	rec_grid_h=rec_param[3]
-
-	rec_z=rec_param[4]
-	rec_tilt=rec_param[5] 
+	slices=rec_param[2]
+	x=rec_param[3]
+	y=rec_param[4]
+	z=rec_param[5]
+	tilt=rec_param[6]
 	# receiver tilt angle:
 	# 0 is vertical
 	# the standby posiion of a plane in solstice is normal points to the +z axis
 	# rotation anagle, positive is anti-clockwise
-	num_aperture=int(rec_param[6]) 
-	gamma=rec_param[7]  # angular range of the multi-aperture configration (deg)
-
 
 	geom=''
+	pts=[ [-rec_w*0.5, -rec_h*0.5], [-rec_w*0.5, rec_h*0.5], [rec_w*0.5, rec_h*0.5], [rec_w*0.5,-rec_h*0.5] ]
+
+	geom+='- geometry: &%s\n' % 'target_g'
+	geom+='  - material: *%s\n' % 'material_target'
+	geom+='    plane: \n'
+	geom+='      clip: \n'
+	geom+='      - operation: AND \n'
+	geom+='        vertices: %s\n' % pts
+	geom+='      slices: %d\n' % slices
+	geom+='\n'
+
+	# CREATE a receiver entity from "target_g" geometry (primary = 0)
 	entt=''
-	vir_z=0.
-	for i in range(num_aperture):
-
-		pts=[ [-rec_w[i]*0.5, -rec_h[i]*0.5], [-rec_w[i]*0.5, rec_h[i]*0.5], [rec_w[i]*0.5, rec_h[i]*0.5], [rec_w[i]*0.5,-rec_h[i]*0.5] ]
-
-		geom+='- geometry: &%s\n' % 'target_g_%.0f\n'%(i)
-		geom+='  - material: *%s\n' % 'material_target'
-		geom+='    plane: \n'
-		geom+='      clip: \n' 
-		geom+='      - operation: AND \n'
-		geom+='        vertices: %s\n' % pts
-		geom+='      slices: %d\n' % rec_grid_w 
-		geom+='\n'
-
-		ang_pos, xc, yc=multi_aperture_pos(rec_w, gamma, num_aperture, i)
-
-		zc=rec_z[i]		
-		vir_z+=zc
-
-		# CREATE a receiver entity from "target_g" geometry (primary = 0)
-
-		entt+='\n- entity:\n'
-		entt+='    name: target_e_%.0f\n'%(i)
-		entt+='    primary: 0\n'
-		if hemisphere=='North':
-			entt+='    transform: { translation: %s, rotation: %s }\n' % ([xc, yc, zc], [-90.-rec_tilt, 90.-ang_pos,0]) 
-		else:
-			entt+='    transform: { translation: %s, rotation: %s }\n' % ([-xc, -yc, zc], [90.+rec_tilt, 90.-ang_pos,0]) 
-		entt+='    geometry: *%s\n' % 'target_g_%.0f\n'%(i)
-
-	vir_z/=float(num_aperture)
+	entt+='\n- entity:\n'
+	entt+='    name: target_e\n'
+	entt+='    primary: 0\n'
+	if hemisphere=='North':
+		entt+='    transform: { translation: %s, rotation: %s }\n' % ([x, y, z], [-90.-tilt, 0, 0])
+	else:
+		entt+='    transform: { translation: %s, rotation: %s }\n' % ([x, y, z], [90.+tilt, 0, 0])
+	entt+='    geometry: *%s\n' % 'target_g'
 
 	# CREATE a virtual target entity from "target_g" geometry (primary = 0)
-	slices = 16
-	radius=vir_z*0.5
+	pts = [ [-rec_w*10., -rec_h*10.], [-rec_w*10., rec_h*10.], [rec_w*10., rec_h*10.], [rec_w*10.,-rec_h*10.] ]
+	slices = 4
 	entt+='\n- entity:\n'
 	entt+='    name: virtual_target_e\n'
 	entt+='    primary: 0\n'
-	entt+='    transform: { translation: %s}\n' % ([0., 0., vir_z])
-	entt+='    geometry: \n' 
-	entt+='      - material: *%s\n' % 'material_virtual' 
-	entt+='        sphere: \n'
-	entt+='          radius: %s\n' % radius   
-	entt+='          slices: %d\n' % slices  
+	if hemisphere=='North':
+		entt+='    transform: { translation: %s, rotation: %s }\n' % ([x, y-5., z], [-90.-tilt, 0, 0])
+	else:
+		entt+='    transform: { translation: %s, rotation: %s }\n' % ([x, y+5., z], [90.+tilt, 0, 0])
+	entt+='    geometry: \n'
+	entt+='      - material: *%s\n' % 'material_virtual'
+	entt+='        plane: \n'
+	entt+='          clip: \n'
+	entt+='          - operation: AND \n'
+	entt+='            vertices: %s\n' % pts
+	entt+='          slices: %d\n' % slices
 
 	rcv=''
-	for i in range(num_aperture):
-		rcv+='- name: target_e_%.0f \n'%(i)
-		rcv+='  side: %s \n' % 'FRONT_AND_BACK'
-		rcv+='  per_primitive: %s \n' % 'INCOMING_AND_ABSORBED'
+	rcv+='- name: target_e \n'
+	rcv+='  side: %s \n' % 'FRONT_AND_BACK'
+	rcv+='  per_primitive: %s \n' % 'INCOMING_AND_ABSORBED'
 	rcv+='- name: virtual_target_e \n'
 	rcv+='  side: %s \n' % 'FRONT'
 	rcv+='  per_primitive: %s \n' % 'INCOMING'
 
 	return geom, entt, rcv
-
-
-
 #------------------------------
-

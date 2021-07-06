@@ -20,7 +20,7 @@ def SPROG(name):
 def run_prog(name,args,output_file=None,verbose=True):
 	prog = SPROG(name)
 	args1 = [str(a) for a in args]
-	if verbose: 
+	if verbose:
 		sys.stderr.write("Running '%s' with args: %s\n" % (name," ".join(args1)))
 	if output_file is not None:
 		# any error will cause an exception (and we capture the output to a file)
@@ -33,18 +33,13 @@ def run_prog(name,args,output_file=None,verbose=True):
 
 class Master:
 
-	def __init__(self, casedir='.', nproc=None):
+	def __init__(self, casedir='.'):
 		"""Set up the Solstice simulation, i.e. establishing the case folder, calling the Solstice program and post-processing the results
 
 		``Argument``
 		  * casedir (str): the case directory
-	      * nproc   (int): number of processors, e.g. nproc=1 will run in serial mode, 
-                                                      nproc=4 will run with 4 processors in parallel
-													  nproc=None will run with any number of processors that are available
 		"""
 		self.casedir=os.path.abspath(casedir)
-		self.nproc=nproc
-
 		if not os.path.exists(self.casedir):
 		    os.makedirs(self.casedir)
 		    assert os.path.isdir(casedir)
@@ -62,24 +57,23 @@ class Master:
 
 		  * a joining directory of the file in the case directory
 		"""
-		
 		if not os.path.exists(folder):
 		    os.makedirs(folder)
 		    assert os.path.isdir(folder)
 
 		return os.path.join(folder,fn)
 
-	def run(self, azimuth, elevation, num_rays, rho_mirror, dni, folder, gen_vtk=False, printresult=False, verbose=False, system='crs'):
+	def run(self, azimuth, elevation, num_rays, rho_mirror, dni, folder, gen_vtk=True, printresult=True, system='crs'):
 
-		"""Run an optical simulation (one sun position) using Solstice 
+		"""Run an optical simulation (one sun position) using Solstice
 
-		* `azimuth`   (float): the azimuth angle of the ray-tracing simulation in Solstice, counted from East towards to North
+		* `azimuth` (float): the azimuth angle of the ray-tracing simulation in Solstice, counted from East towards to North
 		* `elevation` (float): the elevation angle of the ray-tracing simulation in Solstice
-		* `num_rays`    (int): number of rays to be cast in the ray-tracing simulation
-		* `rho_mirror`(float): reflectivity of mirrors, required for results post-processing 
-		* `dni`       (float): the direct normal irradiance (W/m2), required to obtain performance of individual heliostat
+		* `num_rays` (int): number of rays to be cast in the ray-tracing simulation
+		* `rho_mirror` (float): reflectivity of mirrors, required for results post-processing
+		* `dni` (float): the direct normal irradiance (W/m2), required to obtain performance of individual heliostat
 		* `gen_vtk` (boolean): if True, generate .vtk files for rendering in Paraview
-		* `system`      (str): 'crs' for a central receiver system, or 'dish' for a parabolic dish system				
+		* `system` (str): 'crs' for a central receiver system, or 'dish' for a parabolic dish system
 
 		Returns: no return value (results files are created and written)
 		"""
@@ -88,13 +82,10 @@ class Master:
 		RECV_IN = self.in_case(self.casedir, 'input-rcv.yaml')
 
 		# main raytrace
-		if self.nproc==None:
-			run_prog("solstice",['-D%s,%s'%(azimuth,elevation),'-v','-n',num_rays,'-R',RECV_IN,'-fo',self.in_case(folder, 'simul'),YAML_IN])
-		else:
-			run_prog("solstice",['-D%s,%s'%(azimuth,elevation),'-v', '-t', self.nproc, '-n',num_rays,'-R',RECV_IN,'-fo',self.in_case(folder, 'simul'),YAML_IN])
+		run_prog("solstice",['-D%s,%s'%(azimuth,elevation),'-v','-n',num_rays,'-R',RECV_IN,'-fo',self.in_case(folder, 'simul'),YAML_IN])
 
 		folder=os.path.abspath(folder)
-		if gen_vtk and verbose:
+		if gen_vtk:
 			dirn = os.getcwd()
 			try:
 				os.chdir(folder)
@@ -120,26 +111,26 @@ class Master:
 				os.chdir(dirn)
 
 		if system=='dish':
-			eta=process_raw_results_dish(self.in_case(folder, 'simul'), folder, rho_mirror, dni, verbose=verbose)
+			eta=process_raw_results_dish(self.in_case(folder, 'simul'), folder, rho_mirror, dni)
 			if printresult:
 				sys.stderr.write('\n' + yellow("Total efficiency: {:f}\n".format(eta)))
 				sys.stderr.write(green("Completed successfully.\n"))
 			return eta
 
 		else:
-			if system=='multi-aperture':
-				eta, performance_hst=process_raw_results_multi_aperture(self.in_case(folder, 'simul'), folder,rho_mirror, dni, verbose=verbose)
+			if system=='beamdown':
+				eta, performance_hst=process_raw_results(self.in_case(folder, 'simul'), folder, rho_mirror, dni, verbose=True, num_virt=2)
 			else:
-				eta, performance_hst=process_raw_results(self.in_case(folder, 'simul'), folder,rho_mirror, dni, verbose=verbose)
+				eta, performance_hst=process_raw_results(self.in_case(folder, 'simul'), folder, rho_mirror, dni)
 
 			if printresult:
 				sys.stderr.write('\n' + yellow("Total efficiency: {:f}\n".format(eta)))
 				sys.stderr.write(green("Completed successfully.\n"))
 			return eta, performance_hst
 
-	def run_annual(self, nd, nh, latitude, num_rays, num_hst,rho_mirror,dni, gen_vtk=False,verbose=False):
+	def run_annual(self, nd, nh, latitude, num_rays, num_hst, rho_mirror, dni, gen_vtk=False, system='crs'):
 
-		"""Run a list of optical simulations to obtain annual performance (lookup table) using Solstice 
+		"""Run a list of optical simulations to obtain annual performance (lookup table) using Solstice
 
 		``Arguments``
 
@@ -147,20 +138,15 @@ class Master:
 		  * nh (int): number of columns in the lookup table (discretisation of the solar hour angle)
 		  * latitude (float): the latitude angle of the plan location (deg)
 		  * num_rays (int): number of rays to be cast in the ray-tracing simulation
-		  * num_hst (int): number of heliostats 
-	      * nproc (int): number of processors, e.g. nproc=1 will run in serial mode, 
-                                                      nproc=4 will run with 4 processors in parallel
-											    	  nproc=None will run with any number of processors that are available
-
-		  * rho_mirror (float): reflectivity of mirrors, required for results post-processing 
+		  * num_hst (int): number of heliostats
+		  * rho_mirror (float): reflectivity of mirrors, required for results post-processing
 		  * dni (float): the direct normal irradiance (W/m2), required to obtain performance of individual heliostat
-		  * gen_vtk (bool): True - perform postprocessing for visualisation of  each individual ray-tracing scene (each sun position), False - no postprocessing for visualisation 
+		  * gen_vtk (bool): True - perform postprocessing for visualisation of  each individual ray-tracing scene (each sun position), False - no postprocessing for visualisation
 
 
 		``Return``
 
-		  * table (numpy array), the annual optical efficiency lookup table
-		  * ANNUAL (numpy array), the annual output of each heliostat
+		  * No return value (results files are created and written)
 		"""
 
 		YAML_IN = self.in_case(self.casedir, 'input.yaml')
@@ -172,12 +158,12 @@ class Master:
 		SOLSTICE_AZI, SOLSTICE_ELE=sun.convert_convention('solstice', AZI, ZENITH)
 
 		# performance of individual heliostat is recorded
-		# TODO note, DNI is not varied in the simulation, 
+		# TODO note, DNI is not varied in the simulation,
 		# i.e. performance is not dni-weighted
-		ANNUAL=np.zeros((num_hst, 9))    
+		ANNUAL=np.zeros((num_hst, 9))
 		run=np.r_[0]
 
-		for i in range(len(case_list)):     
+		for i in range(len(case_list)):
 			c=int(case_list[i,0].astype(float))
 			if c not in run:
 				azimuth=SOLSTICE_AZI[c-1]
@@ -187,7 +173,7 @@ class Master:
 				#else:
 				#	dni=0.
 
-			   
+
 				sys.stderr.write("\n"+green('Sun position: %s \n'%c))
 				print('azimuth: %.2f'% azimuth, ', elevation: %.2f'%elevation)
 
@@ -196,9 +182,9 @@ class Master:
 				# run solstice
 				if elevation<1.: # 1 degree
 				    efficiency_total=ufloat(0,0)
-				    performance_hst=np.zeros((num_hst, 9))  
+				    performance_hst=np.zeros((num_hst, 9))
 				else:
-					efficiency_total, performance_hst=self.run(azimuth, elevation, num_rays, rho_mirror, dni, folder=onesunfolder, gen_vtk=gen_vtk, printresult=False, verbose=verbose)
+					efficiency_total, performance_hst=self.run(azimuth, elevation, num_rays, rho_mirror, dni, folder=onesunfolder, gen_vtk=gen_vtk, printresult=False, system=system)
 
 					sys.stderr.write(yellow("Total efficiency: {:f}\n".format(efficiency_total)))
 
@@ -216,16 +202,12 @@ class Master:
 				        if c==float(val[0]):
 				            table[a+3,b+3]=efficiency_total.nominal_value
 
-			run=np.append(run,c)   
+			run=np.append(run,c)
 
-		annual_title=np.array(['Q_solar','Q_cosine', 'Q_shade', 'Q_hst_abs', 'Q_block', 'Q_atm', 'Q_spil', 'Q_refl', 'Q_rcv_abs']) 
+		annual_title=np.array(['Q_solar','Q_cosine', 'Q_shade', 'Q_hst_abs', 'Q_block', 'Q_atm', 'Q_spil', 'Q_refl', 'Q_rcv_abs'])
 		ANNUAL=np.vstack((annual_title, ANNUAL))
-		if verbose:
-			np.savetxt(self.casedir+'/lookup_table.csv', table, fmt='%s', delimiter=',')
-			np.savetxt(self.casedir+'/result-heliostats-annual-performance.csv', ANNUAL, fmt='%s', delimiter=',')
-
+		np.savetxt(self.casedir+'/lookup_table.csv', table, fmt='%s', delimiter=',')
+		np.savetxt(self.casedir+'/result-heliostats-annual-performance.csv', ANNUAL, fmt='%s', delimiter=',')
 		sys.stderr.write("\n"+green("Lookup table saved.\n"))
 		sys.stderr.write(green("Completed successfully.\n"+"\n"))
 		return table, ANNUAL
-
-

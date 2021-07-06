@@ -1,13 +1,12 @@
 import numpy as np
 import sys
-import os
 import matplotlib
-#matplotlib.use("agg")
+matplotlib.use("agg")
 import matplotlib.pyplot as plt
 from .cal_sun import *
 from .gen_vtk import gen_vtk
 
-def radial_stagger(latitude, num_hst, width, height, hst_z, towerheight, R1, fb, dsep=0., field='polar', num_aperture=0, gamma=0., rec_w=0., rec_z=[], savedir='.', verbose=False, plot=False, plt_aiming=None):
+def radial_stagger(latitude, num_hst, width, height, hst_z, towerheight, R1, fb, dsep=0., field='polar', savedir='.', plot=False,  r_field_max=-1.):
 	'''Generate a radial-stagger heliostat field, ref. Collado and Guallar, 2012, Campo: Generation of regular heliostat field.
 
 	``Arguments``
@@ -20,13 +19,10 @@ def radial_stagger(latitude, num_hst, width, height, hst_z, towerheight, R1, fb,
 	  * R1 (float)      : distance from the first row to the bottom of the tower, i.e. (0, 0, 0)
 	  * fb (float)      : the field layout growing factor, in (0, 1)
 	  * dsep (float)    : separation distance (m)
-	  * field (str)     : 'polar-half' or 'surround-half' or 'polar' or 'surround' field or 'multi-aperture', the 'half' option is for simulation a symmetric field
-	  * num_aperture(int): number of apertures, for a multi-aperture configuration
-	  * gamma (float)   : the anangular range of the multi-aperture configration (deg)	 
-	  * rec_z (list)    : a list of the elevation heights of the apertures 
+	  * field (str)     : 'polar-half' or 'surround-half' or 'polar' or 'surround' field, the 'half' option is for simulation a symmetric field
 	  * savedir (str)   : directory of saving the pos_and_aiming.csv
-	  * verbose(bool)   : write results to disk or not
 	  * plot (bool)     : True - plot the layout by Matplotlib
+	  * r_field_max			: Maximum field radius (m), if r_max < -1, it is not considered
 
 	``Returns``
 
@@ -54,8 +50,8 @@ def radial_stagger(latitude, num_hst, width, height, hst_z, towerheight, R1, fb,
 
 	'''
 
-	# heliostat diagonal distantce
-	DH=np.sqrt(height**2+width**2) 
+	# heliostat diagonal distance
+	DH=np.sqrt(height**2+width**2)
 
 	# distance between contiguous helistat center on the X and Y plane
 	DM=DH+dsep
@@ -81,7 +77,16 @@ def radial_stagger(latitude, num_hst, width, height, hst_z, towerheight, R1, fb,
 	sys.stderr.write('DM '+repr(DM)+'\n')
 	sys.stderr.write('dRm'+repr(delta_Rmin)+'\n')
 
-	while num<num_hst*3:
+
+	if r_field_max > 0.:
+		max_helio = np.inf
+		r_field_max *= 1.5
+	else:
+		max_helio = num_hst*3
+		r_field_max = np.inf
+
+	r_field=0.
+	while num<max_helio and r_field<=r_field_max:
 		Nrows= int((2.**(i))*Nhel1/5.44)
 		Nhel=(2**(i))*Nhel1
 		R=Nhel/2./np.pi*DM
@@ -93,11 +98,12 @@ def radial_stagger(latitude, num_hst, width, height, hst_z, towerheight, R1, fb,
 
 		nh=np.arange(Nhel)
 		azimuth=np.zeros((int(Nrows), int(Nhel)))
-		azimuth[0::2, :]=delta_az/2.+nh*delta_az # the odd rows
-		azimuth[1::2, :]=nh*delta_az
+		azimuth[0::2, :]=delta_az/2.+nh*delta_az-np.pi/2. # the odd rows
+		azimuth[1::2, :]=nh*delta_az-np.pi/2.
 
 		row=np.arange(Nrows)
 		r=R+row*delta_Rmin
+		r_field=R+(Nrows-1)*delta_Rmin
 
 		xx=r[:, None]*np.sin(azimuth)
 		yy=r[:, None]*np.cos(azimuth)
@@ -105,12 +111,18 @@ def radial_stagger(latitude, num_hst, width, height, hst_z, towerheight, R1, fb,
 		X[i]=xx
 		Y[i]=yy
 		num+=len(xx.flatten())
-		print('Zone', i, 'Nrow', Nrows, 'Nhel', Nhel)
 		i+=1
 	Nzones=i
 
+	if np.isinf(max_helio):
+		num_hst = int(num/3.)
+
+
 	sys.stderr.write("\n")
-	sys.stderr.write("Denest field %d\n"%(num))
+	sys.stderr.write("Densest field %d\n"%(num))
+
+	if field=='surround':
+		num_hst*=2
 
 	# expanding the field
 	#
@@ -123,7 +135,6 @@ def radial_stagger(latitude, num_hst, width, height, hst_z, towerheight, R1, fb,
 	ROW=np.array([])   # row index among the rows in a zone
 	TTROW=np.array([]) # row index among the total rows
 	NHEL=np.array([])  # No. index among the heliostats in a row
-	AZIMUTH=np.array([])
 
 	for i in range(Nzones):
 		Nrows=int(Nrows_zone[i])
@@ -138,7 +149,7 @@ def radial_stagger(latitude, num_hst, width, height, hst_z, towerheight, R1, fb,
 		else:
 			# second zones
 			R[0,  ::2]=Rn+1.5*DRn
-			R[0,  1::2]=Rn+1.5*DRn            
+			R[0,  1::2]=Rn+1.5*DRn
 			#R[0,-1]=0.5*(R[0,0]+Rn[-1])
 
 		xx=X[i]
@@ -146,7 +157,7 @@ def radial_stagger(latitude, num_hst, width, height, hst_z, towerheight, R1, fb,
 		zz=np.ones(np.shape(xx))*hst_z
 		cosw, coseT=cal_cosw_coset(latitude, towerheight,xx, yy, zz)
 		row=np.arange(Nrows)
-		cosw=cosw.reshape(Nrows, Nhel)  
+		cosw=cosw.reshape(Nrows, Nhel)
 		coseT=coseT.reshape(Nrows, Nhel)
 
 		Delta_R=cosw/coseT*const
@@ -160,130 +171,44 @@ def radial_stagger(latitude, num_hst, width, height, hst_z, towerheight, R1, fb,
 
 		nh=np.arange(Nhel)
 		azimuth=np.zeros((Nrows, Nhel))
-		azimuth[0::2, :]=delta_az/2.+nh*delta_az # the odd rows
-		azimuth[1::2, :]=nh*delta_az
+		azimuth[0::2, :]=delta_az/2.+nh*delta_az-np.pi/2. # the odd rows
+		azimuth[1::2, :]=nh*delta_az-np.pi/2.
 
 		azimuth=azimuth.flatten()
 		R=R.flatten()
-		nhels, rows=np.meshgrid(nh, row)
-		nhels=nhels.flatten()
-		rows=rows.flatten()
-
 		if field=='polar':
 			if i<2:
-				idx=(azimuth>1.5*np.pi)+(azimuth<0.5*np.pi)
+				idx= (azimuth>-np.pi/2.)*(azimuth<np.pi/2.)
 
 			else:
-				idx=(azimuth>(1.5*np.pi+i*np.pi/40.))+(azimuth<(np.pi/2.-i*np.pi/40.))
+				idx=(azimuth>-np.pi/2.+i*np.pi/40.)* (azimuth<np.pi/2.-i*np.pi/40.)
 
 			xx=R[idx]*np.sin(azimuth[idx])
 			yy=R[idx]*np.cos(azimuth[idx])
-			AZIMUTH=np.append(AZIMUTH, azimuth[idx])
-			rows=rows[idx]
-			ROW=np.append(ROW, rows)
-			NHEL=np.append(NHEL, nhels[idx])
-			zone=np.ones(np.shape(rows))*i
 
-		else:                       
+		else:
 			xx=R*np.sin(azimuth)
-			yy=R*np.cos(azimuth)  
-			AZIMUTH=np.append(AZIMUTH, azimuth)
-			ROW=np.append(ROW, rows)
-			NHEL=np.append(NHEL, nhels)
-			zone=np.ones(np.shape(rows))*i	
-
+			yy=R*np.cos(azimuth)
 		XX=np.append(XX, xx)
 		YY=np.append(YY, yy)
-		ZONE=np.append(ZONE, zone)
 
+		nhels, rows=np.meshgrid(nh, row)
+		zone=np.ones(np.shape(rows))*i
+		ZONE=np.append(ZONE, zone)
+		ROW=np.append(ROW, rows)
+		NHEL=np.append(NHEL, nhels)
 		if len(TTROW)==0:
 			TTROW=np.append(TTROW, rows)
-		else:			
+		else:
 			TTROW=np.append(TTROW, rows+np.max(TTROW)+1)
-				
+
 	num_hst=int(num_hst)
-
-	if field=='multi-aperture':
-
-		nt=len(XX)
-		hstpos=np.zeros(nt*3).reshape(nt, 3)
-		hstpos[:, 0]=XX
-		hstpos[:, 1]=YY
-		hstpos[:,2]=hst_z
-
-		ANGLE=np.array([])
-		NORMRCV=np.array([])
-		C=np.array([])
-
-		APOS=np.array([])
-		for i in range(num_aperture):
-			ang_pos, xc, yc=multi_aperture_pos(rec_w, gamma, num_aperture, i)
-			print(ang_pos, xc, yc)
-
-			zc=rec_z[i]
-			APOS=np.append(APOS, ang_pos)
-
-			c=np.r_[xc, yc, zc]
-
-			oc=np.r_[xc, yc, 0]
-			C=np.append(C, c)
-
-			norm_rcv=oc/np.linalg.norm(oc)	
-			NORMRCV=np.append(NORMRCV, norm_rcv)	
-
-			vec_CH=hstpos-c	
-			L_CH=np.linalg.norm(vec_CH, axis=1)
-			L_CH=L_CH.reshape(len(L_CH), 1)
-			norm_CH=vec_CH/L_CH
-		
-			angle=np.arccos(np.sum(norm_rcv*norm_CH, axis=1))
-			ANGLE=np.append(ANGLE, angle)
-
-		ANGLE=ANGLE.reshape(num_aperture, len(angle))
-		C=C.reshape(num_aperture, 3)
-
-		idx_aim=np.argmin(ANGLE, axis=0)
-		angle_min=np.amin(ANGLE, axis=0)
-
-		idx_hst=((angle_min<80.*np.pi/180.)) # valid heliostats that can be seen from the receiver
-
-		idx_aim=idx_aim[idx_hst]
-		XX=XX[idx_hst]
-		YY=YY[idx_hst]
-		ZONE=ZONE[idx_hst]
-		ROW=ROW[idx_hst]
-		NHEL=NHEL[idx_hst]
-		TTROW=TTROW[idx_hst]
-		AZIMUTH=AZIMUTH[idx_hst]
-
-		aiming=C[idx_aim]
-		aim_x=aiming[:,0]
-		aim_y=aiming[:,1]	
-
-		aim_x=aim_x[:num_hst]
-		aim_y=aim_y[:num_hst]	
-		idx_aim=idx_aim[:num_hst]
-
-		aim_z=np.array([])
-		for i in range(num_hst):
-			aim_z=np.append(aim_z, rec_z[idx_aim[i]])
-
-
-	else:
-		aim_x=np.zeros(num_hst)
-		aim_y=np.zeros(num_hst)
-		aim_z=np.ones(num_hst)*towerheight
-		idx_aim=np.zeros(num_hst)
-
-
 	XX=XX[:num_hst]
 	YY=YY[:num_hst]
 	ZONE=ZONE[:num_hst]
 	ROW=ROW[:num_hst]
 	NHEL=NHEL[:num_hst]
 	TTROW=TTROW[:num_hst]
-	AZIMUTH=AZIMUTH[:num_hst]*180./np.pi
-
 
 	sys.stderr.write("\nExpanded field %d\n"%(num_hst,))
 
@@ -294,25 +219,21 @@ def radial_stagger(latitude, num_hst, width, height, hst_z, towerheight, R1, fb,
 
 	# the aiming point is a default point
 	# it is required to be revised for receiver performance
-
+	aim_x=np.zeros(num_hst)
+	aim_y=np.zeros(num_hst)
+	aim_z=np.ones(num_hst)*towerheight
 
 	foc=np.sqrt((XX-aim_x)**2+(YY-aim_y)**2+(hstpos[:,2]-aim_z)**2)
 
-	pos_and_aiming=np.append(XX, (YY, hstpos[:,2], foc, aim_x, aim_y, aim_z, idx_aim, AZIMUTH, ZONE, ROW, NHEL, TTROW, np.arange(num_hst)))
-	title=np.array(['x', 'y', 'z', 'foc', 'aim x', 'aim y', 'aim z', 'aim-rec-index','Azimuth pos','Zone', 'Row', 'No.', 'row index', 'No. index',  'm', 'm', 'm', 'm', 'm', 'm', 'm', '-', 'deg','-', '-', '-', '-', '-'])
-	pos_and_aiming=pos_and_aiming.reshape(14, num_hst)
+	pos_and_aiming=np.append(XX, (YY, hstpos[:,2], foc, aim_x, aim_y, aim_z, ZONE, ROW, NHEL, TTROW))
+	title=np.array(['x', 'y', 'z', 'foc', 'aim x', 'aim y', 'aim z', 'Zone', 'Row', 'No.', 'row index',  'm', 'm', 'm', 'm', 'm', 'm', 'm', '-', '-', '-', '-'])
+	pos_and_aiming=pos_and_aiming.reshape(11,int(len(pos_and_aiming)/11))
 	pos_and_aiming=np.append(title, pos_and_aiming.T)
-	pos_and_aiming=pos_and_aiming.reshape(num_hst+2, 14)
+	pos_and_aiming=pos_and_aiming.reshape(int(len(pos_and_aiming)/11), 11)
 
-	if verbose:
-		if not os.path.exists(savedir):
-			os.makedirs(savedir)
-		np.savetxt('%s/pos_and_aiming.csv'%savedir, pos_and_aiming, fmt='%s', delimiter=',')
+	np.savetxt('%s/pos_and_aiming.csv'%savedir, pos_and_aiming, fmt='%s', delimiter=',')
 
 	if plot:
-		if not os.path.exists(savedir):
-			os.makedirs(savedir)
-
 		fts=24
 		plt.figure(dpi=100.,figsize=(12,9))
 		plt.plot(XX, YY, '.')
@@ -325,24 +246,7 @@ def radial_stagger(latitude, num_hst, width, height, hst_z, towerheight, R1, fb,
 		plt.savefig(savedir+'/field_layout.png', bbox_inches='tight')
 		plt.close()
 
-	'''
-	if plt_aiming!=None:
-
-		NORMRCV=NORMRCV.reshape(num_aperture, 3)
-		plt.figure(dpi=100.,figsize=(12,9))
-		plt.scatter(XX, YY, c=np.arctan(aim_x/aim_y))
-		
-
-		plt.scatter(C[:,0], C[:,1], s=1)
-
-		origin = np.array([[0, 0, 0],[0, 0, 0]]) 	
-		plt.quiver(*origin, NORMRCV[:,0], NORMRCV[:,1],scale=10)
-		#plt.colorbar()
-		#plt.grid()
-		plt.savefig(savedir+'/aiming_%s.png'%plt_aiming, bbox_inches='tight')
-		plt.close()
-	'''
-	return pos_and_aiming, Nzones, Nrows_zone
+	return pos_and_aiming
 
 def cal_cosw_coset(latitude, towerheight, xx, yy, zz):
 	'''
@@ -355,7 +259,7 @@ def cal_cosw_coset(latitude, towerheight, xx, yy, zz):
 
 	``Returns``
 	  * cosw (array) : cos(omega)
-	  * coseT (array): cos(epsilon_T) 
+	  * coseT (array): cos(epsilon_T)
 
 	'''
 
@@ -373,17 +277,19 @@ def cal_cosw_coset(latitude, towerheight, xx, yy, zz):
 	delta=sun.declination(dd)
 	h=np.arange(8, 17)
 
-	omega= -180.+15.*h
-	theta=sun.zenith(latitude, delta, omega) # solar zenith angle 
+	latitude=latitude/180.*np.pi
+	delta=delta/180.*np.pi
+	omega=(-180.+15.*h)/180.*np.pi
+	theta=np.arccos(np.cos(latitude)*np.cos(delta)*np.cos(omega)+np.sin(latitude)*np.sin(delta))
 
-	phi=np.array([]) # solar azimuth angle
-	for i in range(len(h)):
-		p=sun.azimuth(latitude, theta[i], delta, omega[i])
-		phi=np.append(phi, p)
+	a1=np.cos(theta)*np.sin(latitude)-np.sin(delta)
+	a2=np.sin(theta)*np.cos(latitude)
+	b=a1/a2
+	phi=abs(np.arccos((np.cos(theta)*np.sin(latitude)-np.sin(delta))/(np.sin(theta)*np.cos(latitude)))) # unit radian
+	phi[abs(b+1.)<1e-10]=np.pi
+	phi[abs(b-1.)<1e-10]=0.
+	phi[omega<0]=-phi[omega<0]
 
-	theta*=np.pi/180.
-	phi*=np.pi/180.
-	 
 	cosw=np.zeros(len(tower_vec[0]))
 	sun_z = np.cos(theta)
 	sun_y=-np.sin(theta)*np.cos(phi)
@@ -413,8 +319,8 @@ def aiming_cylinder(r_height,r_diameter, pos_and_aiming, savefolder, c_aiming=0.
 
 	``Returns``
 
-	  * hst_info_ranked (array) : the heliostats ranked according to focal lenghts	
-	  * a pos_and_aiming.csv file is created and written to the savedir, which contains pos_and_aiming (nx7 numpy array): position, focal length and the updated aiming point of each heliostat 
+	  * hst_info_ranked (array) : the heliostats ranked according to focal lenghts
+	  * a pos_and_aiming.csv file is created and written to the savedir, which contains pos_and_aiming (nx7 numpy array): position, focal length and the updated aiming point of each heliostat
 
 	'''
 	r_radius=0.5*r_diameter
@@ -427,12 +333,12 @@ def aiming_cylinder(r_height,r_diameter, pos_and_aiming, savefolder, c_aiming=0.
 	hst_info_ranked = hst_info[np.argsort(foc)[::1]]
 
 	for i in range(num_hst):
-		
+
 		if (i+1)%2==0: # negative
 			hst_info_ranked[i,6]=hst_info_ranked[i,6]+0.5*r_height*c_aiming*(float(num_hst)-1-i)/num_hst
 		else:
 			hst_info_ranked[i,6]=hst_info_ranked[i,6]-0.5*r_height*c_aiming*(float(num_hst)-1-i)/num_hst
-		
+
 		hst_info_ranked[i,4]=hst_info_ranked[i,0]*r_radius/np.sqrt(hst_info_ranked[i,0]**2+hst_info_ranked[i,1]**2)
 		hst_info_ranked[i,5]=hst_info_ranked[i,1]*r_radius/np.sqrt(hst_info_ranked[i,0]**2+hst_info_ranked[i,1]**2)
 		#print hst_info_ranked[i,0],hst_info_ranked[i,1],hst_info_ranked[i,4],hst_info_ranked[i,5]
@@ -447,47 +353,10 @@ def aiming_cylinder(r_height,r_diameter, pos_and_aiming, savefolder, c_aiming=0.
 	csv_new=savefolder+'/pos_and_aiming.csv'# the output field file
 	np.savetxt(csv_new, pos_and_aiming_new, fmt='%s', delimiter=',')
 
-	return hst_info_ranked	
+	return hst_info_ranked
 
-def multi_aperture_pos(rec_w, gamma, n, i):
-	"""
-	This function returens the angular position of each aperture
-	in the multi-aperture configration that has n apertures
-	in the angular range of gamma
-
-	Arguments:
-	rec_w, list, a list of the width of all the apertures
-	gamma, float, angular range (deg) of the multi-aperture configration
-			      which is defined as the angle from the most right to 
-				  the most left aperture
-	n, int, number of apertures
-	i, int, the i-th aperture (starts from 0 for the most right aperture)
-
-	Return:
-	omega_i, float, the angular position of the i-th aperture
-					in the coordinate system, the angular position 
-					starts from +x and increases counter-clockwise
-	"""	
-	if gamma%360.==0:
-		omega_i=360./float(n)*float(i)-90.
-	else:
-		omega_i=90.-gamma/2.+gamma/float(n-1)*float(i)
-
-	W=max(rec_w)*1.2 # 20% space
-	alpha=gamma/float(n-1)*np.pi/180.
-	if np.tan(alpha/2.)<1e-20:
-		r=W/2.
-	else:
-		r=W/2./np.tan(alpha/2.)
-
-	xc=r*np.cos(omega_i*np.pi/180.)
-	yc=r*np.sin(omega_i*np.pi/180.)
-
-	return omega_i, xc, yc
 
 
 if __name__=='__main__':
-    
-	pos_and_aim=radial_stagger(latitude=34., num_hst=22640, width=10., height=10., hst_z=0., towerheight=250, R1=80, fb=0., dsep=0., field='polar', savedir='.', plot=True)
 
-        
+	pos_and_aim=radial_stagger(latitude=34., num_hst=22640, width=10., height=10., hst_z=0., towerheight=250, R1=80, fb=0., dsep=0., field='polar', savedir='.', plot=True)

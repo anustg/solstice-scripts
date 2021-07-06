@@ -4,9 +4,9 @@ import sys
 import os
 from uncertainties import ufloat
 from uncertainties.umath import *
-from .output_motab import output_motab 
+from .output_motab import output_motab
 
-def process_raw_results(rawfile, savedir,rho_mirror,dni,verbose=False):
+def process_raw_results(rawfile, savedir, rho_mirror, dni, verbose=False, num_virt=1):
 	"""Process the raw Solstice `simul` output into readable CSV files for central receiver systems
 
 	``Arguments``
@@ -22,7 +22,7 @@ def process_raw_results(rawfile, savedir,rho_mirror,dni,verbose=False):
 	  * efficiency_total (float): the total optical efficiency
 	  * performance_hst (numpy array): the breakdown of losses of each individual heliostat
 	  * The simulation results are created and written in the `savedir`
-		
+
 	"""
 
 	# FIXME this approach seems fundamentally a bit messy... we are carefully
@@ -44,7 +44,7 @@ def process_raw_results(rawfile, savedir,rho_mirror,dni,verbose=False):
 				#comment line
 				rows.append([r])
 			else:
-				rows.append(r.split())			
+				rows.append(r.split())
 			index+=1
 
 	# sun direction
@@ -71,29 +71,29 @@ def process_raw_results(rawfile, savedir,rho_mirror,dni,verbose=False):
 	potential_err=get_rc(2,1)
 
 	absorbed=get_rc(3,0)
-	absorbed_err=get_rc(3,1)    
+	absorbed_err=get_rc(3,1)
 
 	Fcos=get_rc(4,0)
-	Fcos_err=get_rc(4,1)  
+	Fcos_err=get_rc(4,1)
 
 	shadow_loss=get_rc(5,0)
-	shadow_err=get_rc(5,1)    
+	shadow_err=get_rc(5,1)
 
 	missing_loss=get_rc(6,0)
-	missing_err=get_rc(6,1) 
+	missing_err=get_rc(6,1)
 
 	material_loss=get_rc(7,0)
-	material_err=get_rc(7,1)    
+	material_err=get_rc(7,1)
 
 	atmospheric_loss=get_rc(8,0)
-	atmospheric_err=get_rc(8,1)  
+	atmospheric_err=get_rc(8,1)
 
 	# Target (receiver)
 	# 0 receiver name
 	# 1 - 2 id and area
 	# 3 - 24 (total 22) front
-	# 25- 46 (total 22) back 
-	rec_area=0. # m2  
+	# 25- 46 (total 22) back
+	rec_area=0. # m2
 
 	rec_front_income=0.
 	rec_front_income_err=0.
@@ -116,10 +116,10 @@ def process_raw_results(rawfile, savedir,rho_mirror,dni,verbose=False):
 	rec_back_eff_err=0.
 
 	rec_id={}
-	for i in range(num_rec-1): # -1 the virtual target
+	for i in range(num_rec-num_virt): # -1 the virtual target
 		rec_id[i]=get_rc(num_res+2+i,1) # the id number of the receiver
-		rec_area+=get_rc(num_res+2+i,2) # m2  
-	
+		rec_area+=get_rc(num_res+2+i,2) # m2
+
 		rec_front_income+=get_rc(num_res+2+i,3)
 		rec_front_income_err+=get_rc(num_res+2+i,4)
 		#rec_no_material_loss=get_rc(num_res+2,5)
@@ -141,11 +141,20 @@ def process_raw_results(rawfile, savedir,rho_mirror,dni,verbose=False):
 		rec_back_eff_err+=get_rc(num_res+2+i,-1)
 
 
-	#Virtual target
-	vir_area=get_rc(num_res+2+num_rec-1,2)
-	vir_income=get_rc(num_res+2+num_rec-1,3)
-	vir_income_err=get_rc(num_res+2+num_rec-1,4)
-	
+	#Virtual targets
+	vir_area = 0.
+	vir_income = 0.
+	vir_income_err = 0.
+	Qspil_array=np.empty((num_virt,3), dtype=object)
+
+	for i in range(num_virt): # virtual targets
+		vir_area+=get_rc(num_res+2+num_rec-num_virt+i,2)
+		vir_income_i=get_rc(num_res+2+num_rec-num_virt+i,3)
+		vir_income_err_i=get_rc(num_res+2+num_rec-num_virt+i,4)
+		Qspil_array[i,:]=[('Qspil '+str(i+1)+' (kW)'), float(vir_income_i)/1000., float(vir_income_err_i)/1000.]
+		vir_income+=vir_income_i
+		vir_income_err=+vir_income_err_i
+
 	raw_res=np.array([
 		['name','value', 'error']
 		,['sun_azimuth', azimuth,'']
@@ -156,9 +165,9 @@ def process_raw_results(rawfile, savedir,rho_mirror,dni,verbose=False):
 		,['absorbed flux', absorbed, absorbed_err]
 		,['Cosine factor', Fcos, Fcos_err]
 		,['shadow loss', shadow_loss, shadow_err]
-		,['Mising loss', missing_loss, missing_err]
+		,['Missing loss', missing_loss, missing_err]
 		,['materials loss', material_loss, material_err]
-		,['atomospheric loss', atmospheric_loss, atmospheric_err]
+		,['atmospheric loss', atmospheric_loss, atmospheric_err]
 		,['','','']
 		,['Target', '','']
 		,['area', rec_area, '']
@@ -180,13 +189,13 @@ def process_raw_results(rawfile, savedir,rho_mirror,dni,verbose=False):
 
 
 	Qtotal=ufloat(potential, 0)
-	Fcos=ufloat(Fcos,Fcos_err) 
+	Fcos=ufloat(Fcos,Fcos_err)
 	Qcos=Qtotal*(1.-Fcos)
 	Qshade=ufloat(shadow_loss,shadow_err)
 	Qfield_abs=(Qtotal-Qcos-Qshade)*(1.-float(rho_mirror))
 	Qattn=ufloat(atmospheric_loss, atmospheric_err)
 	Qabs=ufloat(absorbed, absorbed_err)
-	Qspil=ufloat(vir_income,vir_income_err)-Qabs
+	Qspil=ufloat(vir_income,vir_income_err)
 	Qrefl=ufloat(rec_front_income,rec_front_income_err)+ufloat(rec_back_income,rec_back_income_err)-Qabs
 	Qblock=Qtotal-Qcos-Qshade-Qfield_abs-Qspil-Qabs-Qrefl-Qattn
 
@@ -196,26 +205,28 @@ def process_raw_results(rawfile, savedir,rho_mirror,dni,verbose=False):
 		,['Qcos (kW)', Qcos.n/1000.,Qcos.s/1000.]
 		,['Qshad (kW)', Qshade.n/1000., Qshade.s/1000.]
 		,['Qfield_abs (kW)', Qfield_abs.n/1000., Qfield_abs.s/1000.]
-		,['Qblcok (kW)', Qblock.n/1000.,  Qblock.s/1000.]
+		,['Qblock (kW)', Qblock.n/1000.,  Qblock.s/1000.]
 		,['Qattn (kW)',Qattn.n/1000., Qattn.s/1000.]
-		,['Qspil (kW)', Qspil.n/1000., Qspil.s/1000.]
-		,['Qrefl (kW)', Qrefl.n/1000.,Qrefl.s/1000.]
+	])
+	organised=np.append(organised,Qspil_array, axis=0)
+	organised=np.append(organised,[
+		['Qrefl (kW)', Qrefl.n/1000.,Qrefl.s/1000.]
 		,['Qabs (kW)', Qabs.n/1000., Qabs.s/1000.]
 		,['rays', num_rays,'-']
-	])
+	], axis=0)
 
 	efficiency_total=Qabs/Qtotal
 
 	# per heliostat results, and
 	# per receiver per heliostat results
-	num_hst=int(num_hst)    
+	num_hst=int(num_hst)
 	heliostats=np.zeros((num_hst,28))
 
 	for i in range(num_hst):
 		l1=2+num_res+num_rec+i # the line number of the per heliostat result
 		per_hst=rows[l1]
 
-		hst_idx=re.findall("[-+]?\d*\.\d+|\d+", per_hst[0] ) 
+		hst_idx=re.findall("[-+]?\d*\.\d+|\d+", per_hst[0] )
 		hst_area=per_hst[2]
 		hst_sample=per_hst[3]
 		hst_cos=per_hst[4]
@@ -228,16 +239,16 @@ def process_raw_results(rawfile, savedir,rho_mirror,dni,verbose=False):
 		heliostats[i,4]=hst_shad
 
 		# per heliostat per receiver
-		for j in range(num_rec-1):
-			l2=2+num_res+num_rec+num_hst*(j+1)+i  
-			per_hst=rows[l2]   
+		for j in range(num_rec-num_virt):
+			l2=2+num_res+num_rec+num_hst*(j+1)+i
+			per_hst=rows[l2]
 			hst_in=float(per_hst[2])+float(per_hst[22]) # front+back
 			hst_in_mat=float(per_hst[8])+float(per_hst[28])
 			hst_in_atm=float(per_hst[10])+float(per_hst[30])
 			hst_abs=float(per_hst[12])+float(per_hst[32])
 			hst_abs_mat=float(per_hst[18])+float(per_hst[38])
 			hst_abs_atm=float(per_hst[20])+float(per_hst[40])
-			  
+
 			heliostats[i,5]+=hst_in
 			heliostats[i,6]+=hst_in_mat
 			heliostats[i,7]+=hst_in_atm
@@ -246,21 +257,22 @@ def process_raw_results(rawfile, savedir,rho_mirror,dni,verbose=False):
 			heliostats[i,10]+=hst_abs_atm
 
 		# per heliostat per virtual target
-		l3=2+num_res+num_rec+(num_rec)*num_hst+i  
-		per_hst=rows[l3] 
-		hst_in=float(per_hst[2])+float(per_hst[22]) # front+back
-		hst_in_mat=float(per_hst[8])+float(per_hst[28])
-		hst_in_atm=float(per_hst[10])+float(per_hst[30])
-		hst_abs=float(per_hst[12])+float(per_hst[32])
-		hst_abs_mat=float(per_hst[18])+float(per_hst[38])
-		hst_abs_atm=float(per_hst[20])+float(per_hst[40])
-		  
-		heliostats[i,11]=hst_in
-		heliostats[i,12]=hst_in_mat
-		heliostats[i,13]=hst_in_atm
-		heliostats[i,14]=hst_abs
-		heliostats[i,15]=hst_abs_mat
-		heliostats[i,16]=hst_abs_atm
+		for j in range(num_virt):
+			l3=2+num_res+num_rec+(num_rec-num_virt+j+1)*num_hst+i
+			per_hst=rows[l3]
+			hst_in=float(per_hst[2])+float(per_hst[22]) # front+back
+			hst_in_mat=float(per_hst[8])+float(per_hst[28])
+			hst_in_atm=float(per_hst[10])+float(per_hst[30])
+			hst_abs=float(per_hst[12])+float(per_hst[32])
+			hst_abs_mat=float(per_hst[18])+float(per_hst[38])
+			hst_abs_atm=float(per_hst[20])+float(per_hst[40])
+
+			heliostats[i,11]+=hst_in
+			heliostats[i,12]+=hst_in_mat
+			heliostats[i,13]+=hst_in_atm
+			heliostats[i,14]+=hst_abs
+			heliostats[i,15]+=hst_abs_mat
+			heliostats[i,16]+=hst_abs_atm
 
 
 		hst_tot=float(hst_area)*1000.
@@ -288,7 +300,7 @@ def process_raw_results(rawfile, savedir,rho_mirror,dni,verbose=False):
 	heliostats=heliostats[idx]
 	performance_hst=heliostats[:, 19:]
 
-	heliostats_title=np.array(['hst_idx', 'area', 'sample', 'cos', 'shade', 'incoming', 'in-mat-loss','in-atm-loss', 'absorbed', 'abs-mat-loss', 'abs-atm-loss', 'vir_incoming', 'vir_in-mat-loss','vir_in-atm-loss', 'vir_absorbed', 'vir_abs-mat-loss', 'vir_abs-atm-loss', '', '', 'total', 'cos', 'shad', 'hst_abs', 'block', 'atm', 'spil', 'rec_refl', 'rec_abs' ]) 
+	heliostats_title=np.array(['hst_idx', 'area', 'sample', 'cos', 'shade', 'incoming', 'in-mat-loss','in-atm-loss', 'absorbed', 'abs-mat-loss', 'abs-atm-loss', 'vir_incoming', 'vir_in-mat-loss','vir_in-atm-loss', 'vir_absorbed', 'vir_abs-mat-loss', 'vir_abs-atm-loss', '', '', 'total', 'cos', 'shad', 'hst_abs', 'block', 'atm', 'spil', 'rec_refl', 'rec_abs' ])
 
 	heliostats_details=np.vstack((heliostats_title, heliostats))
 
@@ -317,7 +329,7 @@ def process_raw_results_multi_aperture(rawfile, savedir,rho_mirror,dni,verbose=F
 	  * efficiency_total (float): the total optical efficiency
 	  * performance_hst (numpy array): the breakdown of losses of each individual heliostat
 	  * The simulation results are created and written in the `savedir`
-		
+
 	"""
 
 	# FIXME this approach seems fundamentally a bit messy... we are carefully
@@ -339,7 +351,7 @@ def process_raw_results_multi_aperture(rawfile, savedir,rho_mirror,dni,verbose=F
 				#comment line
 				rows.append([r])
 			else:
-				rows.append(r.split())			
+				rows.append(r.split())
 			index+=1
 
 	# sun direction
@@ -366,32 +378,32 @@ def process_raw_results_multi_aperture(rawfile, savedir,rho_mirror,dni,verbose=F
 	potential_err=get_rc(2,1)
 
 	absorbed=get_rc(3,0)
-	absorbed_err=get_rc(3,1)    
+	absorbed_err=get_rc(3,1)
 
 	Fcos=get_rc(4,0)
-	Fcos_err=get_rc(4,1)  
+	Fcos_err=get_rc(4,1)
 
 	shadow_loss=get_rc(5,0)
-	shadow_err=get_rc(5,1)    
+	shadow_err=get_rc(5,1)
 
 	missing_loss=get_rc(6,0)
-	missing_err=get_rc(6,1) 
+	missing_err=get_rc(6,1)
 
 	material_loss=get_rc(7,0)
-	material_err=get_rc(7,1)    
+	material_err=get_rc(7,1)
 
 	atmospheric_loss=get_rc(8,0)
-	atmospheric_err=get_rc(8,1)  
+	atmospheric_err=get_rc(8,1)
 
 	# Target (receiver)
 	# 0 receiver name
 	# 1 - 2 id and area
 	# 3 - 24 (total 22) front
-	# 25- 46 (total 22) back 
+	# 25- 46 (total 22) back
 	num_apertures=num_rec-1 # -1 the virtual target
 	rec_id={}
 
-	rec_area=[] # m2  
+	rec_area=[] # m2
 	rec_front_income=[]
 	rec_front_income_err=[]
 
@@ -407,10 +419,10 @@ def process_raw_results_multi_aperture(rawfile, savedir,rho_mirror,dni,verbose=F
 	rec_back_eff=[]
 	rec_back_eff_err=[]
 
-	for i in range(num_apertures): 
+	for i in range(num_apertures):
 		rec_id[i]=get_rc(num_res+2+i,1) # the id number of the receiver
-		rec_area.append(get_rc(num_res+2+i,2)) # m2  
-	
+		rec_area.append(get_rc(num_res+2+i,2)) # m2
+
 		rec_front_income.append(get_rc(num_res+2+i,3))
 		rec_front_income_err.append(get_rc(num_res+2+i,4))
 
@@ -430,7 +442,7 @@ def process_raw_results_multi_aperture(rawfile, savedir,rho_mirror,dni,verbose=F
 	vir_area=get_rc(num_res+2+num_rec-1,2)
 	vir_income=get_rc(num_res+2+num_rec-1,3)
 	vir_income_err=get_rc(num_res+2+num_rec-1,4)
-	
+
 	raw_res=np.array([
 		['name','value', 'error']
 		,['sun_azimuth', azimuth,'']
@@ -468,7 +480,7 @@ def process_raw_results_multi_aperture(rawfile, savedir,rho_mirror,dni,verbose=F
 	#sys.stderr.write("SHAPE = %s" % (repr(raw_res.shape)))
 
 	Qtotal=ufloat(potential, 0)
-	Fcos=ufloat(Fcos,Fcos_err) 
+	Fcos=ufloat(Fcos,Fcos_err)
 	Qcos=Qtotal*(1.-Fcos)
 	Qshade=ufloat(shadow_loss,shadow_err)
 	Qfield_abs=(Qtotal-Qcos-Qshade)*(1.-float(rho_mirror))
@@ -496,14 +508,14 @@ def process_raw_results_multi_aperture(rawfile, savedir,rho_mirror,dni,verbose=F
 
 	# per heliostat results, and
 	# per receiver per heliostat results
-	num_hst=int(num_hst)    
+	num_hst=int(num_hst)
 	heliostats=np.zeros((num_hst,28))
 
 	for i in range(num_hst):
 		l1=2+num_res+num_rec+i # the line number of the per heliostat result
 		per_hst=rows[l1]
 
-		hst_idx=re.findall("[-+]?\d*\.\d+|\d+", per_hst[0] ) 
+		hst_idx=re.findall("[-+]?\d*\.\d+|\d+", per_hst[0] )
 		hst_area=per_hst[2]
 		hst_sample=per_hst[3]
 		hst_cos=per_hst[4]
@@ -517,15 +529,15 @@ def process_raw_results_multi_aperture(rawfile, savedir,rho_mirror,dni,verbose=F
 
 		# per heliostat per receiver
 		for j in range(num_rec-1):
-			l2=2+num_res+num_rec+num_hst*(j+1)+i  
-			per_hst=rows[l2]   
+			l2=2+num_res+num_rec+num_hst*(j+1)+i
+			per_hst=rows[l2]
 			hst_in=float(per_hst[2])+float(per_hst[22]) # front+back
 			hst_in_mat=float(per_hst[8])+float(per_hst[28])
 			hst_in_atm=float(per_hst[10])+float(per_hst[30])
 			hst_abs=float(per_hst[12])+float(per_hst[32])
 			hst_abs_mat=float(per_hst[18])+float(per_hst[38])
 			hst_abs_atm=float(per_hst[20])+float(per_hst[40])
-			  
+
 			heliostats[i,5]+=hst_in
 			heliostats[i,6]+=hst_in_mat
 			heliostats[i,7]+=hst_in_atm
@@ -534,15 +546,15 @@ def process_raw_results_multi_aperture(rawfile, savedir,rho_mirror,dni,verbose=F
 			heliostats[i,10]+=hst_abs_atm
 
 		# per heliostat per virtual target
-		l3=2+num_res+num_rec+(num_rec)*num_hst+i  
-		per_hst=rows[l3] 
+		l3=2+num_res+num_rec+(num_rec)*num_hst+i
+		per_hst=rows[l3]
 		hst_in=float(per_hst[2])+float(per_hst[22]) # front+back
 		hst_in_mat=float(per_hst[8])+float(per_hst[28])
 		hst_in_atm=float(per_hst[10])+float(per_hst[30])
 		hst_abs=float(per_hst[12])+float(per_hst[32])
 		hst_abs_mat=float(per_hst[18])+float(per_hst[38])
 		hst_abs_atm=float(per_hst[20])+float(per_hst[40])
-		  
+
 		heliostats[i,11]=hst_in
 		heliostats[i,12]=hst_in_mat
 		heliostats[i,13]=hst_in_atm
@@ -576,7 +588,7 @@ def process_raw_results_multi_aperture(rawfile, savedir,rho_mirror,dni,verbose=F
 	heliostats=heliostats[idx]
 	performance_hst=heliostats[:, 19:]
 
-	heliostats_title=np.array(['hst_idx', 'area', 'sample', 'cos', 'shade', 'incoming', 'in-mat-loss','in-atm-loss', 'absorbed', 'abs-mat-loss', 'abs-atm-loss', 'vir_incoming', 'vir_in-mat-loss','vir_in-atm-loss', 'vir_absorbed', 'vir_abs-mat-loss', 'vir_abs-atm-loss', '', '', 'total', 'cos', 'shad', 'hst_abs', 'block', 'atm', 'spil', 'rec_refl', 'rec_abs' ]) 
+	heliostats_title=np.array(['hst_idx', 'area', 'sample', 'cos', 'shade', 'incoming', 'in-mat-loss','in-atm-loss', 'absorbed', 'abs-mat-loss', 'abs-atm-loss', 'vir_incoming', 'vir_in-mat-loss','vir_in-atm-loss', 'vir_absorbed', 'vir_abs-mat-loss', 'vir_abs-atm-loss', '', '', 'total', 'cos', 'shad', 'hst_abs', 'block', 'atm', 'spil', 'rec_refl', 'rec_abs' ])
 
 	heliostats_details=np.vstack((heliostats_title, heliostats))
 
@@ -597,9 +609,9 @@ def get_breakdown(casedir):
 	    * verbose (bool), write results to disk or not
 
 	``Outputs``
-		* output file: OELT_Solstice_breakdown.motab, it contains the annual lookup tables of each breakdown of energy  
+		* output file: OELT_Solstice_breakdown.motab, it contains the annual lookup tables of each breakdown of energy
 		* output files: result-formatted-designed.csv file in each sunpos folder, each of them is a list of the breakdown of energy at this sun position
-	
+
 	"""
 	table=np.loadtxt(casedir+'/table_view.csv', dtype=str, delimiter=',')
 	idx=np.loadtxt(casedir+'/selected_hst.csv', dtype=int, delimiter=',') #index of the selected heliostats
@@ -657,7 +669,7 @@ def get_breakdown(casedir):
 					eta_attn=Qattn/Qtot
 					eta_spil=Qspil/Qtot
 					eta_refl=Qrefl/Qtot
-					eta_abs=Qabs/Qtot	
+					eta_abs=Qabs/Qtot
 
 					res=np.array([
 					 ['Name', 'Value (kW)', 'eta Ratio']
@@ -681,7 +693,7 @@ def get_breakdown(casedir):
 					else:
 						breakdown[i][a+3,b+3]=eta_all[i]
 	output_motab(table=breakdown, savedir=casedir+'/OELT_Solstice_breakdown.motab', title=title_breakdown)
-	
+
 	# at design point
 	raw=np.loadtxt(casedir+'/des_point/heliostats-raw.csv', delimiter=',', skiprows=1)
 	data=raw[:, -9:]
@@ -703,7 +715,7 @@ def get_breakdown(casedir):
 	eta_attn=Qattn/Qtot
 	eta_spil=Qspil/Qtot
 	eta_refl=Qrefl/Qtot
-	eta_abs=Qabs/Qtot	
+	eta_abs=Qabs/Qtot
 
 	res=np.array([
 	 ['Name', 'Value (kW)', 'eta Ratio']
@@ -718,7 +730,7 @@ def get_breakdown(casedir):
 	,['Qabs ', Qabs,  eta_abs]
 	,['After trimming', 'postprocessed results','-']
 	])
-	np.savetxt(casedir+'/des_point/result-formatted-designed.csv', res, fmt='%s', delimiter=',')	
+	np.savetxt(casedir+'/des_point/result-formatted-designed.csv', res, fmt='%s', delimiter=',')
 
 def process_raw_results_dish(rawfile, savedir,rho_mirror,dni,verbose=False):
 	"""Process the raw Solstice `simul` output into readable CSV files for dish systems
@@ -734,7 +746,7 @@ def process_raw_results_dish(rawfile, savedir,rho_mirror,dni,verbose=False):
 
 	  * efficiency_total (float): the total optical efficiency
 	  * The simulation results are created and written in the `savedir`
-		
+
 	"""
 
 	# FIXME this approach seems fundamentally a bit messy... we are carefully
@@ -756,7 +768,7 @@ def process_raw_results_dish(rawfile, savedir,rho_mirror,dni,verbose=False):
 				#comment line
 				rows.append([r])
 			else:
-				rows.append(r.split())			
+				rows.append(r.split())
 			index+=1
 
 	results=np.array([])
@@ -785,30 +797,30 @@ def process_raw_results_dish(rawfile, savedir,rho_mirror,dni,verbose=False):
 	potential_err=get_rc(2,1)
 
 	absorbed=get_rc(3,0)
-	absorbed_err=get_rc(3,1)    
+	absorbed_err=get_rc(3,1)
 
 	Fcos=get_rc(4,0)
-	Fcos_err=get_rc(4,1)  
+	Fcos_err=get_rc(4,1)
 
 	shadow_loss=get_rc(5,0)
-	shadow_err=get_rc(5,1)    
+	shadow_err=get_rc(5,1)
 
 	missing_loss=get_rc(6,0)
-	missing_err=get_rc(6,1) 
+	missing_err=get_rc(6,1)
 
 	material_loss=get_rc(7,0)
-	material_err=get_rc(7,1)    
+	material_err=get_rc(7,1)
 
 	atmospheric_loss=get_rc(8,0)
-	atmospheric_err=get_rc(8,1)  
+	atmospheric_err=get_rc(8,1)
 
 	# Target (receiver)
 	# 0 receiver name
 	# 1 - 2 id and area
 	# 3 - 24 (total 22) front
-	# 25- 46 (total 22) back 
-	rec_area=get_rc(num_res+2,2) # m2  
-	
+	# 25- 46 (total 22) back
+	rec_area=get_rc(num_res+2,2) # m2
+
 	rec_front_income=get_rc(num_res+2,3)
 	rec_front_income_err=get_rc(num_res+2,4)
 
@@ -825,7 +837,7 @@ def process_raw_results_dish(rawfile, savedir,rho_mirror,dni,verbose=False):
 	rec_back_eff_err=get_rc(num_res+2,-1)
 
 
-		
+
 	raw_res=np.array([
 		['name','value', 'error']
 		,['sun_azimuth', azimuth,'']
@@ -882,10 +894,8 @@ def process_raw_results_dish(rawfile, savedir,rho_mirror,dni,verbose=False):
 
 
 	return efficiency_total
-		
+
 
 if __name__=='__main__':
     eta,pf_hst = proces_raw_results(sys.argv[1], sys.argv[2], sys.argv[3])
     sys.stderr.write('\nTotal efficiency: %s\n'%(repr(eta),))
-
-
