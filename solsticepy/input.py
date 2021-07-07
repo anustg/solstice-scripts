@@ -117,11 +117,18 @@ class Parameters:
 	def BeamDown(self):
 		'''
 		'''
+		self.rcv_type='beam_down'
 		self.cpc_theta_deg=20.	# acceptance half angle of CPC
-		self.cpc_h_ratio=1. 	# ratio of CPC critical height ]0,1]
+		self.cpc_h_ratio=1. 	# ratio of CPC critical height [0,1]
+		self.cpc_nfaces=4		# number of faces of 2D-crossed CPC
+		self.cpc_nZ=30			# rendering of CPC faces in Solstice
+		self.n_H_rcv=20			# rendering of flux map on receiver
 		self.field_rim_angle=45.	# field rim angle
 		self.secref_inv_eccen=0.6	# Hyperboloid inverse eccentricity [0,1]
-		self.rec_z=0.
+		self.secref_vert=np.array([[-15,25],[-15,-25],[15,-25],[15,25]])		# Hyperboloid clipping polygon in xOy plan
+		self.rho_beamdown=0.95		# reflecticity property of Beam-Down components
+		self.n_helios=300
+
 
 	def simulation(self):
 		'''
@@ -171,6 +178,7 @@ class Parameters:
 				['H_helio', self.H_helio, 'm'],
 				['Z_helio', self.Z_helio, 'm'],
 				['rho_helio', self.rho_helio, '-'],
+				['rho_beamdown', self.rho_beamdown, '-'],
 				['slope_error', self.slope_error, 'rad'],
 				['H_tower', self.H_tower, 'm'],
 				['R_tower', self.R_tower, 'm'],
@@ -182,9 +190,10 @@ class Parameters:
 				['rcv_type', self.rcv_type, '-'],
 				['H_rcv', self.H_rcv, 'm'],
 				['W_rcv', self.W_rcv, 'm'],
-				['rec_z', self.rec_z, 'm'],
 				['cpc_theta_deg', self.cpc_theta_deg, 'deg'],
 				['cpc_h_ratio', self.cpc_h_ratio, '-'],
+				['cpc_nfaces', self.cpc_nfaces, '-'],
+				['cpc_nZ', self.cpc_nZ, '-'],
 				['field_rim_angle', self.field_rim_angle, '-'],
 				['secref_inv_eccen', self.secref_inv_eccen, '-'],
 				['tilt_rcv', self.tilt_rcv, 'deg'],

@@ -233,7 +233,7 @@ class CPC:
                 # Secondary Reflector (hyperboloid)
                 (9) aim_z   : float, z (vertical) location of the heliostats' aiming point (m)
                 (10) secref_z    : flaot, z (vertical) location of the apex of the hyperboloid secondary reflector (m)
-                (11) r_f	: float, secondary mirror and CPC reflectivity, e.g. 0.9
+                (11) rho_bd	: float, secondary mirror and CPC reflectivity, e.g. 0.95
                 (12) slope_error	: float, slope error of secondary mirror and CPC refelctivity (?)
                 (13) secref_vert	: array, (x,y) clipping polygon of the secondary reflector
             '''
@@ -245,7 +245,7 @@ class CPC:
             cpc_nZ=int(rec_param[7])
             aim_z=rec_param[8]
             secref_z=rec_param[9]
-            r_f=rec_param[10] # front
+            rho_bd=rec_param[10] # front
             slope_error=rec_param[11]
             secref_vert=rec_param[12]
             self.dependantparameters(rec_param[:7])
@@ -258,7 +258,7 @@ class CPC:
             # CREATE a specular material for the secondary reflector
             iyaml+='- material: &%s\n' % 'material_sec_mirror'
             iyaml+='   front:\n'
-            iyaml+='     mirror: {reflectivity: %6.4f, slope_error: %15.8e }\n' % (r_f, slope_error)
+            iyaml+='     mirror: {reflectivity: %6.4f, slope_error: %15.8e }\n' % (rho_bd, slope_error)
             iyaml+='   back:\n'
             iyaml+='     matte: {reflectivity: 0.0 }\n'
             iyaml+='\n'
@@ -419,12 +419,12 @@ if __name__=='__main__':
         n_Z=20
         aim_z = 30.
         sec_z = 22.
-        r_f= 1. # front
+        rho_bd= 1. # front
         slope_error = 0.
         secref_vert = np.array([[-15,25],[-15,-10],[15,-10],[15,25]])
 
         cpc=CPC()
-        cpc.beamdowncomponents(rec_w, rec_l, rec_z, rec_grid, n_CPC_faces, theta_deg, cpc_h, n_Z, aim_z, sec_z, r_f, slope_error, secref_vert)
+        cpc.beamdowncomponents(rec_w, rec_l, rec_z, rec_grid, n_CPC_faces, theta_deg, cpc_h, n_Z, aim_z, sec_z, rho_bd, slope_error, secref_vert)
 
         eta=1.
         print('total efficiency:', eta)
