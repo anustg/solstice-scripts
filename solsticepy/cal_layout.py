@@ -80,7 +80,6 @@ def radial_stagger(latitude, num_hst, width, height, hst_z, towerheight, R1, fb,
 
 	if r_field_max > 0.:
 		max_helio = np.inf
-		r_field_max *= 1.5
 	else:
 		max_helio = num_hst*3
 		r_field_max = np.inf
@@ -98,8 +97,8 @@ def radial_stagger(latitude, num_hst, width, height, hst_z, towerheight, R1, fb,
 
 		nh=np.arange(Nhel)
 		azimuth=np.zeros((int(Nrows), int(Nhel)))
-		azimuth[0::2, :]=delta_az/2.+nh*delta_az-np.pi/2. # the odd rows
-		azimuth[1::2, :]=nh*delta_az-np.pi/2.
+		azimuth[0::2, :]=delta_az/2.+nh*delta_az # the odd rows #-np.pi/2.
+		azimuth[1::2, :]=nh*delta_az
 
 		row=np.arange(Nrows)
 		r=R+row*delta_Rmin
@@ -118,8 +117,7 @@ def radial_stagger(latitude, num_hst, width, height, hst_z, towerheight, R1, fb,
 		num_hst = int(num/3.)
 
 
-	sys.stderr.write("\n")
-	sys.stderr.write("Densest field %d\n"%(num))
+	sys.stderr.write("\nDensest field %d\n"%(num))
 
 	if field=='surround':
 		num_hst*=2
@@ -135,6 +133,7 @@ def radial_stagger(latitude, num_hst, width, height, hst_z, towerheight, R1, fb,
 	ROW=np.array([])   # row index among the rows in a zone
 	TTROW=np.array([]) # row index among the total rows
 	NHEL=np.array([])  # No. index among the heliostats in a row
+	AZIMUTH=np.array([])
 
 	for i in range(Nzones):
 		Nrows=int(Nrows_zone[i])
@@ -171,32 +170,42 @@ def radial_stagger(latitude, num_hst, width, height, hst_z, towerheight, R1, fb,
 
 		nh=np.arange(Nhel)
 		azimuth=np.zeros((Nrows, Nhel))
-		azimuth[0::2, :]=delta_az/2.+nh*delta_az-np.pi/2. # the odd rows
-		azimuth[1::2, :]=nh*delta_az-np.pi/2.
+		azimuth[0::2, :]=delta_az/2.+nh*delta_az # the odd rows
+		azimuth[1::2, :]=nh*delta_az
 
 		azimuth=azimuth.flatten()
 		R=R.flatten()
+		nhels, rows=np.meshgrid(nh, row)
+		nhels=nhels.flatten()
+		rows=rows.flatten()
+
 		if field=='polar':
 			if i<2:
-				idx= (azimuth>-np.pi/2.)*(azimuth<np.pi/2.)
+				idx=(azimuth>1.5*np.pi)+(azimuth<0.5*np.pi)
 
 			else:
-				idx=(azimuth>-np.pi/2.+i*np.pi/40.)* (azimuth<np.pi/2.-i*np.pi/40.)
+				idx=(azimuth>(1.5*np.pi+i*np.pi/40.))+(azimuth<(np.pi/2.-i*np.pi/40.))
 
 			xx=R[idx]*np.sin(azimuth[idx])
 			yy=R[idx]*np.cos(azimuth[idx])
+			AZIMUTH=np.append(AZIMUTH, azimuth[idx])
+			rows=rows[idx]
+			ROW=np.append(ROW, rows)
+			NHEL=np.append(NHEL, nhels[idx])
+			zone=np.ones(np.shape(rows))*i
 
 		else:
 			xx=R*np.sin(azimuth)
 			yy=R*np.cos(azimuth)
+			AZIMUTH=np.append(AZIMUTH, azimuth)
+			ROW=np.append(ROW, rows)
+			NHEL=np.append(NHEL, nhels)
+			zone=np.ones(np.shape(rows))*i
+
 		XX=np.append(XX, xx)
 		YY=np.append(YY, yy)
-
-		nhels, rows=np.meshgrid(nh, row)
-		zone=np.ones(np.shape(rows))*i
 		ZONE=np.append(ZONE, zone)
-		ROW=np.append(ROW, rows)
-		NHEL=np.append(NHEL, nhels)
+
 		if len(TTROW)==0:
 			TTROW=np.append(TTROW, rows)
 		else:
@@ -209,6 +218,7 @@ def radial_stagger(latitude, num_hst, width, height, hst_z, towerheight, R1, fb,
 	ROW=ROW[:num_hst]
 	NHEL=NHEL[:num_hst]
 	TTROW=TTROW[:num_hst]
+	AZIMUTH=AZIMUTH[:num_hst]*180./np.pi
 
 	sys.stderr.write("\nExpanded field %d\n"%(num_hst,))
 
@@ -231,7 +241,7 @@ def radial_stagger(latitude, num_hst, width, height, hst_z, towerheight, R1, fb,
 	pos_and_aiming=np.append(title, pos_and_aiming.T)
 	pos_and_aiming=pos_and_aiming.reshape(int(len(pos_and_aiming)/11), 11)
 
-	np.savetxt('%s/pos_and_aiming.csv'%savedir, pos_and_aiming, fmt='%s', delimiter=',')
+	#np.savetxt('%s/pos_and_aiming.csv'%savedir, pos_and_aiming, fmt='%s', delimiter=',')
 
 	if plot:
 		fts=24

@@ -35,7 +35,8 @@ pm=Parameters()
 pm.H_tower=75. # 80. # tower height or vertical distance to aiming point (located at the center of xOy plan)
 pm.cpc_theta_deg=20.   # acceptance half angle of the CPC in degree
 pm.cpc_h_ratio=1. # must be inferior or equal to 1
-pm.field_rim_angle = 80. # rim angle of the heliostat field in the xOz plan in degree
+pm.rim_angle_x = 80. # rim angle of the heliostat field in the xOz plan in degree
+pm.rim_angle_y = None # rim angle of the heliostat field in the xOz plan in degree
 pm.secref_inv_eccen = 0.6 # hyperboloid inverse eccentricity, [0,1]
 pm.Z_rcv=0.
 pm.fb=0.7
@@ -44,7 +45,7 @@ pm.fb=0.7
 # =========
 pm.Q_in_rcv=40e6
 pm.n_row_oelt=5
-pm.n_col_oelt=9
+pm.n_col_oelt=7
 pm.H_rcv=10.
 pm.W_rcv=1.2
 pm.W_helio=6.1 #1.84 # ASTRI helio size
@@ -67,9 +68,6 @@ pm.cpc_nZ=30
 pm.rho_beamdown=0.95
 pm.slope_error=1.e-3 # radian
 
-# parameters recalculated (pre-optimized before optimization)
-pm.secref_vert=None # np.array([[-15,25],[-15,-25],[15,-25],[15,25]])
-
 pm.saveparam(casefolder)
 # create the environment and scene
 # =========
@@ -78,7 +76,7 @@ tablefile=casefolder+'/OELT_Solstice.motab'
 weafile='./AUS_WA_Leinster_Airport_954480_TMY.motab'
 bd=BD(latitude=pm.lat, casedir=casefolder)
 
-bd.receiversystem(receiver=pm.rcv_type, rec_abs=float(pm.alpha_rcv), rec_w=float(pm.W_rcv), rec_l=float(pm.H_rcv), rec_z=float(pm.Z_rcv), rec_grid=int(pm.n_H_rcv), cpc_nfaces=int(pm.cpc_nfaces), cpc_theta_deg=float(pm.cpc_theta_deg), cpc_h_ratio=float(pm.cpc_h_ratio), cpc_nZ=float(pm.cpc_nZ), field_rim_angle=float(pm.field_rim_angle), aim_z=float(pm.H_tower), secref_inv_eccen=pm.secref_inv_eccen, secref_vert = pm.secref_vert, rho_bd=float(pm.rho_beamdown), slope_error=float(pm.slope_error))
+bd.receiversystem(receiver=pm.rcv_type, rec_abs=float(pm.alpha_rcv), rec_w=float(pm.W_rcv), rec_l=float(pm.H_rcv), rec_z=float(pm.Z_rcv), rec_grid=int(pm.n_H_rcv), cpc_nfaces=int(pm.cpc_nfaces), cpc_theta_deg=float(pm.cpc_theta_deg), cpc_h_ratio=float(pm.cpc_h_ratio), cpc_nZ=float(pm.cpc_nZ), rim_angle_x=float(pm.rim_angle_x), rim_angle_y=pm.rim_angle_y, aim_z=float(pm.H_tower), secref_inv_eccen=pm.secref_inv_eccen, rho_bd=float(pm.rho_beamdown), slope_error=float(pm.slope_error))
 
 bd.heliostatfield(field=pm.field_type, hst_rho=pm.rho_helio, slope=pm.slope_error, hst_w=pm.W_helio, hst_h=pm.H_helio, tower_h=pm.H_tower, tower_r=pm.R_tower, hst_z=pm.Z_helio, num_hst=pm.n_helios, R1=pm.R1, fb=pm.fb, dsep=pm.dsep, x_max=300., y_max=300.)
 

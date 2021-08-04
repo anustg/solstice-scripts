@@ -53,12 +53,12 @@ class BD:
 
 		return rec_radius_ref, rec_radius
 
-	def hyperboloidparameters(self, rec_z, cpc_theta_deg, cpc_h, field_rim_angle, aim_z):
+	def hyperboloidparameters(self, rec_z, cpc_theta_deg, cpc_h, rim_angle, aim_z):
 		'''
 		'''
 		#intersection point of line passing by aiming point and furthest heliostat & line passing by secondary real foci (aperture of cpc) forming an angle theta with the vertical (cpc acceptance angle)
 		theta = cpc_theta_deg*np.pi/180.
-		phy = field_rim_angle*np.pi/180.
+		phy = rim_angle*np.pi/180.
 		x_inter = ((rec_z+cpc_h) - aim_z) / (1/np.tan(phy) - 1/np.tan(theta))
 		z_inter = x_inter/np.tan(phy)+aim_z
 		# translate the intersection point to place the mid distance of teh 2 focci at the origin
@@ -85,7 +85,7 @@ class BD:
 	def intersectionlinehyperbol(self, a_hyper, b_hyper, m_line, z0_line):
 		'''
 		intersection point between hyperbola and line:
-		z^2/a^2 - y^2/b^2 = 1
+		z^2/b^2 - y^2/a^2 = 1
 		z = m*y + z0
 		'''
 		b_hyper_sqrt = b_hyper**2
@@ -97,38 +97,26 @@ class BD:
 		delta = bCoef_poly**2 - 4*aCoef_poly*cCoef_poly
 		root1 = (-bCoef_poly+np.sqrt(delta))/(2*aCoef_poly)
 		root2 = (-bCoef_poly-np.sqrt(delta))/(2*aCoef_poly)
-		if root1>0. and root2>0.:	# the line intersect the upper sheet of the hyperbola twice
+		if root1>0. and root2>0. and m_line<0.:	# the line intersect the upper sheet of the hyperbola twice
 			z_inter = min(root1,root2)
 		else:	# the line intersect the upper and lower sheet of the hyperbola
 			z_inter = max(root1,root2)
 		y_inter = (z_inter-z0_line)/m_line
-		check = (z_inter**2)/a_hyper_sqrt - (y_inter**2)/b_hyper_sqrt
-		print('equation resolution should be 1, and it is: ', check)
+		#check = (z_inter**2)/a_hyper_sqrt - (y_inter**2)/b_hyper_sqrt
+		#print('equation resolution should be 1, and it is: ', check)
+
+		assert y_inter > 0, 'Negative hyperboloid radius value'
 
 		return y_inter
 
-	def zhyperboloid(self, x_hyper, y_hyper, vertex_dist, foci_dist):
-		'''
-		calculate the z coordinate of the hyperboloid:
-		(x^2+y^2)/a^2 - (z+z0-g/2)^2/b^2 + 1 = 0
-		with the vetex of the hyperboloid located in the xOy plan.
-		'''
-		g_para = 2*foci_dist
-		f_para = (vertex_dist+foci_dist)/g_para
-		a_para_sqrt = (g_para**2)*(f_para-f_para**2)
-		b_para = g_para*(f_para-1/2.)
-		z0_hyper = abs(b_para) + g_para/2.
-
-		z_hyper = b_para*np.sqrt((x_hyper**2+y_hyper**2)/a_para_sqrt+1) - z0_hyper+g_para/2.
-		return z_hyper
-
 	def receiversystem(self, receiver, rec_abs=1., rec_w=1.2, rec_l=10., rec_z=0., rec_grid=200, cpc_nfaces=4, cpc_theta_deg=20., cpc_h_ratio=1.,
-	cpc_nZ=20., field_rim_angle=30., aim_z=62., secref_inv_eccen=None, secref_vert=np.array([[-15,25],[-15,-25],[15,-25],[15,25]]), rho_bd=0.95, slope_error=0.0):
+	cpc_nZ=20., rim_angle_x=45., rim_angle_y=None, aim_z=62., secref_inv_eccen=None, rho_bd=0.95, slope_error=0.0):
 
 		'''
 		Variables:
 		- cpc_theta_deg
-		- field_rim_angle
+		- rim_angle_x
+		- rim_angle_y
 		- aim_z (tower height)
 		- rec_z (optional)
 		Arguments:
@@ -147,10 +135,11 @@ class BD:
 		    WARNING: cpc_h is different from the total height of the CPC
 		    (10) cpc_nZ     : int, number of number of incrementation for the clipping polygon for the construction of each CPC face
 		    # Arguments for Secondary Reflector
-		    (11) field_rim_angle : float, rim angle of the field formed wih vertical axis in the zOx plan (deg)
-		    (12) aim_z   : float, z (vertical) location of the heliostats' aiming point (m)
-		    (13) secref_inv_eccen    : flaot, hyperboloid inverse eccentricity: ratio of the apex distance over the foci distance to the origin, must be between 0 and 1
-		    (14) secref_vert	: array, clipping polygon of the secondary reflector
+		    (11) rim_angle_x : float, rim angle of the hyperboloid and the field formed wih vertical axis in the zOx plan (deg) ]0.,100?[
+			(12) rim_angle_y : float, rim angle of the hyperboloid and the field formed wih vertical axis in the zOy plan (deg) ]0.,100?[
+			# If rim_angle_y is none, the hyperboloid is clipped with a circle instead of a polygon.
+		    (13) aim_z   : float, z (vertical) location of the heliostats' aiming point (m)
+		    (14) secref_inv_eccen    : flaot, hyperboloid inverse eccentricity: ratio of the apex distance over the foci distance to the origin, must be between 0 and 1
 		    (15) r_f	: float, secondary mirror and CPC reflectivity, e.g. 0.9
 		    (16) slope_error	: float, slope error of secondary mirror and CPC refelctivity (?)
 		'''
@@ -168,9 +157,9 @@ class BD:
 
 		assert aim_z > (cpc_h+rec_z), 'The imaginary foci of the hyperbol is lower than its real foci'
 
-		# Calculate the characteristics of the secondary reflector
+		# Calculate the characteristics of the secondary reflector geometry
 		if secref_inv_eccen is None:
-			vertex_dist, x_inter, foci_dist = self.hyperboloidparameters(rec_z, cpc_theta_deg, cpc_h, field_rim_angle, aim_z)
+			vertex_dist, x_inter, foci_dist = self.hyperboloidparameters(rec_z, cpc_theta_deg, cpc_h, rim_angle_x, aim_z)
 		else:
 			foci_dist = (aim_z-(cpc_h+rec_z))/2.
 			vertex_dist = secref_inv_eccen*foci_dist
@@ -179,35 +168,38 @@ class BD:
 		print('hyperboloid distances ratio: ', vertex_dist/foci_dist)
 		print('hyperboloid eccentricity: ', foci_dist/vertex_dist)
 
-		# Calculate the clipping polygon of the secondary reflector
-		if secref_vert is None:
-			b_hyper = np.sqrt(foci_dist**2-vertex_dist**2)
-			if  x_inter is None:
-				m_line = -1/np.tan(field_rim_angle*np.pi/180.)
-				x_inter = self.intersectionlinehyperbol(vertex_dist, b_hyper, m_line, foci_dist)
 
+		# Calculate the clipping polygon of the secondary reflector (dimensions)
+		b_hyper = np.sqrt(foci_dist**2-vertex_dist**2)
+		if x_inter is None:
+			m_line = -1/np.tan(rim_angle_x*np.pi/180.)
+			x_inter = self.intersectionlinehyperbol(vertex_dist, b_hyper, m_line, foci_dist)
+		print('Hyperboloid Radius X:',x_inter)
+		if rim_angle_y is None:
+			secref_vert = np.array([x_inter])
+			rim_angle_y = rim_angle_x
+		else:
 			if rec_rad_ref != rec_rad:
-				m_line = cpc_h/rec_rad
-				# if the coefficient of the line is outside the tangent of the hyperbola, there will be no intersection
-				hyper_tangent = vertex_dist/b_hyper
-				if abs(m_line) <= hyper_tangent:
-					y_inter = rec_rad + (x_inter-rec_rad_ref)
-					print('tangent')
-				else:
-					y_inter = self.intersectionlinehyperbol(vertex_dist, b_hyper, m_line, -foci_dist)
+				y_inter = -1/np.tan(rim_angle_y*np.pi/180.)
+				y_inter = self.intersectionlinehyperbol(vertex_dist, b_hyper, m_line, foci_dist)
 			else:
 				y_inter = x_inter
-			secref_vert = np.array([[-x_inter,y_inter],[-x_inter,-y_inter],[x_inter,-y_inter],[x_inter,y_inter]])
+			secref_vert = np.array([[0.,y_inter],[-x_inter,y_inter],[-x_inter,0.],[-x_inter,-y_inter],[0.,-y_inter],[x_inter,-y_inter],[x_inter,0.],[x_inter,y_inter]])
 
 		# calculate the field maxium radius along x and y axis
-		self.x_max = aim_z*np.tan(field_rim_angle*np.pi/180.)
-		y_inter = max(secref_vert[:,1])
-		z_hyper = secref_z + self.zhyperboloid( 0.0, y_inter, vertex_dist, foci_dist)
-		if z_hyper<aim_z:
-			phy = np.arctan(y_inter/(aim_z-z_hyper))
-		else:
-			phy = 80.*np.pi/180.
-		self.y_max = aim_z*np.tan(phy)
+		max_field_rim_angle = 82.9 # correspond to 8xTH (TH=Tower Height)
+
+		if rim_angle_x>max_field_rim_angle:
+			rim_angle_x=max_field_rim_angle
+		self.x_max = aim_z*np.tan(rim_angle_x*np.pi/180.)
+
+		if rim_angle_y>max_field_rim_angle:
+			rim_angle_y=max_field_rim_angle
+		self.y_max = aim_z*np.tan(rim_angle_y*np.pi/180.)
+
+		print(' ')
+		print('xMax:', self.x_max)
+		print('yMax:', self.y_max)
 
 		self.rec_param=np.array([rec_w, rec_l, rec_z, rec_grid, cpc_nfaces, cpc_theta_deg, cpc_h, cpc_nZ, aim_z, secref_z, rho_bd, slope_error, secref_vert])
 
@@ -251,7 +243,7 @@ class BD:
 		    if (x_max>0) and (y_max>0):
 		        x_max = self.x_max
 		        y_max = self.y_max
-		        r_max = np.sqrt(x_max**2 + y_max**2)*1.5
+		        r_max = np.sqrt(x_max**2 + y_max**2)*1.1
 		        pos_and_aiming=radial_stagger(latitude=self.latitude, num_hst=num_hst, width=hst_w, height=hst_h, hst_z=hst_z, towerheight=tower_h, R1=R1, fb=fb, dsep=0., field=field, savedir=savefolder, plot=False, r_field_max= r_max)
 		    else:
 		        pos_and_aiming=radial_stagger(latitude=self.latitude, num_hst=num_hst, width=hst_w, height=hst_h, hst_z=hst_z, towerheight=tower_h, R1=R1, fb=fb, dsep=0., field=field, savedir=savefolder, plot=False)
@@ -265,43 +257,30 @@ class BD:
 		self.tower_h=tower_h
 		self.tower_r=tower_r
 
+		margin = 10*np.sqrt(hst_w*hst_w+hst_h*hst_h)
+		Xmax = max(layout[:,0])
+		if (x_max>R1) and (Xmax>x_max+margin):
+			xx=layout[:,0].astype(float)
+			select_hst=(np.abs(xx)<(x_max+margin))
+			layout=layout[select_hst,:]
+
+		Ymax = max(layout[:,1])
+		if (y_max>R1) and (Ymax>(y_max+margin)):
+			yy=layout[:,1].astype(float)
+			select_hst=(np.abs(yy)<(y_max+margin))
+			layout=layout[select_hst,:]
+
+		maxHelio=15000 # Maximum number of heliostats to avoid Sosltice slow processing
+		if len(layout[:,0])>maxHelio:
+			layout=layout[:maxHelio,:]
+
 		self.hst_pos=layout[:,:3].astype(float)
 		self.hst_foc=layout[:,3].astype(float)
 		self.hst_aims=layout[:,4:7].astype(float)
-		self.hst_row=layout[:,-1].astype(float)
+		self.hst_zone=layout[:,7].astype(float)
+		self.hst_row=layout[:,8].astype(float)
 
-		Xmax = max(self.hst_pos[:,0])
-		if (x_max>R1) and (Xmax>x_max*1.5):
-			select_hst=np.array([])
-			for i in range(len(self.hst_pos)):
-				Xhelio = self.hst_pos[i,0]
-				if np.abs(Xhelio)<x_max*1.5:
-					select_hst=np.append(select_hst, i)
-
-			select_hst=select_hst.astype(int)
-
-			self.hst_pos= self.hst_pos[select_hst,:]
-			self.hst_foc=self.hst_foc[select_hst]
-			self.hst_aims=self.hst_aims[select_hst,:]
-			self.hst_row=self.hst_row[select_hst]
-
-		Ymax = max(self.hst_pos[:,1])
-		if (y_max>R1) and (Ymax>y_max*1.5):
-			select_hst=np.array([])
-			for i in range(len(self.hst_pos)):
-				Yhelio = self.hst_pos[i,1]
-				if np.abs(Yhelio)<y_max*1.5:
-					select_hst=np.append(select_hst, i)
-
-			select_hst=select_hst.astype(int)
-
-			self.hst_pos= self.hst_pos[select_hst,:]
-			self.hst_foc=self.hst_foc[select_hst]
-			self.hst_aims=self.hst_aims[select_hst,:]
-			self.hst_row=self.hst_row[select_hst]
-
-		np.savetxt(self.casedir+'/trimmed_field.csv', self.hst_pos, fmt='%s', delimiter=',')
-
+		#np.savetxt(self.casedir+'/trimmed_field.csv', self.hst_pos, fmt='%s', delimiter=',')
 
 	def yaml(self, dni=1000,sunshape=None,csr=0.01,half_angle_deg=0.2664,std_dev=0.2):
 		'''
@@ -334,6 +313,29 @@ class BD:
 		'''
 		print('')
 		print('Start field design')
+
+
+		# Design Point Performance
+		designfolder=self.casedir+'/des_point'
+		day=self.sun.days(21, 'Mar')
+		dec=self.sun.declination(day)
+		hra=0. # solar noon
+		zen=self.sun.zenith(self.latitude, dec, hra)
+		azi=self.sun.azimuth(self.latitude, zen, dec, hra)
+		azi_des, ele_des=self.sun.convert_convention('solstice', azi, zen)
+
+		sys.stderr.write("\n"+green('Design Point: \n'))
+		efficiency_total, performance_hst_des=self.master.run(azi_des, ele_des, num_rays, self.hst_rho, dni_des, folder=designfolder, gen_vtk=gen_vtk, printresult=False, system='beamdown')
+
+		Qin=performance_hst_des[:,-1]
+		Qsolar=performance_hst_des[0,0]
+
+		select_hst=(Qin>0.)
+		QinMax=np.sum(Qin[select_hst])
+		sys.stderr.write("\n"+yellow("Maximum Incident NRJ (W) at design Point: {:f}\n".format(QinMax)))
+		assert QinMax > Q_in_des, 'There is not enough incident energy on the receiver to satisfy the design condition'
+
+		# ANNUAL Performance
 		dni_weight=self.dni_TMY(weafile, nd, nh)
 
 		AZI, ZENITH,table,case_list=self.sun.annual_angles(self.latitude, casefolder=self.casedir, nd=nd, nh=nh)
@@ -344,6 +346,7 @@ class BD:
 		run=np.r_[0]
 		nhst=len(self.hst_pos)
 		ANNUAL=np.zeros(nhst)
+		annual_solar=0.
 		hst_annual={}
 
 		for i in range(len(case_list)):
@@ -375,38 +378,50 @@ class BD:
 
 				hst_annual[c]=performance_hst
 				sys.stderr.write(yellow("Total efficiency: {:f}\n".format(efficiency_total)))
+				run=np.append(run,c)
 
 			cc=0
 			for a in range(len(table[3:])):
 				for b in range(len(table[0,3:])):
 					val=re.findall(r'\d+', table[a+3,b+3])
-					if val==[]:
-						table[a+3,b+3]=0
-					else:
-						if c==float(val[0]):
-							#table[a+3,b+3]=efficiency_total # this line cause wired problem
-							if cc==0: # avoid adding the symetrical point
-								ANNUAL+=dni_weight[a,b]*efficiency_hst
-								print(dni_weight[a,b])
-								cc+=1
-			run=np.append(run,c)
-		np.savetxt(self.casedir+'/annual_hst.csv',ANNUAL, fmt='%.2f', delimiter=',')
+					if str(c) in val:
+						dni=dni_weight[a,b]
+						if cc==0:
+							# i.e. morning positions
+							ANNUAL+=dni*efficiency_hst
+							annual_solar+=dni
+							cc+=1
+							# Print coordinates and efficiency for symmetry check
+							#fieldEff=np.array([self.hst_pos[:,0],self.hst_pos[:,1],self.hst_pos[:,2], efficiency_hst])
+							#fieldEff=fieldEff.T
+							#suf='morning'
+						else:
+							eff_symmetrical=np.array([])
+							nz=int(max(self.hst_zone))+1
+							for e in range(nz):
+								idx_z=(self.hst_zone==e)
+								eff_zone=efficiency_hst[idx_z]
+								row_zone=self.hst_row[idx_z]
 
-		designfolder=self.casedir+'/des_point'
-		day=self.sun.days(21, 'Mar')
-		dec=self.sun.declination(day)
-		hra=0. # solar noon
-		zen=self.sun.zenith(self.latitude, dec, hra)
-		azi=self.sun.azimuth(self.latitude, zen, dec, hra)
-		azi_des, ele_des=self.sun.convert_convention('solstice', azi, zen)
+								nr=int(max(row_zone))+1
+								for r in range(nr):
+									idx_r=(row_zone==r)
+									eff_row=eff_zone[idx_r]
+									if r%2==0:
+										eff_row=eff_row[::-1]
+									else:
+										eff_row[1:]=eff_row[1:][::-1]
+									eff_symmetrical=np.append(eff_symmetrical, eff_row)
+							ANNUAL+=dni*eff_symmetrical
+							annual_solar+=dni
+							#fieldEff=np.array([self.hst_pos[:,0],self.hst_pos[:,1],self.hst_pos[:,2], eff_symmetrical])
+							#fieldEff=fieldEff.T
+							#suf='afternoon'
+						# Export data
+						#np.savetxt(self.casedir+'/pos_and_aiming_'+str(c)+suf+'.csv', fieldEff, fmt='%s', delimiter=',')
 
-		sys.stderr.write("\n"+green('Design Point: \n'))
-		efficiency_total, performance_hst_des=self.master.run(azi_des, ele_des, num_rays, self.hst_rho, dni_des, folder=designfolder, gen_vtk=gen_vtk, printresult=False, system='beamdown')
-
-		Qin=performance_hst_des[:,-1]
-		Qsolar=performance_hst_des[0,0]
-
-#		np.savetxt(self.casedir+'/annual_hst_design.csv',Qin, fmt='%.2f', delimiter=',') # New, to check the NRJ at design point
+		ANNUAL/=annual_solar
+		#np.savetxt(self.casedir+'/annual_hst.csv',ANNUAL, fmt='%.2f', delimiter=',')
 
 		ID=ANNUAL.argsort()
 		ID=ID[::-1]
@@ -461,16 +476,13 @@ class BD:
 		print('land area', A_land)
 
 		num_hst=len(self.hst_pos)
-		title=np.array([['x', 'y', 'z', 'foc', 'aim x', 'aim y', 'aim z'], ['m', 'm', 'm', 'm', 'm', 'm', 'm']])
+		title=np.array([['x', 'y', 'z', 'foc', 'aim x', 'aim y', 'aim z', 'NRJ at Design Pt', 'Annual Efficiency'], ['m', 'm', 'm', 'm', 'm', 'm', 'm', 'W', '-']])
 		design_pos_and_aim=np.hstack((self.hst_pos, self.hst_foc.reshape(num_hst, 1)))
 		design_pos_and_aim=np.hstack((design_pos_and_aim, self.hst_aims))
-		#symmetric=design_pos_and_aim
-		#symmetric[:, 0]=-symmetric[:, 0]
-		#design_pos_and_aim=np.vstack((design_pos_and_aim, symmetric))
-		#designed_field=design_pos_and_aim
+		design_pos_and_aim=np.hstack((design_pos_and_aim, Qin[select_hst].reshape(num_hst, 1)))
+		design_pos_and_aim=np.hstack((design_pos_and_aim, ANNUAL[select_hst].reshape(num_hst, 1)))
 		design_pos_and_aim=np.vstack((title, design_pos_and_aim))
 		np.savetxt(self.casedir+'/pos_and_aiming.csv', design_pos_and_aim, fmt='%s', delimiter=',')
-		np.savetxt(self.casedir+'/selected_hst.csv', select_hst, fmt='%.0f', delimiter=',')
 
 
 		# lookup table
@@ -651,12 +663,13 @@ if __name__=='__main__':
 		theta_deg=20.
 		n_Z=30
 		# Secondary refector 'hyperboloid'
-		rim_angle = 45.
+		xrim_angle = 45.
+		yrim_angle = 80.
 		rho_bd = 0.95
 		slope_error = 0.0
 
 
-		bd.receiversystem(receiver='beam_down', rec_abs=float(pm.alpha_rcv), rec_w=float(rec_w), rec_l=float(rec_l), rec_z=float(rec_z), rec_grid=int(rec_grid), cpc_nfaces=int(n_CPC_faces), cpc_theta_deg=float(theta_deg), cpc_h_ratio=None, cpc_nZ=float(n_Z), field_rim_angle=float(rim_angle), aim_z=float(pm.H_tower), secref_inv_eccen=None, secref_vert=None, rho_bd=float(rho_bd), slope_error=float(slope_error))
+		bd.receiversystem(receiver='beam_down', rec_abs=float(pm.alpha_rcv), rec_w=float(rec_w), rec_l=float(rec_l), rec_z=float(rec_z), rec_grid=int(rec_grid), cpc_nfaces=int(n_CPC_faces), cpc_theta_deg=float(theta_deg), cpc_h_ratio=None, cpc_nZ=float(n_Z), rim_angle_x=float(xrim_angle), rim_angle_y=float(yrim_angle), aim_z=float(pm.H_tower), secref_inv_eccen=None, rho_bd=float(rho_bd), slope_error=float(slope_error))
 
 		bd.heliostatfield(field='surround', hst_rho=pm.rho_helio, slope=pm.slope_error, hst_w=pm.W_helio, hst_h=pm.H_helio, tower_h=pm.H_tower, tower_r=pm.R_tower, hst_z=pm.Z_helio, num_hst=num_hst, R1=pm.R1, fb=pm.fb, dsep=pm.dsep, x_max=150., y_max=150.)
 

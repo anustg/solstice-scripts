@@ -187,21 +187,7 @@ class CPC:
             p_B = 4*self.focal_length*np.tan(self.theta)
             p_C = -4*self.focal_length*self.focal_length
             self.y_min_para, self.z_min_para = self.intersectionpoint(p_A, p_B, p_C, self.focal_length)
-            ''' OLD
-            if cpc_h<=0.:
-                p_B = -4.0*self.focal_length/np.tan(2.*self.theta)
-                self.y_max_para, self.z_max_para = self.intersectionpoint(p_A, p_B, p_C, self.focal_length)
-            else:
-                self.z_max_para = self.z_min_para+cpc_h
-                self.y_max_para = np.sqrt(4*self.focal_length*self.z_max_para)
-            # height of the CPC
-            _, _, z_trans = self.xyztranslations(self.theta, 0.0, 0.0, self.rec_radius, 0.0)
-            _, _, z_CPC = self.thetagammarotations(self.y_max_para, self.z_max_para, self.theta, 0.0)
-            self.h_CPC = z_trans + z_CPC
-            print('calculated height: ', self.h_CPC)
-            h_CPC = self.rec_radius*(1+1/np.sin(self.theta))/np.tan(self.theta)
-            print('theoretical critical height: ', h_CPC)
-            '''
+
             h_CPC = self.rec_radius*(1+1/np.sin(self.theta))/np.tan(self.theta)
             p_B = -4.0*self.focal_length/np.tan(2.*self.theta)
             _, self.z_max_para = self.intersectionpoint(p_A, p_B, p_C, self.focal_length)
@@ -210,8 +196,8 @@ class CPC:
             else:
                 self.h_CPC = cpc_h
 
-            print('theoretical critical height: ', h_CPC)
-            print('selected height: ', self.h_CPC)
+            # print('theoretical critical height: ', h_CPC)
+            # print('selected height: ', self.h_CPC)
 
         def beamdowncomponents(self, rec_param):
             '''
@@ -307,8 +293,8 @@ class CPC:
             # focal real: distance between hyperbola vertex and aiming point of secondary reflector (aperture of the CPC)
             focal_image = aim_z - secref_z
             focal_real = abs(rec_z + self.h_CPC - secref_z) # aim at the aperture of the CPC
-            print('HYPERBOLA focal IMAGE: ', focal_image)
-            print('HYPERBOLA focal REAL: ', focal_real)
+            # print('HYPERBOLA focal IMAGE: ', focal_image)
+            # print('HYPERBOLA focal REAL: ', focal_real)
             iyaml+='- entity:\n'
             iyaml+='    name: %s\n' % 'secondary_reflector'
             iyaml+='    primary: 0\n'
@@ -318,20 +304,28 @@ class CPC:
             iyaml+='      hyperbol:\n'
             iyaml+='        focals: &hyperbol_focals { real: %s, image: %s }\n' % (focal_real, focal_image)
             iyaml+='        clip: \n'
-            iyaml+='        - operation: AND \n'
-            iyaml+='          vertices: \n'
-            for i in range(len(secref_vert)):
-                iyaml+='            - %s\n' % ([secref_vert[i][0],secref_vert[i][1]])
-            iyaml+='\n'
+            if len(secref_vert)>1:
+                iyaml+='        - operation: AND \n'
+                iyaml+='          vertices: \n'
+                for i in range(len(secref_vert)):
+                    iyaml+='            - %s\n' % ([secref_vert[i][0],secref_vert[i][1]])
+                iyaml+='\n'
+            else:
+                iyaml+='        - operation: AND \n'
+                iyaml+='          circle: { radius: %s, center: [0,0]} \n' % secref_vert[0]
             #
             # CREATE a virtual target entity above the secondary reflector
-            xmax=max(secref_vert[:,0])
-            ymax=max(secref_vert[:,1])
+
+            if len(secref_vert)>1:
+                xmax=max(secref_vert[:,0])
+                ymax=max(secref_vert[:,1])
+            else:
+                xmax=ymax=secref_vert[0]
             virt_vert = np.array([ [-xmax, ymax], [-xmax, -ymax], [xmax, -ymax], [xmax, ymax] ])*50
             zmax=self.hyperboloid(xmax, ymax, focal_image, focal_real)
-            print('X HYPERBOLA: ', xmax)
-            print('Y HYPERBOLA: ', ymax)
-            print('Z HYPERBOLA: ', zmax)
+            #print('X HYPERBOLA: ', xmax)
+            #print('Y HYPERBOLA: ', ymax)
+            #print('Z HYPERBOLA: ', zmax)
             z_trans = secref_z+zmax+5
             if z_trans < aim_z:
                 z_trans = aim_z
