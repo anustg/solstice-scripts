@@ -126,7 +126,6 @@ class Parameters:
 		self.rim_angle_x=45.	# field and hyperboloid rim angle in the zOx plan
 		self.rim_angle_y=45.	# field and hyperboloid rim angle in the zOy plan
 		self.secref_inv_eccen=0.6	# Hyperboloid inverse eccentricity [0,1]
-		self.secref_vert=np.array([[-15,25],[-15,-25],[15,-25],[15,25]])		# Hyperboloid clipping polygon in xOy plan
 		self.rho_beamdown=0.95		# reflecticity property of Beam-Down components
 		self.n_helios=300
 
