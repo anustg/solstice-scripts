@@ -76,8 +76,8 @@ class BD:
 		c0 = z_inter_sqrt*foci_dist_sqrt
 		delta = c1**2 - 4*c0*c2
 		vertex_dist_sqrt = (-c1-np.sqrt(delta))/2.
-		check = z_inter_sqrt/vertex_dist_sqrt - x_inter_sqrt/(foci_dist_sqrt-vertex_dist_sqrt)
-		print('equation resolution should be 1, and it is: ', check)
+		#check = z_inter_sqrt/vertex_dist_sqrt - x_inter_sqrt/(foci_dist_sqrt-vertex_dist_sqrt)
+		#print('equation resolution should be 1, and it is: ', check)
 		vertex_dist = np.sqrt(vertex_dist_sqrt)
 
 		return vertex_dist, x_inter, foci_dist
@@ -167,6 +167,8 @@ class BD:
 		secref_z = rec_z + cpc_h + vertex_dist + foci_dist
 		print('hyperboloid distances ratio: ', vertex_dist/foci_dist)
 		print('hyperboloid eccentricity: ', foci_dist/vertex_dist)
+		print('hyperboloid distance to vertex: ', vertex_dist)
+		print('hyperboloid distance to focus: ', foci_dist)
 
 
 		# Calculate the clipping polygon of the secondary reflector (dimensions)
@@ -185,6 +187,7 @@ class BD:
 			else:
 				y_inter = x_inter
 			secref_vert = np.array([[0.,y_inter],[-x_inter,y_inter],[-x_inter,0.],[-x_inter,-y_inter],[0.,-y_inter],[x_inter,-y_inter],[x_inter,0.],[x_inter,y_inter]])
+			print('Hyperboloid Radius Y:', y_inter)
 
 		# calculate the field maxium radius along x and y axis
 		max_field_rim_angle = 82.9 # correspond to 8xTH (TH=Tower Height)
@@ -325,7 +328,7 @@ class BD:
 		azi_des, ele_des=self.sun.convert_convention('solstice', azi, zen)
 
 		sys.stderr.write("\n"+green('Design Point: \n'))
-		efficiency_total, performance_hst_des=self.master.run(azi_des, ele_des, num_rays, self.hst_rho, dni_des, folder=designfolder, gen_vtk=gen_vtk, printresult=False, system='beamdown')
+		efficiency_total, performance_hst_des=self.master.run(azi_des, ele_des, num_rays, self.hst_rho, dni_des, folder=designfolder, gen_vtk=gen_vtk, printresult=False, system='beamdown') ####Clo
 
 		Qin=performance_hst_des[:,-1]
 		Qsolar=performance_hst_des[0,0]
@@ -435,7 +438,7 @@ class BD:
 			for i in range(len(ID)):
 				if power<Q_in_des:
 					idx=ID[i]
-					if Qin[idx]>0.:
+					if Qin[idx]>=0.:
 						select_hst=np.append(select_hst, idx)
 						power+=Qin[idx]
 
@@ -512,7 +515,7 @@ class BD:
 			            if c==float(val[0]):
 			                oelt[a+3,b+3]=eff
 
-		np.savetxt(self.casedir+'/lookup_table.csv', oelt, fmt='%s', delimiter=',')
+		#np.savetxt(self.casedir+'/lookup_table.csv', oelt, fmt='%s', delimiter=',')
 
 		return oelt, A_land
 
@@ -542,8 +545,9 @@ class BD:
 		azi_des, ele_des=self.sun.convert_convention('solstice', azi, zen)
 
 		sys.stderr.write("\n"+green('Design Point: \n'))
-		efficiency_total, performance_hst_des=self.master.run(azi_des, ele_des, num_rays, self.hst_rho, dni_des, folder=designfolder, gen_vtk=True, printresult=False, system='beamdown')
+		efficiency_total, performance_hst_des=self.master.run(azi_des, ele_des, num_rays, self.hst_rho, dni_des, folder=designfolder, gen_vtk=gen_vtk, printresult=False, system='beamdown')
 		self.eff_des=efficiency_total.n
+		self.Q_in_rcv=np.sum(performance_hst_des[:,-1])
 
 		return oelt, A_land
 

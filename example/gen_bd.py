@@ -32,20 +32,22 @@ while 1:
 pm=Parameters()
 
 # Variables
-pm.H_tower=75. # 80. # tower height or vertical distance to aiming point (located at the center of xOy plan)
-pm.cpc_theta_deg=20.   # acceptance half angle of the CPC in degree
-pm.cpc_h_ratio=1. # must be inferior or equal to 1
-pm.rim_angle_x = 80. # rim angle of the heliostat field in the xOz plan in degree
-pm.rim_angle_y = None # rim angle of the heliostat field in the xOz plan in degree
-pm.secref_inv_eccen = 0.6 # hyperboloid inverse eccentricity, [0,1]
+pm.H_tower=150.453433 # 80. # tower height or vertical distance to aiming point (located at the center of xOy plan)
+pm.cpc_theta_deg=10.516461   # acceptance half angle of the CPC in degree
+pm.cpc_h_ratio=1.0 # must be inferior or equal to 1
+pm.rim_angle_x = 70.038185 # rim angle of the heliostat field in the xOz plan in degree
+pm.rim_angle_y = 67.097593 # rim angle of the heliostat field in the xOz plan in degree
+pm.secref_inv_eccen = 0.622431 # hyperboloid inverse eccentricity, [0,1]
 pm.Z_rcv=0.
-pm.fb=0.7
+pm.fb=0.16153
 
 # fixed parameters
 # =========
+pm.sunshape='buie'
+pm.crs=0.02
 pm.Q_in_rcv=40e6
 pm.n_row_oelt=5
-pm.n_col_oelt=7
+pm.n_col_oelt=22
 pm.H_rcv=10.
 pm.W_rcv=1.2
 pm.W_helio=6.1 #1.84 # ASTRI helio size
@@ -82,7 +84,7 @@ bd.heliostatfield(field=pm.field_type, hst_rho=pm.rho_helio, slope=pm.slope_erro
 
 bd.yaml(sunshape=pm.sunshape,csr=pm.crs,half_angle_deg=pm.half_angle_deg,std_dev=pm.std_dev)
 
-oelt, A_land=bd.field_design_annual(dni_des=900., num_rays=int(1e6), nd=pm.n_row_oelt, nh=pm.n_col_oelt, weafile=weafile, method=1, Q_in_des=pm.Q_in_rcv, n_helios=None, zipfiles=False, gen_vtk=False, plot=False)
+oelt, A_land=bd.field_design_annual(dni_des=900., num_rays=int(1e7), nd=pm.n_row_oelt, nh=pm.n_col_oelt, weafile=weafile, method=1, Q_in_des=pm.Q_in_rcv, n_helios=None, zipfiles=False, gen_vtk=False, plot=False)
 
 
 if (A_land==0):
@@ -91,6 +93,12 @@ else:
     A_helio=pm.H_helio*pm.W_helio
     output_matadata_motab(table=oelt, field_type=pm.field_type, aiming='single', n_helios=bd.n_helios, A_helio=A_helio, eff_design=bd.eff_des, H_rcv=pm.H_rcv, W_rcv=pm.W_rcv, H_tower=pm.H_tower, Q_in_rcv=bd.Q_in_rcv, A_land=A_land, savedir=tablefile)
 
-#bd.yaml(sunshape=pm.sunshape,csr=pm.crs,half_angle_deg=pm.half_angle_deg,std_dev=pm.std_dev)
+bd.yaml(sunshape=pm.sunshape,csr=pm.crs,half_angle_deg=pm.half_angle_deg,std_dev=pm.std_dev)
 
-#bd.annual_oelt(dni_des=900., num_rays=int(1e7), nd=pm.n_row_oelt, nh=pm.n_col_oelt, zipfiles=False, gen_vtk=False, plot=False)
+bd.annual_oelt(dni_des=900., num_rays=int(1e7), nd=pm.n_row_oelt, nh=pm.n_col_oelt, zipfiles=False, gen_vtk=True, plot=False)
+
+if (A_land==0):
+    tablefile=None
+else:
+    A_helio=pm.H_helio*pm.W_helio
+    output_matadata_motab(table=oelt, field_type=pm.field_type, aiming='single', n_helios=bd.n_helios, A_helio=A_helio, eff_design=bd.eff_des, H_rcv=pm.H_rcv, W_rcv=pm.W_rcv, H_tower=pm.H_tower, Q_in_rcv=bd.Q_in_rcv, A_land=A_land, savedir=tablefile)

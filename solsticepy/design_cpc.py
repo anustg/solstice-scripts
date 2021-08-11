@@ -78,7 +78,7 @@ class CPC:
             z_hyper = b_para*np.sqrt((x_hyper**2+y_hyper**2)/a_para_sqrt+1) - z0_hyper+g_para/2.
             return z_hyper
 
-        def thetagammarotations(self, y_para, z_para, theta, gamma):
+        def xzrotations(self, y_para, z_para, theta, gamma):
             '''
             Gives transformation coordinates of rotation around X-axis of theta
             followed by rotation around Z-axis of gamma angle.
@@ -111,7 +111,7 @@ class CPC:
               (4) y_position : y coordinate of the final position in the global coordinate system
               (4) z_position : z coordinate of the final position in the global coordinate system
             '''
-            rot_vector = self.thetagammarotations(self.y_min_para, self.z_min_para, theta, gamma)
+            rot_vector = self.xzrotations(self.y_min_para, self.z_min_para, theta, gamma)
             x_trans=-rot_vector[0]+x_position
             y_trans=-rot_vector[1]+y_position
             z_trans=-rot_vector[2]+z_position
@@ -129,32 +129,34 @@ class CPC:
             '''
             delta_Z = (self.z_max_para - self.z_min_para)/cpc_nZ
             _, y_trans, z_trans= self.xyztranslations(theta, 0.0, 0.0, receiver_radius, 0.0)
-            poly_vertex=np.zeros((2*(cpc_nZ+1),2))
+
             margin = 0.1
             increment = np.tan(np.pi/cpc_nfaces)
-            z_CPC = 0.
-            i = 0
-            z_para = self.z_min_para - delta_Z
-            #for i in range(cpc_nZ+1):
-            #while z_CPC <= self.h_CPC:
+
+            z_para = self.z_min_para
+            y_para = np.sqrt(4*focal_length*z_para)
+            _, y_CPC, z_CPC = self.xzrotations(y_para, z_para, theta, 0.0)
+            x_para = (y_CPC+y_trans)*increment+margin
+            pos_vertex = np.array([[x_para,y_para]])
+            neg_vertex = np.array([[-x_para,y_para]])
             while abs(self.h_CPC - z_CPC) >= 0.0001:
                 # Calculate the local y coordinate
                 z_para += delta_Z
                 y_para = np.sqrt(4*focal_length*z_para)
                 # Calculate the radius of the CPC at the height z_para
-                _, y_CPC, z_CPC = self.thetagammarotations(y_para, z_para, theta, 0.0)
+                _, y_CPC, z_CPC = self.xzrotations(y_para, z_para, theta, 0.0)
                 z_CPC += z_trans
                 if z_CPC <= self.h_CPC + 0.000001:
                     # Calculate the local/global x coordinate
                     x_para = (y_CPC+y_trans)*increment+margin
-                    poly_vertex[i]=[x_para, y_para]
-                    poly_vertex[2*cpc_nZ+1-i]=[-x_para, y_para]
-                    i += 1
+                    pos_vertex = np.vstack((pos_vertex,[[x_para, y_para]]))
+                    neg_vertex = np.vstack((neg_vertex,[[-x_para, y_para]]))
                 else:
                     z_para -= delta_Z
                     delta_Z/=2
 
-            return poly_vertex
+            pos_vertex = np.vstack((pos_vertex,neg_vertex[::-1]))
+            return pos_vertex
 
         def dependantparameters(self, rec_param):
             '''
@@ -188,16 +190,18 @@ class CPC:
             p_C = -4*self.focal_length*self.focal_length
             self.y_min_para, self.z_min_para = self.intersectionpoint(p_A, p_B, p_C, self.focal_length)
 
-            h_CPC = self.rec_radius*(1+1/np.sin(self.theta))/np.tan(self.theta)
             p_B = -4.0*self.focal_length/np.tan(2.*self.theta)
             _, self.z_max_para = self.intersectionpoint(p_A, p_B, p_C, self.focal_length)
+
+            # CPC height
+            cpc_h_max = self.rec_radius*(1+1/np.sin(self.theta))/np.tan(self.theta)
             if cpc_h<=0.:
-                self.h_CPC = h_CPC
+                self.h_CPC = cpc_h_max
             else:
                 self.h_CPC = cpc_h
 
-            # print('theoretical critical height: ', h_CPC)
-            # print('selected height: ', self.h_CPC)
+            print('theoretical critical height: ', cpc_h_max)
+            print('selected height: ', self.h_CPC)
 
         def beamdowncomponents(self, rec_param):
             '''
@@ -271,7 +275,7 @@ class CPC:
             #
             # CREATE a virtual target entity at the receiver level
             virt_vert = np.array([ [-1.0, 1.0], [-1.0, -1.0], [1.0, -1.0], [1.0, 1.0] ])
-            virt_vert = virt_vert*(self.rec_radius * 50.0)
+            virt_vert = virt_vert*(self.rec_radius * 50.0 * self.h_CPC)
             slices = 4
             iyaml+='\n- entity:\n'
             iyaml+='    name: virtual_target\n'
@@ -293,8 +297,8 @@ class CPC:
             # focal real: distance between hyperbola vertex and aiming point of secondary reflector (aperture of the CPC)
             focal_image = aim_z - secref_z
             focal_real = abs(rec_z + self.h_CPC - secref_z) # aim at the aperture of the CPC
-            # print('HYPERBOLA focal IMAGE: ', focal_image)
-            # print('HYPERBOLA focal REAL: ', focal_real)
+            print('HYPERBOLA focal IMAGE: ', focal_image)
+            print('HYPERBOLA focal REAL: ', focal_real)
             iyaml+='- entity:\n'
             iyaml+='    name: %s\n' % 'secondary_reflector'
             iyaml+='    primary: 0\n'

@@ -214,12 +214,12 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims,hst_w, hst_h
 	# Tower Geometry
 	# (cylindrical shape)
 	#
-	slices = 10 # slices for the envelop circle
-	iyaml+='- geometry: &%s\n' % 'tower_g'
-	iyaml+='  - material: *%s\n' % 'material_black'
-	#iyaml+='    transform: { translation: %s, rotation: %s }\n' % ([0, 0, h_tow*0.5], [0, 90, 0])
-	iyaml+='    cylinder: {height: %7.3f, radius: %7.3f, slices: %d }\n' % (tower_h, tower_r, slices)
-	iyaml+='\n'
+	# slices = 10 # slices for the envelop circle
+	# iyaml+='- geometry: &%s\n' % 'tower_g'
+	# iyaml+='  - material: *%s\n' % 'material_black'
+	# #iyaml+='    transform: { translation: %s, rotation: %s }\n' % ([0, 0, h_tow*0.5], [0, 90, 0])
+	# iyaml+='    cylinder: {height: %7.3f, radius: %7.3f, slices: %d }\n' % (tower_h, tower_r, slices)
+	# iyaml+='\n'
 	#
 	# Receiver Geometry
 	#
@@ -277,13 +277,13 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims,hst_w, hst_h
 		iyaml+='      slices: %d\n' % slices
 
 	# CREATE the pylon "pylon_g" geometry cylindrical shape
-	h_pyl = 0.001 # pylon height
-	r_pyl = 0.2 # pylon radius
-	slices = 4 # slices for the envelop circle
-	iyaml+='- geometry: &%s\n' % 'pylon_g'
-	iyaml+='  - material: *%s\n' % 'material_black'
-	iyaml+='    transform: { translation: %s, rotation: %s }\n' % ([0, 0, -h_pyl*3], [0, 90, 0])
-	iyaml+='    cylinder: {height: %7.3f, radius: %7.3f, slices: %d }\n' % (h_pyl,r_pyl,slices)
+	# h_pyl = 0.001 # pylon height
+	# r_pyl = 0.2 # pylon radius
+	# slices = 4 # slices for the envelop circle
+	# iyaml+='- geometry: &%s\n' % 'pylon_g'
+	# iyaml+='  - material: *%s\n' % 'material_black'
+	# iyaml+='    transform: { translation: %s, rotation: %s }\n' % ([0, 0, -h_pyl*3], [0, 90, 0])
+	# iyaml+='    cylinder: {height: %7.3f, radius: %7.3f, slices: %d }\n' % (h_pyl,r_pyl,slices)
 	#
 
 	#
@@ -295,19 +295,29 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims,hst_w, hst_h
 	for i in range(0,num_hst):
 		name_hst_t = 'hst_t_'+str(i)
 		iyaml+='- template: &%s\n' % name_hst_t
-		name_hst_n = 'hst_'+ str(i)
-		iyaml+='    name: %s\n' % name_hst_n
-		iyaml+='    primary: 0\n'
-		iyaml+='    geometry: *pylon_g\n'
+		# Without Heliostats Pylon
+		iyaml+='    name: pivot\n'
+		iyaml+='    zx_pivot: {target: {position: %s}} \n' % ([aim_x[i],aim_y[i],aim_z[i]])
 		iyaml+='    children: \n'
-		iyaml+='    - name: pivot\n'
-		iyaml+='      zx_pivot: {target: {position: %s}} \n' % ([aim_x[i],aim_y[i],aim_z[i]])
-		iyaml+='      children: \n'
-		iyaml+='      - name: reflect_surface\n'
-		iyaml+='        primary: 1\n'
-		iyaml+='        transform: {rotation: [-90,0,0]} \n'
+		iyaml+='    - name: reflect_surface\n'
+		iyaml+='      primary: 1\n'
+		iyaml+='      transform: {rotation: [-90,0,0]} \n'
 		name_hst_g = 'hst_g_'+str(i)
-		iyaml+='        geometry: *%s\n' % name_hst_g
+		iyaml+='      geometry: *%s\n' % name_hst_g
+		# With Heliostats Pylon
+		# name_hst_n = 'hst_'+ str(i)
+		# iyaml+='    name: %s\n' % name_hst_n
+		# iyaml+='    primary: 0\n'
+		# iyaml+='    geometry: *pylon_g\n'
+		# iyaml+='    children: \n'
+		# iyaml+='    - name: pivot\n'
+		# iyaml+='      zx_pivot: {target: {position: %s}} \n' % ([aim_x[i],aim_y[i],aim_z[i]])
+		# iyaml+='      children: \n'
+		# iyaml+='      - name: reflect_surface\n'
+		# iyaml+='        primary: 1\n'
+		# iyaml+='        transform: {rotation: [-90,0,0]} \n'
+		# name_hst_g = 'hst_g_'+str(i)
+		# iyaml+='        geometry: *%s\n' % name_hst_g
 
 	#
 	### Section (6)
@@ -319,11 +329,11 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims,hst_w, hst_h
 	iyaml+=rec_entt
 	#
 	# tower entities
-	iyaml+='\n- entity:\n'
-	iyaml+='    name: tower_e\n'
-	iyaml+='    primary: 0\n'
-	iyaml+='    transform: { translation: %s, rotation: %s }\n' % ([0, -tower_r, tower_h*0.5], [0, 0, 0])
-	iyaml+='    geometry: *%s\n' % 'tower_g'
+	# iyaml+='\n- entity:\n'
+	# iyaml+='    name: tower_e\n'
+	# iyaml+='    primary: 0\n'
+	# iyaml+='    transform: { translation: %s, rotation: %s }\n' % ([0, -tower_r, tower_h*0.5], [0, 0, 0])
+	# iyaml+='    geometry: *%s\n' % 'tower_g'
 	#
 	# heliostat entities from the template
 	for i in range(0,num_hst):

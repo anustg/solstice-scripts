@@ -128,6 +128,8 @@ class Parameters:
 		self.secref_inv_eccen=0.6	# Hyperboloid inverse eccentricity [0,1]
 		self.rho_beamdown=0.95		# reflecticity property of Beam-Down components
 		self.n_helios=300
+		self.sunshape='buie'
+		self.crs=0.02
 
 
 	def simulation(self):

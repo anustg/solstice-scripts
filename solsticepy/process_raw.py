@@ -260,8 +260,8 @@ def process_raw_results(rawfile, savedir, rho_mirror, dni, verbose=False, num_vi
 		for j in range(num_virt):
 			l3=2+num_res+num_rec+(num_rec-num_virt+j+1)*num_hst+i
 			per_hst=rows[l3]
-			hst_in=float(per_hst[2])+float(per_hst[22]) # front+back
-			hst_in_mat=float(per_hst[8])+float(per_hst[28])
+			hst_in=float(per_hst[2]) # front only
+			hst_in_mat=float(per_hst[8])+float(per_hst[28]) # front+back
 			hst_in_atm=float(per_hst[10])+float(per_hst[30])
 			hst_abs=float(per_hst[12])+float(per_hst[32])
 			hst_abs_mat=float(per_hst[18])+float(per_hst[38])
@@ -282,7 +282,7 @@ def process_raw_results(rawfile, savedir, rho_mirror, dni, verbose=False, num_vi
 
 		hst_atm=float(heliostats[i,10])
 		hst_rec_abs=float(heliostats[i,8])
-		hst_spil=float(heliostats[i,11])-hst_rec_abs
+		hst_spil=float(heliostats[i,11])
 		hst_rec_refl=float(heliostats[i,5])-float(heliostats[i,8])
 		hst_block=hst_tot-hst_cos-hst_shad-hst_abs-hst_atm-hst_spil-hst_rec_abs-hst_rec_refl
 
