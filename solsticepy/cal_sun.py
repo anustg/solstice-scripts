@@ -95,7 +95,7 @@ class SunPosition:
 		return days
 
 
-	def declination(self, days, form='detail'):
+	def declination(self, days, form=None):
 		"""Calculate the solar declination angle for a specified day-of-the-year, ref. J Duffie page 13, declination angle: delta=23.45*sin(360*(284+day)/365)
 
 		``Arguments``
@@ -275,7 +275,7 @@ class SunPosition:
 		return sol_azi, sol_ele
 
 
-	def annual_angles(self, latitude, casefolder='NOTSAVE', nd=5, nh=5):
+	def annual_angles(self, latitude, casefolder=None, nd=5, nh=5):
 		"""Generate a range of sun positions (azimuth-zenith angles and declination-solarhour angles) for annual optical lookup table simulation. Automatically detect the time when the sun is below the horizon (elevation<0), where a ray-tracing simulation is not required.
 
 		``Arguments``
@@ -407,7 +407,7 @@ class SunPosition:
 		#azimuth=case_list[1:,-2].astype(float)
 		#zenith=case_list[1:,-1].astype(float)
 
-		if casefolder!='NOTSAVE':
+		if casefolder!=None:
 		    np.savetxt(casefolder+'/table_view.csv', table, fmt='%s', delimiter=',')
 		    #np.savetxt(casefolder+'/annual_simulation_list.csv', case_list, fmt='%s', delimiter=',')
 

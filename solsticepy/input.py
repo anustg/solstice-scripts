@@ -126,7 +126,9 @@ class Parameters:
 		self.rim_angle_x=45.	# field and hyperboloid rim angle in the zOx plan
 		self.rim_angle_y=45.	# field and hyperboloid rim angle in the zOy plan
 		self.secref_inv_eccen=0.6	# Hyperboloid inverse eccentricity [0,1]
-		self.rho_beamdown=0.95		# reflecticity property of Beam-Down components
+		self.rho_secref=0.95		# reflecticity property of secondary reflector from Beam-Down components
+		self.rho_cpc=0.95		# reflecticity property of cpc from Beam-Down components
+		self.slope_error_bd=2.e-3 # radian
 		self.n_helios=300
 		self.sunshape='buie'
 		self.crs=0.02
@@ -180,8 +182,10 @@ class Parameters:
 				['H_helio', self.H_helio, 'm'],
 				['Z_helio', self.Z_helio, 'm'],
 				['rho_helio', self.rho_helio, '-'],
-				['rho_beamdown', self.rho_beamdown, '-'],
-				['slope_error', self.slope_error, 'rad'],
+				['rho_secref', self.rho_secref, '-'],
+				['rho_cpc', self.rho_cpc, '-'],
+				['slope_error_helios', self.slope_error, 'rad'],
+				['slope_error_bd', self.slope_error_bd, 'rad'],
 				['H_tower', self.H_tower, 'm'],
 				['R_tower', self.R_tower, 'm'],
 				['concret_tower', self.concret_tower, '-'],

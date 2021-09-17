@@ -93,53 +93,57 @@ def process_raw_results(rawfile, savedir, rho_mirror, dni, verbose=False, num_vi
 	# 1 - 2 id and area
 	# 3 - 24 (total 22) front
 	# 25- 46 (total 22) back
-	rec_area=0. # m2
 
-	rec_front_income=0.
-	rec_front_income_err=0.
+	#number of intermediate refelctives surfaces from hliostat mirror to target, as it is the case for the beam-down
+	num_int_surf=num_rec-num_virt-1
+	
+	# Only 1 receiver
+	rec_id=get_rc(num_res+2,1) # the id number of the receiver
+	rec_area=get_rc(num_res+2,2) # m2
+
+	rec_front_income=get_rc(num_res+2,3)
+	rec_front_income_err=get_rc(num_res+2,4)
 	#rec_no_material_loss=get_rc(num_res+2,5)
 	#rec_no_material_loss_err=get_rc(num_res+2,6)
 	#rec_no_atmo_loss=get_rc(num_res+2,7)
 	#rec_no_atmo_loss_err=get_rc(num_res+2,8)
 	#rec_material_loss=get_rc(num_res+2,9)
 	#rec_material_loss_err=get_rc(num_res+2,10)
-	rec_front_absorbed=0.
-	rec_front_absorbed_err=0.
-	rec_front_eff=0.
-	rec_front_eff_err=0.
+	rec_front_absorbed=get_rc(num_res+2,13)
+	rec_front_absorbed_err=get_rc(num_res+2,14)
+	rec_front_eff=get_rc(num_res+2,23)
+	rec_front_eff_err=get_rc(num_res+2,24)
 
-	rec_back_income=0.
-	rec_back_income_err=0.
-	rec_back_absorbed=0.
-	rec_back_absorbed_err=0.
-	rec_back_eff=0.
-	rec_back_eff_err=0.
+	rec_back_income=get_rc(num_res+2,25)
+	rec_back_income_err=get_rc(num_res+2,26)
+	rec_back_absorbed=get_rc(num_res+2,35)
+	rec_back_absorbed_err=get_rc(num_res+2,36)
+	rec_back_eff=get_rc(num_res+2,-2)
+	rec_back_eff_err=get_rc(num_res+2,-1)
 
-	rec_id={}
-	for i in range(num_rec-num_virt): # -1 the virtual target
-		rec_id[i]=get_rc(num_res+2+i,1) # the id number of the receiver
-		rec_area+=get_rc(num_res+2+i,2) # m2
 
-		rec_front_income+=get_rc(num_res+2+i,3)
-		rec_front_income_err+=get_rc(num_res+2+i,4)
-		#rec_no_material_loss=get_rc(num_res+2,5)
-		#rec_no_material_loss_err=get_rc(num_res+2,6)
-		#rec_no_atmo_loss=get_rc(num_res+2,7)
-		#rec_no_atmo_loss_err=get_rc(num_res+2,8)
-		#rec_material_loss=get_rc(num_res+2,9)
-		#rec_material_loss_err=get_rc(num_res+2,10)
-		rec_front_absorbed+=get_rc(num_res+2+i,13)
-		rec_front_absorbed_err+=get_rc(num_res+2+i,14)
-		rec_front_eff+=get_rc(num_res+2+i,23)
-		rec_front_eff_err+=get_rc(num_res+2+i,24)
+	# Intermediate Reflectives surfaces
+	if(num_int_surf>0):
+		# Secondary mirror
+		secref_front_absorbed=get_rc(num_res+3,13)
+		secref_front_absorbed_err=get_rc(num_res+3,14)
+		Qabs_secref=ufloat(secref_front_absorbed,secref_front_absorbed_err)
 
-		rec_back_income+=get_rc(num_res+2+i,25)
-		rec_back_income_err+=get_rc(num_res+2+i,26)
-		rec_back_absorbed+=get_rc(num_res+2+i,35)
-		rec_back_absorbed_err+=get_rc(num_res+2+i,36)
-		rec_back_eff+=get_rc(num_res+2+i,-2)
-		rec_back_eff_err+=get_rc(num_res+2+i,-1)
+		# CPC
+		Qabs_cpc=ufloat(0,0)
+		for i in range(num_int_surf-1):
+			cpc_front_absorbed=get_rc(num_res+4+i,13)
+			cpc_front_absorbed_err=get_rc(num_res+4+i,14)
+			Qabs_cpc+=ufloat(cpc_front_absorbed,cpc_front_absorbed_err)
 
+		Qabs_int=Qabs_cpc+Qabs_secref
+	else:
+		Qabs_int=ufloat(0,0)
+
+	if num_virt>1:
+		Qspil_name=np.array(['Qspil_sec_ref (kW)','Qspil_cpc (kW)'])
+	else:
+		Qspil_name=np.array(['Qspil_rec (kW)'])
 
 	#Virtual targets
 	vir_area = 0.
@@ -151,7 +155,7 @@ def process_raw_results(rawfile, savedir, rho_mirror, dni, verbose=False, num_vi
 		vir_area+=get_rc(num_res+2+num_rec-num_virt+i,2)
 		vir_income_i=get_rc(num_res+2+num_rec-num_virt+i,3)
 		vir_income_err_i=get_rc(num_res+2+num_rec-num_virt+i,4)
-		Qspil_array[i,:]=[('Qspil '+str(i+1)+' (kW)'), float(vir_income_i)/1000., float(vir_income_err_i)/1000.]
+		Qspil_array[i,:]=[Qspil_name[i], float(vir_income_i)/1000., float(vir_income_err_i)/1000.]
 		vir_income+=vir_income_i
 		vir_income_err=+vir_income_err_i
 
@@ -189,15 +193,15 @@ def process_raw_results(rawfile, savedir, rho_mirror, dni, verbose=False, num_vi
 
 
 	Qtotal=ufloat(potential, 0)
-	Fcos=ufloat(Fcos,Fcos_err)
+	Fcos=ufloat(Fcos, Fcos_err)
 	Qcos=Qtotal*(1.-Fcos)
-	Qshade=ufloat(shadow_loss,shadow_err)
+	Qshade=ufloat(shadow_loss, shadow_err)
 	Qfield_abs=(Qtotal-Qcos-Qshade)*(1.-float(rho_mirror))
 	Qattn=ufloat(atmospheric_loss, atmospheric_err)
-	Qabs=ufloat(absorbed, absorbed_err)
-	Qspil=ufloat(vir_income,vir_income_err)
-	Qrefl=ufloat(rec_front_income,rec_front_income_err)+ufloat(rec_back_income,rec_back_income_err)-Qabs
-	Qblock=Qtotal-Qcos-Qshade-Qfield_abs-Qspil-Qabs-Qrefl-Qattn
+	Qabs_rec=ufloat(rec_front_absorbed, rec_front_absorbed_err)+ufloat(rec_back_absorbed, rec_back_absorbed_err)
+	Qspil=ufloat(vir_income, vir_income_err)
+	Qrefl=ufloat(rec_front_income, rec_front_income_err)+ufloat(rec_back_income, rec_back_income_err)-Qabs_rec
+	Qblock=Qtotal-Qcos-Qshade-Qfield_abs-Qspil-Qabs_rec-Qrefl-Qattn-Qabs_int
 
 	organised=np.array([
 		['Name', 'Value', '+/-Error']
@@ -208,19 +212,26 @@ def process_raw_results(rawfile, savedir, rho_mirror, dni, verbose=False, num_vi
 		,['Qblock (kW)', Qblock.n/1000.,  Qblock.s/1000.]
 		,['Qattn (kW)',Qattn.n/1000., Qattn.s/1000.]
 	])
+	if(num_int_surf>0):
+		organised=np.append(organised,[
+			['Qabs_sec_ref (kW)', Qabs_secref.n/1000., Qabs_secref.s/1000.]
+			,['Qabs_cpc (kW)', Qabs_cpc.n/1000., Qabs_cpc.s/1000.]
+		], axis=0)
 	organised=np.append(organised,Qspil_array, axis=0)
 	organised=np.append(organised,[
 		['Qrefl (kW)', Qrefl.n/1000.,Qrefl.s/1000.]
-		,['Qabs (kW)', Qabs.n/1000., Qabs.s/1000.]
+		,['Qabs_rec (kW)', Qabs_rec.n/1000., Qabs_rec.s/1000.]
 		,['rays', num_rays,'-']
 	], axis=0)
 
-	efficiency_total=Qabs/Qtotal
+	efficiency_total=Qabs_rec/Qtotal
 
 	# per heliostat results, and
 	# per receiver per heliostat results
 	num_hst=int(num_hst)
 	heliostats=np.zeros((num_hst,28))
+	# Array for the absorbed energy to intermediates reflectives surfaces, such as in beam-down system
+	hst_int_surf_abs=np.zeros((num_hst,1))
 
 	for i in range(num_hst):
 		l1=2+num_res+num_rec+i # the line number of the per heliostat result
@@ -238,34 +249,40 @@ def process_raw_results(rawfile, savedir, rho_mirror, dni, verbose=False, num_vi
 		heliostats[i,3]=hst_cos
 		heliostats[i,4]=hst_shad
 
-		# per heliostat per receiver
-		for j in range(num_rec-num_virt):
-			l2=2+num_res+num_rec+num_hst*(j+1)+i
-			per_hst=rows[l2]
-			hst_in=float(per_hst[2])+float(per_hst[22]) # front+back
-			hst_in_mat=float(per_hst[8])+float(per_hst[28])
-			hst_in_atm=float(per_hst[10])+float(per_hst[30])
-			hst_abs=float(per_hst[12])+float(per_hst[32])
-			hst_abs_mat=float(per_hst[18])+float(per_hst[38])
-			hst_abs_atm=float(per_hst[20])+float(per_hst[40])
+		# per heliostat on 1 receiver Only!
+		l2=2+num_res+num_rec+num_hst*1+i
+		per_hst=rows[l2]
+		hst_in=float(per_hst[2])+float(per_hst[22]) # front+back
+		hst_in_mat=float(per_hst[8])+float(per_hst[28])
+		hst_in_atm=float(per_hst[10])+float(per_hst[30])
+		hst_abs=float(per_hst[12])+float(per_hst[32])
+		hst_abs_mat=float(per_hst[18])+float(per_hst[38])
+		hst_abs_atm=float(per_hst[20])+float(per_hst[40])
 
-			heliostats[i,5]+=hst_in
-			heliostats[i,6]+=hst_in_mat
-			heliostats[i,7]+=hst_in_atm
-			heliostats[i,8]+=hst_abs
-			heliostats[i,9]+=hst_abs_mat
-			heliostats[i,10]+=hst_abs_atm
+
+		heliostats[i,5]+=hst_in
+		heliostats[i,6]+=hst_in_mat
+		heliostats[i,7]+=hst_in_atm
+		heliostats[i,8]+=hst_abs
+		heliostats[i,9]+=hst_abs_mat
+		heliostats[i,10]+=hst_abs_atm
+
+		# per heliostat per intermediate reflective surface before target
+		for j in range(num_int_surf):
+			l3=2+num_res+num_rec+num_hst*(j+2)+i
+			per_hst=rows[l3]
+			hst_int_surf_abs[i]+=float(per_hst[12]) # absorbed losses front side
 
 		# per heliostat per virtual target
 		for j in range(num_virt):
-			l3=2+num_res+num_rec+(num_rec-num_virt+j+1)*num_hst+i
-			per_hst=rows[l3]
+			l4=2+num_res+num_rec+(num_rec-num_virt+j+1)*num_hst+i
+			per_hst=rows[l4]
 			hst_in=float(per_hst[2]) # front only
-			hst_in_mat=float(per_hst[8])+float(per_hst[28]) # front+back
-			hst_in_atm=float(per_hst[10])+float(per_hst[30])
-			hst_abs=float(per_hst[12])+float(per_hst[32])
-			hst_abs_mat=float(per_hst[18])+float(per_hst[38])
-			hst_abs_atm=float(per_hst[20])+float(per_hst[40])
+			hst_in_mat=float(per_hst[8])
+			hst_in_atm=float(per_hst[10])
+			hst_abs=float(per_hst[12])
+			hst_abs_mat=float(per_hst[18])
+			hst_abs_atm=float(per_hst[20])
 
 			heliostats[i,11]+=hst_in
 			heliostats[i,12]+=hst_in_mat
@@ -280,11 +297,11 @@ def process_raw_results(rawfile, savedir, rho_mirror, dni, verbose=False, num_vi
 		hst_shad=float(hst_shad)
 		hst_abs=(hst_tot-hst_cos-hst_shad)*(1.-rho_mirror)
 
-		hst_atm=float(heliostats[i,10])
+		hst_atm=float(heliostats[i,7])+float(heliostats[i,13])
 		hst_rec_abs=float(heliostats[i,8])
 		hst_spil=float(heliostats[i,11])
 		hst_rec_refl=float(heliostats[i,5])-float(heliostats[i,8])
-		hst_block=hst_tot-hst_cos-hst_shad-hst_abs-hst_atm-hst_spil-hst_rec_abs-hst_rec_refl
+		hst_block=hst_tot-hst_cos-hst_shad-hst_abs-hst_atm-hst_spil-hst_rec_abs-hst_rec_refl-float(hst_int_surf_abs[i])
 
 		heliostats[i,19]=hst_tot
 		heliostats[i,20]=hst_cos
@@ -296,11 +313,16 @@ def process_raw_results(rawfile, savedir, rho_mirror, dni, verbose=False, num_vi
 		heliostats[i,26]=hst_rec_refl
 		heliostats[i,27]=hst_rec_abs
 
+
+	heliostats_title=np.array(['hst_idx', 'area', 'sample', 'cos', 'shade', 'incoming', 'in-mat-loss','in-atm-loss', 'absorbed', 'abs-mat-loss', 'abs-atm-loss', 'vir_incoming', 'vir_in-mat-loss','vir_in-atm-loss', 'vir_absorbed', 'vir_abs-mat-loss', 'vir_abs-atm-loss', '', '', 'total', 'cos', 'shad', 'hst_abs', 'block', 'atm', 'spil', 'rec_refl', 'rec_abs' ])
+
+	if num_int_surf>0:
+		heliostats_title=np.insert(heliostats_title,25,'int_surf_abs')
+		heliostats=np.insert(heliostats,[25],hst_int_surf_abs,axis=1)
+
 	idx=heliostats[:, 0].argsort()
 	heliostats=heliostats[idx]
 	performance_hst=heliostats[:, 19:]
-
-	heliostats_title=np.array(['hst_idx', 'area', 'sample', 'cos', 'shade', 'incoming', 'in-mat-loss','in-atm-loss', 'absorbed', 'abs-mat-loss', 'abs-atm-loss', 'vir_incoming', 'vir_in-mat-loss','vir_in-atm-loss', 'vir_absorbed', 'vir_abs-mat-loss', 'vir_abs-atm-loss', '', '', 'total', 'cos', 'shad', 'hst_abs', 'block', 'atm', 'spil', 'rec_refl', 'rec_abs' ])
 
 	heliostats_details=np.vstack((heliostats_title, heliostats))
 
@@ -496,7 +518,7 @@ def process_raw_results_multi_aperture(rawfile, savedir,rho_mirror,dni,verbose=F
 		,['Qcos (kW)', Qcos.n/1000.,Qcos.s/1000.]
 		,['Qshad (kW)', Qshade.n/1000., Qshade.s/1000.]
 		,['Qfield_abs (kW)', Qfield_abs.n/1000., Qfield_abs.s/1000.]
-		,['Qblcok (kW)', Qblock.n/1000.,  Qblock.s/1000.]
+		,['Qblock (kW)', Qblock.n/1000.,  Qblock.s/1000.]
 		,['Qattn (kW)',Qattn.n/1000., Qattn.s/1000.]
 		,['Qspil (kW)', Qspil.n/1000., Qspil.s/1000.]
 		,['Qrefl (kW)', Qrefl.n/1000.,Qrefl.s/1000.]

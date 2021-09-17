@@ -223,9 +223,10 @@ class CPC:
                 # Secondary Reflector (hyperboloid)
                 (9) aim_z   : float, z (vertical) location of the heliostats' aiming point (m)
                 (10) secref_z    : flaot, z (vertical) location of the apex of the hyperboloid secondary reflector (m)
-                (11) rho_bd	: float, secondary mirror and CPC reflectivity, e.g. 0.95
-                (12) slope_error	: float, slope error of secondary mirror and CPC refelctivity (?)
-                (13) secref_vert	: array, (x,y) clipping polygon of the secondary reflector
+                (11) rho_secref	: float, secondary mirror reflectivity property, [0,1]
+                (12) rho_cpc	: float, CPC reflectivity property, [0,1]
+                (13) slope_error	: float, slope error of secondary mirror and CPC refelctivity (?)
+                (14) secref_vert	: array, (x,y) clipping polygon of the secondary reflector
             '''
 
             rec_z=rec_param[2]
@@ -235,9 +236,10 @@ class CPC:
             cpc_nZ=int(rec_param[7])
             aim_z=rec_param[8]
             secref_z=rec_param[9]
-            rho_bd=rec_param[10] # front
-            slope_error=rec_param[11]
-            secref_vert=rec_param[12]
+            rho_secref=rec_param[10] # front
+            rho_cpc=rec_param[11] # front
+            slope_error=rec_param[12]
+            secref_vert=rec_param[13]
             self.dependantparameters(rec_param[:7])
 
             iyaml='\n'
@@ -248,7 +250,14 @@ class CPC:
             # CREATE a specular material for the secondary reflector
             iyaml+='- material: &%s\n' % 'material_sec_mirror'
             iyaml+='   front:\n'
-            iyaml+='     mirror: {reflectivity: %6.4f, slope_error: %15.8e }\n' % (rho_bd, slope_error)
+            iyaml+='     mirror: {reflectivity: %6.4f, slope_error: %15.8e }\n' % (rho_secref, slope_error)
+            iyaml+='   back:\n'
+            iyaml+='     matte: {reflectivity: 0.0 }\n'
+            iyaml+='\n'
+            # CREATE a specular material for the CPC
+            iyaml+='- material: &%s\n' % 'material_cpc'
+            iyaml+='   front:\n'
+            iyaml+='     mirror: {reflectivity: %6.4f, slope_error: %15.8e }\n' % (rho_cpc, slope_error)
             iyaml+='   back:\n'
             iyaml+='     matte: {reflectivity: 0.0 }\n'
             iyaml+='\n'
@@ -307,6 +316,7 @@ class CPC:
             iyaml+='    - material: *%s\n' % 'material_sec_mirror'
             iyaml+='      hyperbol:\n'
             iyaml+='        focals: &hyperbol_focals { real: %s, image: %s }\n' % (focal_real, focal_image)
+            iyaml+='        slices: 100\n'
             iyaml+='        clip: \n'
             if len(secref_vert)>1:
                 iyaml+='        - operation: AND \n'
@@ -348,19 +358,6 @@ class CPC:
                 iyaml+='            - %s\n' % ([virt_vert[i][0],virt_vert[i][1]])
             iyaml+='\n'
             #
-            # CREATE the receiver objects in receiver yaml
-            # receiver at the CPC exit and 2 virtuals surfaces
-            rcv = '\n'
-            rcv+='- name: receiver \n'
-            rcv+='  side: %s \n' % 'FRONT_AND_BACK'
-            rcv+='  per_primitive: %s \n' % 'INCOMING_AND_ABSORBED'
-            rcv+='- name: virtual_sec_ref \n'
-            rcv+='  side: %s \n' % 'FRONT'
-            rcv+='  per_primitive: %s \n' % 'INCOMING'
-            rcv+='- name: virtual_target \n'
-            rcv+='  side: %s \n' % 'FRONT'
-            rcv+='  per_primitive: %s \n' % 'INCOMING'
-            #
             # CREATE the facets of the CPC
             # For each face, the x,y,z translations and the clipping polygon are calculated
             # The clipping polygon is individual to a face if nCPC = 4 and the receiver is not a regular polygon (xRec!=yRec)
@@ -386,8 +383,9 @@ class CPC:
                 iyaml+='        primary: 0\n'
                 iyaml+='        transform: {rotation: %s } \n' % ([cpc_theta_deg, 0, 0.])
                 iyaml+='        geometry:\n'
-                iyaml+='        - material: *%s\n' % 'material_sec_mirror'
+                iyaml+='        - material: *%s\n' % 'material_cpc'
                 iyaml+='          parabolic-cylinder:\n'
+                iyaml+='            slices: 30\n'
                 iyaml+='            focal:  %s\n' % self.focal_length
                 iyaml+='            clip: \n'
                 iyaml+='            - operation: AND \n'
@@ -398,7 +396,26 @@ class CPC:
                 for j in range(midlength,midlength*2):
                     iyaml+='               - %s\n' % ([cpc_face_polygon[j][0]-increment[i],cpc_face_polygon[j][1]])
                 iyaml+='\n'
-
+            #
+            # CREATE the receiver objects in receiver yaml
+            # receiver at the CPC exit and 2 virtuals surfaces
+            rcv = '\n'
+            rcv+='- name: receiver \n'
+            rcv+='  side: %s \n' % 'FRONT_AND_BACK'
+            rcv+='  per_primitive: %s \n' % 'INCOMING_AND_ABSORBED'
+            rcv+='- name: secondary_reflector \n'
+            rcv+='  side: %s \n' % 'FRONT'
+            rcv+='  per_primitive: %s \n' % 'INCOMING_AND_ABSORBED'
+            for i in range(cpc_nfaces):
+                rcv+='- name: %s\n' % ('CPC_face_'+str(i)+'.RotationGamma.RotationTheta')
+                rcv+='  side: %s \n' % 'FRONT'
+                rcv+='  per_primitive: %s \n' % 'INCOMING_AND_ABSORBED'
+            rcv+='- name: virtual_sec_ref \n'
+            rcv+='  side: %s \n' % 'FRONT'
+            rcv+='  per_primitive: %s \n' % 'INCOMING'
+            rcv+='- name: virtual_target \n'
+            rcv+='  side: %s \n' % 'FRONT'
+            rcv+='  per_primitive: %s \n' % 'INCOMING'
 
             return iyaml, rcv
 
@@ -422,7 +439,7 @@ if __name__=='__main__':
         secref_vert = np.array([[-15,25],[-15,-10],[15,-10],[15,25]])
 
         cpc=CPC()
-        cpc.beamdowncomponents(rec_w, rec_l, rec_z, rec_grid, n_CPC_faces, theta_deg, cpc_h, n_Z, aim_z, sec_z, rho_bd, slope_error, secref_vert)
+        cpc.beamdowncomponents(rec_w, rec_l, rec_z, rec_grid, n_CPC_faces, theta_deg, cpc_h, n_Z, aim_z, sec_z, rho_bd, rho_bd, slope_error, secref_vert)
 
         eta=1.
         print('total efficiency:', eta)

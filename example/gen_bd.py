@@ -66,9 +66,12 @@ pm.rcv_type='beam_down'
 pm.cpc_nfaces=4
 pm.n_H_rcv=20
 pm.cpc_nZ=30
-# Secondary refector 'hyperboloid'
-pm.rho_beamdown=0.95
-pm.slope_error=1.e-3 # radian
+# Properties for Mirrors surfaces
+pm.rho_helio=0.9
+pm.rho_secref=0.95
+pm.rho_cpc=0.95
+pm.slope_error=1.e-3 #heliostats # radian
+pm.slope_error_bd=1.e-3 #beam-down components # radian
 
 pm.saveparam(casefolder)
 # create the environment and scene
@@ -78,9 +81,12 @@ tablefile=casefolder+'/OELT_Solstice.motab'
 weafile='./AUS_WA_Leinster_Airport_954480_TMY.motab'
 bd=BD(latitude=pm.lat, casedir=casefolder)
 
-bd.receiversystem(receiver=pm.rcv_type, rec_abs=float(pm.alpha_rcv), rec_w=float(pm.W_rcv), rec_l=float(pm.H_rcv), rec_z=float(pm.Z_rcv), rec_grid=int(pm.n_H_rcv), cpc_nfaces=int(pm.cpc_nfaces), cpc_theta_deg=float(pm.cpc_theta_deg), cpc_h_ratio=float(pm.cpc_h_ratio), cpc_nZ=float(pm.cpc_nZ), rim_angle_x=float(pm.rim_angle_x), rim_angle_y=pm.rim_angle_y, aim_z=float(pm.H_tower), secref_inv_eccen=pm.secref_inv_eccen, rho_bd=float(pm.rho_beamdown), slope_error=float(pm.slope_error))
+bd.receiversystem(receiver=pm.rcv_type, rec_abs=float(pm.alpha_rcv), rec_w=float(pm.W_rcv), rec_l=float(pm.H_rcv), rec_z=float(pm.Z_rcv), rec_grid=int(pm.n_H_rcv),
+cpc_nfaces=int(pm.cpc_nfaces), cpc_theta_deg=float(pm.cpc_theta_deg), cpc_h_ratio=float(pm.cpc_h_ratio), cpc_nZ=float(pm.cpc_nZ), rim_angle_x=float(pm.rim_angle_x),
+rim_angle_y=pm.rim_angle_y, aim_z=float(pm.H_tower), secref_inv_eccen=pm.secref_inv_eccen, rho_secref=float(pm.rho_secref), rho_cpc=float(pm.rho_cpc), slope_error=float(pm.slope_error_bd))
 
-bd.heliostatfield(field=pm.field_type, hst_rho=pm.rho_helio, slope=pm.slope_error, hst_w=pm.W_helio, hst_h=pm.H_helio, tower_h=pm.H_tower, tower_r=pm.R_tower, hst_z=pm.Z_helio, num_hst=pm.n_helios, R1=pm.R1, fb=pm.fb, dsep=pm.dsep, x_max=300., y_max=300.)
+bd.heliostatfield(field=pm.field_type, hst_rho=pm.rho_helio, slope=pm.slope_error, hst_w=pm.W_helio, hst_h=pm.H_helio, tower_h=pm.H_tower, tower_r=pm.R_tower,
+hst_z=pm.Z_helio, num_hst=pm.n_helios, R1=pm.R1, fb=pm.fb, dsep=pm.dsep, x_max=300., y_max=300.)
 
 bd.yaml(sunshape=pm.sunshape,csr=pm.crs,half_angle_deg=pm.half_angle_deg,std_dev=pm.std_dev)
 

@@ -42,7 +42,7 @@ class BD:
 		'''
 		Ouput
 		rec_radius_ref:	receiver radius in the direction of theta (CPC half acceptance angle), it is used for the design criteria
-		rec_radius:			receiver radius in the opposite direction (equal to rec_radius_theta if nber of CPC faces is different to 4, because symmetry applies)
+		rec_radius:		receiver radius in the opposite direction (equal to rec_radius_theta if nber of CPC faces is different to 4, because symmetry applies)
 		'''
 		if cpc_nfaces is 4:
 			rec_radius_ref = np.minimum(rec_w, rec_l)/2.
@@ -110,7 +110,7 @@ class BD:
 		return y_inter
 
 	def receiversystem(self, receiver, rec_abs=1., rec_w=1.2, rec_l=10., rec_z=0., rec_grid=200, cpc_nfaces=4, cpc_theta_deg=20., cpc_h_ratio=1.,
-	cpc_nZ=20., rim_angle_x=45., rim_angle_y=None, aim_z=62., secref_inv_eccen=None, rho_bd=0.95, slope_error=0.0):
+	cpc_nZ=20., rim_angle_x=45., rim_angle_y=None, aim_z=62., secref_inv_eccen=None, rho_secref=0.95, rho_cpc=0.95, slope_error=0.0):
 
 		'''
 		Variables:
@@ -140,8 +140,9 @@ class BD:
 			# If rim_angle_y is none, the hyperboloid is clipped with a circle instead of a polygon.
 		    (13) aim_z   : float, z (vertical) location of the heliostats' aiming point (m)
 		    (14) secref_inv_eccen    : flaot, hyperboloid inverse eccentricity: ratio of the apex distance over the foci distance to the origin, must be between 0 and 1
-		    (15) r_f	: float, secondary mirror and CPC reflectivity, e.g. 0.9
-		    (16) slope_error	: float, slope error of secondary mirror and CPC refelctivity (?)
+		    (15) rho_secref	: float, secondary mirror and CPC reflectivity property, e.g. 0.95
+			(16) rho_cpc	: float, CPC reflectivity property, e.g. 0.95
+		    (17) slope_error	: float, slope error of secondary mirror and CPC refelctivity (?)
 		'''
 		self.receiver=receiver
 		self.rec_abs=rec_abs
@@ -204,7 +205,7 @@ class BD:
 		print('xMax:', self.x_max)
 		print('yMax:', self.y_max)
 
-		self.rec_param=np.array([rec_w, rec_l, rec_z, rec_grid, cpc_nfaces, cpc_theta_deg, cpc_h, cpc_nZ, aim_z, secref_z, rho_bd, slope_error, secref_vert])
+		self.rec_param=np.array([rec_w, rec_l, rec_z, rec_grid, cpc_nfaces, cpc_theta_deg, cpc_h, cpc_nZ, aim_z, secref_z, rho_secref, rho_cpc, slope_error, secref_vert])
 
 	def heliostatfield(self, field, hst_rho, slope, hst_w, hst_h, tower_h, tower_r=0.01, hst_z=0., num_hst=0., R1=0., fb=0., dsep=0., x_max=-1.0, y_max=-1.0):
 
@@ -238,7 +239,7 @@ class BD:
 		    layout=np.loadtxt(field, delimiter=',', skiprows=2)
 
 		else:
-		    # design a new field
+		    # Design a new field
 		    savefolder=self.casedir+'/des_point'
 		    if not os.path.exists(savefolder):
 		        os.makedirs(savefolder)
@@ -253,6 +254,27 @@ class BD:
 
 		    layout=pos_and_aiming[2:, :]
 
+			# Trim the new field
+		    margin = 10*np.sqrt(hst_w*hst_w+hst_h*hst_h)
+		    Xmax = max(layout[:,0])
+		    if (x_max>R1) and (Xmax>x_max+margin):
+				xx=layout[:,0].astype(float)
+				select_hst=(np.abs(xx)<(x_max+margin))
+				layout=layout[select_hst,:]
+
+		    Ymax = max(layout[:,1])
+		    if (y_max>R1) and (Ymax>(y_max+margin)):
+				yy=layout[:,1].astype(float)
+				select_hst=(np.abs(yy)<(y_max+margin))
+				layout=layout[select_hst,:]
+
+		    maxHelio=15000 # Maximum number of heliostats to avoid Sosltice slow processing
+		    if len(layout[:,0])>maxHelio:
+				layout=layout[:maxHelio,:]
+
+		    self.hst_zone=layout[:,7].astype(float)
+		    self.hst_row=layout[:,8].astype(float)
+
 		self.hst_w=hst_w
 		self.hst_h=hst_h
 		self.hst_rho=hst_rho
@@ -260,30 +282,12 @@ class BD:
 		self.tower_h=tower_h
 		self.tower_r=tower_r
 
-		margin = 10*np.sqrt(hst_w*hst_w+hst_h*hst_h)
-		Xmax = max(layout[:,0])
-		if (x_max>R1) and (Xmax>x_max+margin):
-			xx=layout[:,0].astype(float)
-			select_hst=(np.abs(xx)<(x_max+margin))
-			layout=layout[select_hst,:]
-
-		Ymax = max(layout[:,1])
-		if (y_max>R1) and (Ymax>(y_max+margin)):
-			yy=layout[:,1].astype(float)
-			select_hst=(np.abs(yy)<(y_max+margin))
-			layout=layout[select_hst,:]
-
-		maxHelio=15000 # Maximum number of heliostats to avoid Sosltice slow processing
-		if len(layout[:,0])>maxHelio:
-			layout=layout[:maxHelio,:]
 
 		self.hst_pos=layout[:,:3].astype(float)
 		self.hst_foc=layout[:,3].astype(float)
 		self.hst_aims=layout[:,4:7].astype(float)
-		self.hst_zone=layout[:,7].astype(float)
-		self.hst_row=layout[:,8].astype(float)
 
-		#np.savetxt(self.casedir+'/trimmed_field.csv', self.hst_pos, fmt='%s', delimiter=',')
+		np.savetxt(self.casedir+'/trimmed_field.csv', self.hst_pos, fmt='%s', delimiter=',')
 
 	def yaml(self, dni=1000,sunshape=None,csr=0.01,half_angle_deg=0.2664,std_dev=0.2):
 		'''
@@ -328,7 +332,7 @@ class BD:
 		azi_des, ele_des=self.sun.convert_convention('solstice', azi, zen)
 
 		sys.stderr.write("\n"+green('Design Point: \n'))
-		efficiency_total, performance_hst_des=self.master.run(azi_des, ele_des, num_rays, self.hst_rho, dni_des, folder=designfolder, gen_vtk=gen_vtk, printresult=False, system='beamdown') ####Clo
+		efficiency_total, performance_hst_des=self.master.run(azi_des, ele_des, num_rays, self.hst_rho, dni_des, folder=designfolder, gen_vtk=gen_vtk, printresult=False, system='beamdown')
 
 		Qin=performance_hst_des[:,-1]
 		Qsolar=performance_hst_des[0,0]
@@ -339,7 +343,6 @@ class BD:
 		assert QinMax > Q_in_des, 'There is not enough incident energy on the receiver to satisfy the design condition'
 
 		# ANNUAL Performance
-		dni_weight=self.dni_TMY(weafile, nd, nh)
 
 		AZI, ZENITH,table,case_list=self.sun.annual_angles(self.latitude, casefolder=self.casedir, nd=nd, nh=nh)
 		case_list=case_list[1:]
@@ -352,9 +355,12 @@ class BD:
 		annual_solar=0.
 		hst_annual={}
 
+		#np.savetxt(self.casedir+'/table.csv', table, fmt='%s', delimiter=',')
+
 		for i in range(len(case_list)):
 			c=int(case_list[i,0].astype(float))
 			if c not in run:
+				# the morning positions
 				azimuth=SOLSTICE_AZI[c-1]
 				elevation= SOLSTICE_ELE[c-1]
 
@@ -388,10 +394,10 @@ class BD:
 				for b in range(len(table[0,3:])):
 					val=re.findall(r'\d+', table[a+3,b+3])
 					if str(c) in val:
-						dni=dni_weight[a,b]
 						if cc==0:
 							# i.e. morning positions
 							ANNUAL+=dni*efficiency_hst
+							#print("Annual Eff Morning",np.sum(ANNUAL))
 							annual_solar+=dni
 							cc+=1
 							# Print coordinates and efficiency for symmetry check
@@ -416,6 +422,7 @@ class BD:
 										eff_row[1:]=eff_row[1:][::-1]
 									eff_symmetrical=np.append(eff_symmetrical, eff_row)
 							ANNUAL+=dni*eff_symmetrical
+							#print("Annual Eff Afternoon",np.sum(ANNUAL))
 							annual_solar+=dni
 							#fieldEff=np.array([self.hst_pos[:,0],self.hst_pos[:,1],self.hst_pos[:,2], eff_symmetrical])
 							#fieldEff=fieldEff.T
@@ -515,7 +522,7 @@ class BD:
 			            if c==float(val[0]):
 			                oelt[a+3,b+3]=eff
 
-		#np.savetxt(self.casedir+'/lookup_table.csv', oelt, fmt='%s', delimiter=',')
+		np.savetxt(self.casedir+'/lookup_table.csv', oelt, fmt='%s', delimiter=',')
 
 		return oelt, A_land
 
@@ -574,23 +581,33 @@ class BD:
 			l=content[i].split(",")
 			seconds=np.append(seconds, l[0])
 			dni=np.append(dni, l[2])
-		seconds=seconds.astype(float)
+		seconds=seconds.astype(float)+1800.
 		days=seconds/3600/24
+
 		wea_dec=np.array([])
 		for d in days:
+			d=int(d)+1
 			wea_dec=np.append(wea_dec, self.sun.declination(d)) #deg
 
 		wea_hra=((seconds/3600.)%24-12.)*15. #deg
 		wea_dni=dni.astype(float)
 
-		hra_lim=180.*(float(nh)/float(nh-1))
-		dec_lim=23.45*(float(nd)/float(nd-1))
+		dh=360./float(nh)
+		dd=23.45*2./float(nd)
+
+		hra_lim=180.+dh/2.
+		dec_lim=23.45+dd/2.
+
+		# hra_lim=180.*(float(nh)/float(nh-1))
+		# dec_lim=23.45*(float(nd)/float(nd-1))
 		hra_bin=np.linspace(-hra_lim, hra_lim, nh+1)
 		dec_bin=np.linspace(-dec_lim, dec_lim, nd+1)
 		bins=np.array([hra_bin, dec_bin])
 
 
 		dni_weight, xbins, ybins=np.histogram2d(wea_hra, wea_dec, bins, weights=wea_dni)
+
+		np.savetxt(self.casedir+'/DNI_Weights.csv', dni_weight.T, fmt='%s', delimiter=',')
 
 		return dni_weight.T
 
@@ -673,7 +690,7 @@ if __name__=='__main__':
 		slope_error = 0.0
 
 
-		bd.receiversystem(receiver='beam_down', rec_abs=float(pm.alpha_rcv), rec_w=float(rec_w), rec_l=float(rec_l), rec_z=float(rec_z), rec_grid=int(rec_grid), cpc_nfaces=int(n_CPC_faces), cpc_theta_deg=float(theta_deg), cpc_h_ratio=None, cpc_nZ=float(n_Z), rim_angle_x=float(xrim_angle), rim_angle_y=float(yrim_angle), aim_z=float(pm.H_tower), secref_inv_eccen=None, rho_bd=float(rho_bd), slope_error=float(slope_error))
+		bd.receiversystem(receiver='beam_down', rec_abs=float(pm.alpha_rcv), rec_w=float(rec_w), rec_l=float(rec_l), rec_z=float(rec_z), rec_grid=int(rec_grid), cpc_nfaces=int(n_CPC_faces), cpc_theta_deg=float(theta_deg), cpc_h_ratio=None, cpc_nZ=float(n_Z), rim_angle_x=float(xrim_angle), rim_angle_y=float(yrim_angle), aim_z=float(pm.H_tower), secref_inv_eccen=None, rho_secref=float(rho_bd), rho_cpc=float(rho_bd), slope_error=float(slope_error))
 
 		bd.heliostatfield(field='surround', hst_rho=pm.rho_helio, slope=pm.slope_error, hst_w=pm.W_helio, hst_h=pm.H_helio, tower_h=pm.H_tower, tower_r=pm.R_tower, hst_z=pm.Z_helio, num_hst=num_hst, R1=pm.R1, fb=pm.fb, dsep=pm.dsep, x_max=150., y_max=150.)
 

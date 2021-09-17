@@ -119,7 +119,7 @@ class Master:
 
 		else:
 			if system=='beamdown':
-				eta, performance_hst=process_raw_results(self.in_case(folder, 'simul'), folder, rho_mirror, dni, verbose=False, num_virt=2) ##Clo
+				eta, performance_hst=process_raw_results(self.in_case(folder, 'simul'), folder, rho_mirror, dni, verbose=False, num_virt=2)
 			else:
 				eta, performance_hst=process_raw_results(self.in_case(folder, 'simul'), folder, rho_mirror, dni)
 
@@ -160,7 +160,13 @@ class Master:
 		# performance of individual heliostat is recorded
 		# TODO note, DNI is not varied in the simulation,
 		# i.e. performance is not dni-weighted
-		ANNUAL=np.zeros((num_hst, 9))
+
+		if system=='beamdown':
+			ANNUAL=np.zeros((num_hst, 10))
+			annual_title=np.array(['Q_solar','Q_cosine', 'Q_shade', 'Q_hst_abs', 'Q_block', 'Q_atm', 'Q_int_surf_abs', 'Q_spil', 'Q_refl', 'Q_rcv_abs'])
+		else:
+			ANNUAL=np.zeros((num_hst, 9))
+			annual_title=np.array(['Q_solar','Q_cosine', 'Q_shade', 'Q_hst_abs', 'Q_block', 'Q_atm', 'Q_spil', 'Q_refl', 'Q_rcv_abs'])
 		run=np.r_[0]
 
 		for i in range(len(case_list)):
@@ -204,7 +210,6 @@ class Master:
 
 			run=np.append(run,c)
 
-		annual_title=np.array(['Q_solar','Q_cosine', 'Q_shade', 'Q_hst_abs', 'Q_block', 'Q_atm', 'Q_spil', 'Q_refl', 'Q_rcv_abs'])
 		ANNUAL=np.vstack((annual_title, ANNUAL))
 		np.savetxt(self.casedir+'/lookup_table.csv', table, fmt='%s', delimiter=',')
 		np.savetxt(self.casedir+'/result-heliostats-annual-performance.csv', ANNUAL, fmt='%s', delimiter=',')
