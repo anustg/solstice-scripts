@@ -151,7 +151,7 @@ class Parameters:
 		casedir   : str, the directory for saving the result files
 		'''  
 		self.n_row_oelt=5
-		self.n_col_oelt=5
+		self.n_col_oelt=6
 		self.n_rays=int(5e6)
 		self.n_procs=0
 		self.casedir='.'

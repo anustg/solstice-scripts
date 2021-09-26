@@ -462,8 +462,11 @@ class CRS:
 
 			# morning and afternoon wrapping for the side apertures
 			if self.num_aperture==3:
-				oelt[0][3:,3+int(nh/2):]=oelt[2][3:, 3:3+int(nh/2)][:,::-1]
-				oelt[2][3:,3+int(nh/2):]=oelt[0][3:, 3:3+int(nh/2)][:,::-1]
+				try:
+					oelt[0][3:,3+int(nh/2):]=oelt[2][3:, 3:3+int(nh/2)][:,::-1]
+					oelt[2][3:,3+int(nh/2):]=oelt[0][3:, 3:3+int(nh/2)][:,::-1]
+				except:
+					raise Exception('The number of col (n_col_oelt) must be an even number\nThe value was %s\n'%(nh))
 
 			if self.verb:
 				for ap in range(self.num_aperture+1):
