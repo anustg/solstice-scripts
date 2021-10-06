@@ -63,7 +63,7 @@ class Master:
 
 		return os.path.join(folder,fn)
 
-	def run(self, azimuth, elevation, num_rays, rho_mirror, dni, folder, gen_vtk=True, printresult=True, system='crs'):
+	def run(self, azimuth, elevation, num_rays, rho_mirror, dni, folder, gen_vtk=True, printresult=True, system='crs', verbose=False):
 
 		"""Run an optical simulation (one sun position) using Solstice
 
@@ -119,9 +119,9 @@ class Master:
 
 		else:
 			if system=='beamdown':
-				eta, performance_hst=process_raw_results(self.in_case(folder, 'simul'), folder, rho_mirror, dni, verbose=False, num_virt=2)
+				eta, performance_hst=process_raw_results(self.in_case(folder, 'simul'), folder, rho_mirror, dni, verbose=verbose, num_virt=2)
 			else:
-				eta, performance_hst=process_raw_results(self.in_case(folder, 'simul'), folder, rho_mirror, dni)
+				eta, performance_hst=process_raw_results(self.in_case(folder, 'simul'), folder, rho_mirror, dni, verbose=verbose)
 
 			if printresult:
 				sys.stderr.write('\n' + yellow("Total efficiency: {:f}\n".format(eta)))
