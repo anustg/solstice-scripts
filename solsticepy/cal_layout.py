@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 from .cal_sun import *
 from .gen_vtk import gen_vtk
 
-def radial_stagger(latitude, num_hst, width, height, hst_z, towerheight, R1, fb, dsep=0., field='polar', savedir='.', plot=False,  r_field_max=-1.):
+def radial_stagger(latitude, num_hst, width, height, hst_z, towerheight, R1, fb, dsep=0., field='polar', savedir='.', plot=False, tower_y=0.,  r_field_max=-1.):
 	'''Generate a radial-stagger heliostat field, ref. Collado and Guallar, 2012, Campo: Generation of regular heliostat field.
 
 	``Arguments``
@@ -22,7 +22,8 @@ def radial_stagger(latitude, num_hst, width, height, hst_z, towerheight, R1, fb,
 	  * field (str)     : 'polar-half' or 'surround-half' or 'polar' or 'surround' field, the 'half' option is for simulation a symmetric field
 	  * savedir (str)   : directory of saving the pos_and_aiming.csv
 	  * plot (bool)     : True - plot the layout by Matplotlib
-	  * r_field_max			: Maximum field radius (m), if r_max < -1, it is not considered
+	  * tower_y			: Aiming point along the Y axis (m)
+	  * r_field_max		: Maximum field radius (m), if r_max < -1, it is not considered
 
 	``Returns``
 
@@ -154,7 +155,7 @@ def radial_stagger(latitude, num_hst, width, height, hst_z, towerheight, R1, fb,
 		xx=X[i]
 		yy=Y[i]
 		zz=np.ones(np.shape(xx))*hst_z
-		cosw, coseT=cal_cosw_coset(latitude, towerheight,xx, yy, zz)
+		cosw, coseT=cal_cosw_coset(latitude, towerheight, tower_y, xx, yy, zz)
 		row=np.arange(Nrows)
 		cosw=cosw.reshape(Nrows, Nhel)
 		coseT=coseT.reshape(Nrows, Nhel)
@@ -225,12 +226,12 @@ def radial_stagger(latitude, num_hst, width, height, hst_z, towerheight, R1, fb,
 	hstpos=np.zeros(num_hst*3).reshape(num_hst, 3)
 	hstpos[:, 0]=XX
 	hstpos[:, 1]=YY
-	hstpos[:,2]=hst_z
+	hstpos[:, 2]=hst_z
 
 	# the aiming point is a default point
 	# it is required to be revised for receiver performance
 	aim_x=np.zeros(num_hst)
-	aim_y=np.zeros(num_hst)
+	aim_y=np.ones(num_hst)*tower_y
 	aim_z=np.ones(num_hst)*towerheight
 
 	foc=np.sqrt((XX-aim_x)**2+(YY-aim_y)**2+(hstpos[:,2]-aim_z)**2)
@@ -258,7 +259,7 @@ def radial_stagger(latitude, num_hst, width, height, hst_z, towerheight, R1, fb,
 
 	return pos_and_aiming
 
-def cal_cosw_coset(latitude, towerheight, xx, yy, zz):
+def cal_cosw_coset(latitude, towerheight, tower_y, xx, yy, zz):
 	'''
 	The factors to growing the heliostat field, see eq.(2) Francisco J. Collado, Jesus Guallar, Campo: Generation of regular heliostat fields, 2012
 
@@ -276,6 +277,7 @@ def cal_cosw_coset(latitude, towerheight, xx, yy, zz):
 	hst_pos=np.append(xx, (yy, zz))
 	hst_pos=hst_pos.reshape(3, len(xx.flatten())) # 3 x n
 	tower_vec=-hst_pos
+	tower_vec[-2]+=tower_y
 	tower_vec[-1]+=towerheight
 	tower_vec/=np.sqrt(np.sum(tower_vec**2, axis=0)) # 3 x n
 	unit=np.array([[0.], [0.], [1.]])
@@ -287,18 +289,16 @@ def cal_cosw_coset(latitude, towerheight, xx, yy, zz):
 	delta=sun.declination(dd)
 	h=np.arange(8, 17)
 
-	latitude=latitude/180.*np.pi
-	delta=delta/180.*np.pi
-	omega=(-180.+15.*h)/180.*np.pi
-	theta=np.arccos(np.cos(latitude)*np.cos(delta)*np.cos(omega)+np.sin(latitude)*np.sin(delta))
+	omega=(-180.+15.*h)
 
-	a1=np.cos(theta)*np.sin(latitude)-np.sin(delta)
-	a2=np.sin(theta)*np.cos(latitude)
-	b=a1/a2
-	phi=abs(np.arccos((np.cos(theta)*np.sin(latitude)-np.sin(delta))/(np.sin(theta)*np.cos(latitude)))) # unit radian
-	phi[abs(b+1.)<1e-10]=np.pi
-	phi[abs(b-1.)<1e-10]=0.
-	phi[omega<0]=-phi[omega<0]
+	theta=sun.zenith(latitude, delta, omega)
+	phi=np.array([]) # solar azimuth angle
+	for i in range(len(h)):
+		p=sun.azimuth(latitude, theta[i], delta, omega[i])
+		phi=np.append(phi, p)
+
+	theta*=np.pi/180.
+	phi*=np.pi/180.
 
 	cosw=np.zeros(len(tower_vec[0]))
 	sun_z = np.cos(theta)
@@ -316,7 +316,7 @@ def cal_cosw_coset(latitude, towerheight, xx, yy, zz):
 	return cosw, coseT
 
 
-def aiming_cylinder(r_height,r_diameter, pos_and_aiming, savefolder, c_aiming=0.):
+def aiming_cylinder(r_height, r_diameter, pos_and_aiming, savefolder, c_aiming=0.):
 	'''
 	The aiming method is developed following the deviation-based multiple aiming, by Shuang Wang. Reference: Augsburger G. Thermo-economic optimisation of large solar tower power plants[R]. EPFL, 2013.
 

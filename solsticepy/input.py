@@ -126,6 +126,7 @@ class Parameters:
 		self.rim_angle_x=45.	# field and hyperboloid rim angle in the zOx plan
 		self.rim_angle_y=45.	# field and hyperboloid rim angle in the zOy plan
 		self.secref_inv_eccen=0.6	# Hyperboloid inverse eccentricity [0,1]
+		self.secref_angle_deg=0.	# angle of the tilted axis of the hyperboloid, from the vertical to the North (+) or South (-), [-180,180]
 		self.rho_secref=0.95		# reflecticity property of secondary reflector from Beam-Down components
 		self.rho_cpc=0.95		# reflecticity property of cpc from Beam-Down components
 		self.slope_error_bd=2.e-3 # radian
@@ -203,6 +204,7 @@ class Parameters:
 				['rim_angle_x', self.rim_angle_x, '-'],
 				['rim_angle_y', self.rim_angle_y, '-'],
 				['secref_inv_eccen', self.secref_inv_eccen, '-'],
+				['secref_angle_deg', self.secref_angle_deg, 'deg'],
 				['tilt_rcv', self.tilt_rcv, 'deg'],
 				['alpha_rcv', self.alpha_rcv, '-'],
 				['n_H_rcv', self.n_H_rcv, '-'],

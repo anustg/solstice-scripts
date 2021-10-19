@@ -27,11 +27,11 @@ class CRS:
 
 	def __init__(self, latitude, casedir, nproc=None, verbose=False):
 		'''
-		Arguements:
+		Arguments:
 			casedir : str, the directory of the case
 			nproc (int): number of processors, e.g. nproc=1 will run in serial mode,
                                                     nproc=4 will run with 4 processors in parallel
-											        nproc=None will run with any number of processors that are available
+                                                    nproc=None will run with any number of processors that are available
 			verbose : bool, write results to files or not
 		'''
 		self.casedir=casedir
@@ -46,7 +46,7 @@ class CRS:
 	def receiversystem(self, receiver, rec_w=0., rec_h=0., rec_x=0., rec_y=0., rec_z=100., rec_tilt=0., rec_grid_w=10, rec_grid_h=10, rec_abs=1., num_aperture=1, gamma=0.):
 
 		'''
-		Arguements:
+		Arguments:
 		    (1) receiver  :   str, type of the receiver, i.e. 'flat', 'cylinder', 'multi_aperture' or directory of the 'stl',
 		    (2) rec_w     : float, width of a flat receiver or radius of a cylindrical receiver (m)
 		    (3) rec_h     : float, height of the receiver (m)
@@ -88,7 +88,7 @@ class CRS:
 	def heliostatfield(self, field, hst_rho, slope, hst_w, hst_h, tower_h, tower_r=0.01, hst_z=0., num_hst=0., R1=0., fb=0., dsep=0.):
 
 		'''
-		Arguements:
+		Arguments:
 		    (1) field     : str,
 		        -- 'polar', 'polar-half', 'surround' or 'surround-half' or 'multi-aperture' for desiging a new field
 		        -- or the directory of the layout file

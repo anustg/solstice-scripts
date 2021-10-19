@@ -10,35 +10,30 @@ class CPC:
         '''
 
         def __init__(self):
-                '''
-                Arguements:
-                        casedir : str, the directory of the case
-                '''
-                self.y_min_para=0.0
-                self.z_min_para=0.0
-                self.z_max_para=0.0
-
-
-        def regularpolygon(self, poly_half_w=2., poly_half_l=2., cpc_nfaces=6, bool=0):
             '''
             Arguments:
-                (1) receiver  :   str, 'flat', 'cylinder' or directory of the 'stl', type of the receiver
-                (2) poly_w   : float, width of the polygon (m)
-                (3) poly_h   : float, length of the polygon (m)
-                (4) cpc_nfaces     : int, number of faces of the 2D-crossed CPC
-                (5) bool   : 0: gives the vertex of the polygon, 1: gives the center of the polygon edges.
+                    casedir : str, the directory of the case
             '''
-            cpc_nfaces = int(cpc_nfaces)
-            gamma = np.pi/cpc_nfaces
-            poly_vertex=np.zeros((cpc_nfaces,2))
-            for i in range(cpc_nfaces):
+
+
+        def regularpolygon(self, poly_half_w=2., poly_half_l=2., bool=0):
+            '''
+            Gives the vertices of a polygon with n faces or the center of the polygon edges.
+            Arguments:
+                (1) poly_w   : float, width of the polygon (m)
+                (2) poly_h   : float, length of the polygon (m)
+                (3) bool   : 0: gives the vertices of the polygon, 1: gives the center of the polygon edges.
+            '''
+            gamma = np.pi/self.cpc_nfaces
+            poly_vertex=np.zeros((self.cpc_nfaces,2))
+            for i in range(self.cpc_nfaces):
                 temp = (gamma*(bool + i*2.))
                 cosGamma = np.cos(bool*gamma)
                 poly_vertex[i] = [-poly_half_w /cosGamma*np.sin(temp), poly_half_l /cosGamma*np.cos(temp)]
 
             return poly_vertex
 
-        def intersectionpoint(self, p_A=1., p_B=1., p_C=1., focal_length=1.):
+        def intersectionpoint(self, p_A=1., p_B=1., p_C=1.):
             '''
             Gives the intersection point between a parabola (z=y^2/(4f)) and a line (z=m*y+z0), with
             - f the focal length of the parabola
@@ -47,35 +42,26 @@ class CPC:
             - p_C = -z0
             From equation: p_A y^2 + p_B y + p_C = 0
             '''
-            delta = p_B*p_B - 4.*p_A*p_C
+            delta = (p_B**2) - 4.*p_A*p_C
             y_inter_para = (-p_B + np.sqrt(delta))/(2.*p_A)
-            z_inter_para  = self.parabola(y_inter_para, focal_length)
+            z_inter_para  = (y_inter_para**2) / (4.*self.focal_length)
 
             return (y_inter_para, z_inter_para)
 
-        def parabola(self, y_para, focal_length):
-            '''
-            Argument:
-                (1) y_para  :   y coordinate of the parabola defined in yOz plan (m)
-                (2) focal_length   : focal length of the parabola (m)
-            '''
-            z_para=y_para*y_para/(4.*focal_length)
 
-            return z_para
-
-        def hyperboloid(self, x_hyper, y_hyper, focal_image, focal_real):
+        def hyperboloid(self, x_hyper, y_hyper):
             '''
-            calculate the z coordinate of the hyperboloid:
+            Calculate the z coordinate of the hyperboloid:
             (x^2+y^2)/a^2 - (z+z0-g/2)^2/b^2 + 1 = 0
-            with the vetex of the hyperboloid located in the xOy plan.
+            with the apex of the hyperboloid located in the xOy plan.
             '''
-            g_para = focal_image+focal_real
-            f_para = focal_real/g_para
-            a_para_sqrt = (g_para**2)*(f_para-f_para**2)
-            b_para = g_para*(f_para-1/2.)
+            g_para = self.focal_image + self.focal_real
+            f_para = self.focal_real / g_para
+            a_para_sqrt = (g_para**2) * (f_para-f_para**2)
+            b_para = g_para * (f_para-1/2.)
             z0_hyper = abs(b_para) + g_para/2.
 
-            z_hyper = b_para*np.sqrt((x_hyper**2+y_hyper**2)/a_para_sqrt+1) - z0_hyper+g_para/2.
+            z_hyper = b_para*np.sqrt((x_hyper**2+y_hyper**2)/a_para_sqrt + 1) - z0_hyper+g_para/2.
             return z_hyper
 
         def xzrotations(self, y_para, z_para, theta, gamma):
@@ -100,51 +86,49 @@ class CPC:
 
             return rot_vector
 
-        def xyztranslations(self, theta, gamma, x_position, y_position, z_position):
+        def cpcfacetranslation(self, y_min_para, z_min_para, gamma, x_position, y_position, z_position):
             '''
             Gives the translation of a CPC face for yaml file creation.
 
             Arguments:
-              (1) theta : acceptance angle of the CPC (radian) (rotation angle around x-axis)
-              (2) gamma : angle of rotation of the CPC face around the z-axis (radian)
-              (3) x_position : x coordinate of the final position in the global coordinate system
-              (4) y_position : y coordinate of the final position in the global coordinate system
+              (1) gamma : angle of rotation of the CPC face around the z-axis (radian)
+              (2) x_position : x coordinate of the final position in the global coordinate system
+              (3) y_position : y coordinate of the final position in the global coordinate system
               (4) z_position : z coordinate of the final position in the global coordinate system
             '''
-            rot_vector = self.xzrotations(self.y_min_para, self.z_min_para, theta, gamma)
+            rot_vector = self.xzrotations(y_min_para, z_min_para, self.theta, gamma)
             x_trans=-rot_vector[0]+x_position
             y_trans=-rot_vector[1]+y_position
             z_trans=-rot_vector[2]+z_position
 
             return (x_trans, y_trans, z_trans)
 
-        def cpcfaceclipping(self, cpc_nZ, theta, focal_length, cpc_nfaces, receiver_radius):
+        def cpcfaceclipping(self, y_min_para, z_min_para, z_max_para):
             '''
-            Return the clipping polygon (vertex) of the CPC face
-
+            Gives the clipping polygon (vertices) of a CPC face
             Arguments:
-                (1) cpc_nZ : number of iterations along the clipping polygon
-                (2) theta : acceptance angle of the CPC (radian) (rotation angle around x-axis)
-                (3) focal_length   : focal length of the parabola (m)
+                (1) y_min_para : y-coordinate of the lowest point of the parabola curve of the CPC face given in local coordinates of the parabola
+                (2) z_min_para : z-coordinate of the lowest point of the parabola curve of the CPC face given in local coordinates of the parabola
+                (3) z_max_para : z-coordinate of the highest point of the parabola curve of the CPC face given in local coordinates of the parabola
             '''
-            delta_Z = (self.z_max_para - self.z_min_para)/cpc_nZ
-            _, y_trans, z_trans= self.xyztranslations(theta, 0.0, 0.0, receiver_radius, 0.0)
+            delta_Z = (z_max_para - z_min_para)/self.cpc_nZ
+            _, y_trans, z_trans= self.cpcfacetranslation(y_min_para, z_min_para, 0.0, 0.0, self.rec_radius, 0.0)
 
             margin = 0.1
-            increment = np.tan(np.pi/cpc_nfaces)
+            increment = np.tan(np.pi/self.cpc_nfaces)
 
-            z_para = self.z_min_para
-            y_para = np.sqrt(4*focal_length*z_para)
-            _, y_CPC, z_CPC = self.xzrotations(y_para, z_para, theta, 0.0)
+            z_para = z_min_para
+            y_para = np.sqrt(4*self.focal_length*z_para)
+            _, y_CPC, z_CPC = self.xzrotations(y_para, z_para, self.theta, 0.0)
             x_para = (y_CPC+y_trans)*increment+margin
             pos_vertex = np.array([[x_para,y_para]])
             neg_vertex = np.array([[-x_para,y_para]])
             while abs(self.h_CPC - z_CPC) >= 0.0001:
                 # Calculate the local y coordinate
                 z_para += delta_Z
-                y_para = np.sqrt(4*focal_length*z_para)
+                y_para = np.sqrt(4*self.focal_length*z_para)
                 # Calculate the radius of the CPC at the height z_para
-                _, y_CPC, z_CPC = self.xzrotations(y_para, z_para, theta, 0.0)
+                _, y_CPC, z_CPC = self.xzrotations(y_para, z_para, self.theta, 0.0)
                 z_CPC += z_trans
                 if z_CPC <= self.h_CPC + 0.000001:
                     # Calculate the local/global x coordinate
@@ -158,50 +142,178 @@ class CPC:
             pos_vertex = np.vstack((pos_vertex,neg_vertex[::-1]))
             return pos_vertex
 
+    	def intersectionlinehyperbol(self, a_hyper, b_hyper, m_line, z0_line):
+            '''
+            intersection point between hyperbola and line:
+            z^2/b^2 - y^2/a^2 = 1
+            z = m*y + z0
+            '''
+            a_hyper_sqrt = a_hyper**2
+            m_line_sqrt = m_line**2
+
+            if abs(m_line) < 0.0000000001:
+                y_inter = np.sqrt(a_hyper_sqrt * ((z0_line**2)/(b_hyper**2)-1))
+
+            else:
+                aCoef_poly = b_hyper**2 - a_hyper_sqrt / m_line_sqrt
+                bCoef_poly = 2*z0_line*a_hyper_sqrt / m_line_sqrt
+                cCoef_poly = -a_hyper_sqrt * ((z0_line**2) / m_line_sqrt + b_hyper**2)
+                delta = bCoef_poly**2 - 4*aCoef_poly*cCoef_poly
+                root1 = (-bCoef_poly+np.sqrt(delta)) / (2*aCoef_poly)
+                root2 = (-bCoef_poly-np.sqrt(delta)) / (2*aCoef_poly)
+                if root1>0. and root2>0. and m_line<0.:	# the line intersects the upper sheet of the hyperbola twice
+                    z_inter = min(root1,root2)
+                else:	# the line intersects the upper and lower sheet of the hyperbola
+                    z_inter = max(root1,root2)
+                y_inter = (z_inter-z0_line)/m_line
+                #check = (z_inter**2)/a_hyper_sqrt - (y_inter**2)/b_hyper_sqrt
+                #print('equation resolution should be 1, and it is: ', check)
+                assert y_inter > 0, 'Negative hyperboloid radius value'
+
+            return y_inter
+
+
         def dependantparameters(self, rec_param):
             '''
-            Return the clipping polygon (vertex) of the CPC face
+            Calculate the characteristics parameters of CPC, receiver, secondary mirror
             '''
             rec_w=rec_param[0]
             rec_l=rec_param[1]
-            rec_z=rec_param[2]
-            cpc_nfaces=int(rec_param[4])
+            self.rec_z=rec_param[2]
+            self.rec_grid=int(rec_param[3])  # it assumes equal number of slices in x and y directions
+            self.cpc_nfaces=int(rec_param[4])
             cpc_theta_deg=rec_param[5]
-            cpc_h=rec_param[6]
+            cpc_h_ratio=rec_param[6]
+            self.cpc_nZ=int(rec_param[7])
+            self.aim_z=rec_param[8]
+            secref_inv_eccen=rec_param[9]
+            self.secref_angle_deg=rec_param[10]
+            self.rho_secref=rec_param[11]
+            self.rho_cpc=rec_param[12]
+            self.slope_error=rec_param[13]
 
-            cpc_nfaces = int(cpc_nfaces)
-            if cpc_nfaces==4:
+            assert self.cpc_nfaces > 2, 'The number of faces for the CPC should be minimum 3, and it is {cpc_nfaces=}'
+            assert 0<=secref_inv_eccen<=1, 'The inverse eccentricity of the hyperbole must be between 0 and 1, and it is {secref_inv_eccen=}'
+
+            self.receiverparameters(rec_w,rec_l)
+            self.cpcparameters(cpc_theta_deg, cpc_h_ratio)
+            self.secrefparameters(secref_inv_eccen)
+
+
+        def receiverparameters(self, rec_w=2., rec_l=2.):
+            '''
+            Calculate Receiver critical dimensions
+            rec_radius_ref:	receiver radius in the direction of theta (CPC half acceptance angle), it is used for the design criteria
+            '''
+            if self.cpc_nfaces is 4:
                 self.rec_x = rec_w/2.
                 self.rec_y = rec_l/2.
                 self.rec_radius = np.minimum(self.rec_x,self.rec_y)
             else:
-                self.rec_x = np.sqrt(rec_w*rec_w+rec_l*rec_l)/2.
+                self.rec_x = np.sqrt(rec_w**2 + rec_l**2) / 2.
                 self.rec_y = self.rec_x
                 self.rec_radius = self.rec_x
 
 
-            # Parameters of the parabola
-            self.theta = cpc_theta_deg*np.pi/180.
-            self.focal_length = self.rec_radius*(np.sin(self.theta) + 1)
+        def cpcparameters(self, cpc_theta_deg, cpc_h_ratio=1.):
+            '''
+            Calculate Parameters of the parabola (CPC height, acceotance angle in rad, focal length)
+            '''
+            self.theta = cpc_theta_deg * np.pi/180.
+            self.h_CPC = self.rec_radius*(1 + 1/np.sin(self.theta)) / np.tan(self.theta)
+            self.h_CPC *= cpc_h_ratio
 
-            # Lowest and highest point of the parabola curve of the CPC face given in local coordinates of the parabola
-            p_A = 1.
-            p_B = 4*self.focal_length*np.tan(self.theta)
-            p_C = -4*self.focal_length*self.focal_length
-            self.y_min_para, self.z_min_para = self.intersectionpoint(p_A, p_B, p_C, self.focal_length)
 
-            p_B = -4.0*self.focal_length/np.tan(2.*self.theta)
-            _, self.z_max_para = self.intersectionpoint(p_A, p_B, p_C, self.focal_length)
+        def secrefparameters(self, secref_inv_eccen):
+            '''
+            Calculate characteristics parameters of the hyperboloid with tilted axis: 2 foci and apex position with receiver positioned at the center
+            focal image: distance between hyperbola apex and aiming point of heliostats
+            focal real: distance between hyperbola apex and aiming point of secondary reflector (aperture of the CPC)
+            '''
+            secref_angle = self.secref_angle_deg * np.pi/180.
+            real_foci_z = (self.h_CPC+self.rec_z)
 
-            # CPC height
-            cpc_h_max = self.rec_radius*(1+1/np.sin(self.theta))/np.tan(self.theta)
-            if cpc_h<=0.:
-                self.h_CPC = cpc_h_max
+            assert self.aim_z > real_foci_z, 'The imaginary foci of the hyperbol is lower than its real foci'
+
+            aim_y =  (self.aim_z-real_foci_z) * np.tan(secref_angle)
+            foci_dist = np.sqrt((self.aim_z-real_foci_z)**2 + aim_y**2)/2.
+            self.focal_image = (1-secref_inv_eccen)*foci_dist
+            self.focal_real = 2*foci_dist - self.focal_image
+
+            self.secref_z = real_foci_z + self.focal_real * np.cos(secref_angle)
+            self.secref_y = self.focal_real * np.sin(secref_angle)
+
+            print('HYPERBOLA focal IMAGE: ', self.focal_image)
+            print('HYPERBOLA focal REAL: ', self.focal_real)
+
+
+        def secrefpolygonsclipping(self, secref_vert):
+            '''
+            Calculate the clipping polygon of the secondary reflector (dimensions)
+            Calculate the clipping polygon of the virtual surface associated to secondary reflector (dimensions)
+            if length of secref_vert is 2 (rim_angle_x, rim_angle_y), the clipping polygon is calculated with the 2 rim angles
+            if rim_angle_y = None, the clipping polygon is a circle
+            '''
+            if len(secref_vert) is 2:
+                rim_angle_x=secref_vert[0]
+                rim_angle_y=secref_vert[1]
+
+                foci_dist = (self.focal_image + self.focal_real) / 2.
+                a_hyper = (self.focal_real-foci_dist)
+                b_hyper = np.sqrt(self.focal_image*self.focal_real)
+                m_line = -1 / np.tan(rim_angle_x*np.pi/180.)
+                x_inter = self.intersectionlinehyperbol(a_hyper, b_hyper, m_line, foci_dist)
+
+                if rim_angle_y is None:
+                    secref_vert = np.array([x_inter])
+                    xmax=ymax=x_inter
+                else:
+                    m_line = -1 / np.tan(rim_angle_y*np.pi/180.)
+                    y_inter = self.intersectionlinehyperbol(a_hyper, b_hyper, m_line, foci_dist)
+                    secref_vert = np.array([[0.,y_inter],[-x_inter,y_inter],[-x_inter,0.],[-x_inter,-y_inter],[0.,-y_inter],[x_inter,-y_inter],[x_inter,0.],[x_inter,y_inter]])
+                    xmax=max(secref_vert[:,0])
+                    ymax=max(secref_vert[:,1])
+
             else:
-                self.h_CPC = cpc_h
+                xmax=max(secref_vert[:,0])
+                ymax=max(secref_vert[:,1])
 
-            print('theoretical critical height: ', cpc_h_max)
-            print('selected height: ', self.h_CPC)
+            virt_vert = np.array([ [-xmax, ymax], [-xmax, -ymax], [xmax, -ymax], [xmax, ymax] ])*50
+            zmax=self.hyperboloid(xmax, ymax)
+            #print('X HYPERBOLA: ', xmax)
+            #print('Y HYPERBOLA: ', ymax)
+            #print('Z HYPERBOLA: ', zmax)
+            virt_vert_z = self.secref_z+zmax+5
+
+            return secref_vert, virt_vert, virt_vert_z
+
+
+        def cpcfaceparameters(self):
+            '''
+            Return the parameters used to create each CPC face with YAML files for the Solstice simulation:
+            cpc_face_polygon: polygon clipping of an individual CPC face
+            cpc_faces_trans: (x,y,z) for each face of the CPC
+            '''
+            # Lowest and highest point of the parabola curve of the CPC face given in local coordinates of the parabola
+            self.focal_length = self.rec_radius * (np.sin(self.theta) + 1)
+            p_B = 4. * self.focal_length * np.tan(self.theta)
+            p_C = -4. * self.focal_length * self.focal_length
+            y_min_para, z_min_para = self.intersectionpoint(1., p_B, p_C)
+            p_B = -4. * self.focal_length / np.tan(2.*self.theta)
+            _, z_max_para = self.intersectionpoint(1., p_B, p_C)
+
+            # For each face, calculate the x,y,z translations and the clipping polygon
+            cpc_face_polygon = self.cpcfaceclipping(y_min_para, z_min_para, z_max_para)
+
+            cpc_faces_pos = self.regularpolygon(self.rec_x, self.rec_y, 0)
+            cpc_faces_trans=np.zeros((self.cpc_nfaces,3))
+            for i in range(self.cpc_nfaces):
+                gamma = i*2.*np.pi/self.cpc_nfaces
+                x_trans, y_trans, z_trans = self.cpcfacetranslation(y_min_para, z_min_para, gamma, cpc_faces_pos[i][0], cpc_faces_pos[i][1], self.rec_z)
+                cpc_faces_trans[i] = [x_trans, y_trans, z_trans]
+
+            return cpc_face_polygon, cpc_faces_trans
+
 
         def beamdowncomponents(self, rec_param):
             '''
@@ -216,48 +328,36 @@ class CPC:
                 # Compound Parabolic Concentrator (CPC)
                 (5) cpc_nfaces : int, number of faces of the CPC
                 (6) cpc_theta_deg : float, acceptance angle of CPC (deg)
-                (7) cpc_h     : float, vertical distance of the maximum and minimum point of the parabola
-                in local coordinate system of the parabola in the xOy plan
-                WARNING: cpc_h is different from the total height of the CPC
+                (7) cpc_h_ratio     : float, ratio of critical CPC height calculated with cpc_theta_deg, [0,1]
                 (8) cpc_nZ     : int, number of number of incrementation for the clipping polygon for the construction of each CPC face
                 # Secondary Reflector (hyperboloid)
                 (9) aim_z   : float, z (vertical) location of the heliostats' aiming point (m)
-                (10) secref_z    : flaot, z (vertical) location of the apex of the hyperboloid secondary reflector (m)
-                (11) rho_secref	: float, secondary mirror reflectivity property, [0,1]
-                (12) rho_cpc	: float, CPC reflectivity property, [0,1]
-                (13) slope_error	: float, slope error of secondary mirror and CPC refelctivity (?)
-                (14) secref_vert	: array, (x,y) clipping polygon of the secondary reflector
+                (10) secref_inv_eccen    : float, hyperboloid inverse eccentricity: ratio of the apex distance over the foci distance to the origin, must be between 0 and 1
+                (11) secref_angle_deg    : float, angle of the tilted axis of the hyperboloid, from the vertical to the North (+) or South (-), [-180,180]
+                (12) rho_secref	: float, secondary mirror reflectivity property, [0,1]
+                (13) rho_cpc	: float, CPC reflectivity property, [0,1]
+                (14) slope_error	: float, slope error of secondary mirror and CPC refelctivity (?)
+                (15) secref_vert	: array, (x_i,y_i) clipping polygon of the secondary reflector
+                # if length of array is = 2, rim angles along X and Y axis used to calculate the clipping polygon of the secondary reflector
             '''
 
-            rec_z=rec_param[2]
-            rec_grid=int(rec_param[3])  # it assumes equal number of slices in x and y directions
-            cpc_nfaces=int(rec_param[4])
-            cpc_theta_deg=rec_param[5]
-            cpc_nZ=int(rec_param[7])
-            aim_z=rec_param[8]
-            secref_z=rec_param[9]
-            rho_secref=rec_param[10] # front
-            rho_cpc=rec_param[11] # front
-            slope_error=rec_param[12]
-            secref_vert=rec_param[13]
-            self.dependantparameters(rec_param[:7])
+            self.dependantparameters(rec_param)
 
             iyaml='\n'
-
             #
             #    Materials
             #
             # CREATE a specular material for the secondary reflector
             iyaml+='- material: &%s\n' % 'material_sec_mirror'
             iyaml+='   front:\n'
-            iyaml+='     mirror: {reflectivity: %6.4f, slope_error: %15.8e }\n' % (rho_secref, slope_error)
+            iyaml+='     mirror: {reflectivity: %6.4f, slope_error: %15.8e }\n' % (self.rho_secref, self.slope_error)
             iyaml+='   back:\n'
             iyaml+='     matte: {reflectivity: 0.0 }\n'
             iyaml+='\n'
             # CREATE a specular material for the CPC
             iyaml+='- material: &%s\n' % 'material_cpc'
             iyaml+='   front:\n'
-            iyaml+='     mirror: {reflectivity: %6.4f, slope_error: %15.8e }\n' % (rho_cpc, slope_error)
+            iyaml+='     mirror: {reflectivity: %6.4f, slope_error: %15.8e }\n' % (self.rho_cpc, self.slope_error)
             iyaml+='   back:\n'
             iyaml+='     matte: {reflectivity: 0.0 }\n'
             iyaml+='\n'
@@ -266,25 +366,24 @@ class CPC:
             #    Entities
             #
             # Receiver Polygon
-            rec_vert=self.regularpolygon(self.rec_x, self.rec_y, cpc_nfaces, 1)
+            rec_vert=self.regularpolygon(self.rec_x, self.rec_y, 1)
             iyaml+='- entity:\n'
             iyaml+='    name: %s\n' % 'receiver'
             iyaml+='    primary: 0\n'
-            iyaml+='    transform: { translation: %s, rotation: %s }\n' % ([0, 0, rec_z], [0, 0, 0])
+            iyaml+='    transform: { translation: %s, rotation: %s }\n' % ([0, 0, self.rec_z], [0, 0, 0])
             iyaml+='    geometry:\n'
             iyaml+='    - material: *%s\n' % 'material_target'
             iyaml+='      plane:\n'
-            iyaml+='        slices:  %d\n' % rec_grid
+            iyaml+='        slices:  %d\n' % self.rec_grid
             iyaml+='        clip: \n'
             iyaml+='        - operation: AND \n'
             iyaml+='          vertices: \n'
-            for i in range(cpc_nfaces):
+            for i in range(self.cpc_nfaces):
                 iyaml+='            - %s\n' % ([rec_vert[i][0],rec_vert[i][1]])
             iyaml+='\n'
             #
-            # CREATE a virtual target entity at the receiver level
-            virt_vert = np.array([ [-1.0, 1.0], [-1.0, -1.0], [1.0, -1.0], [1.0, 1.0] ])
-            virt_vert = virt_vert*(self.rec_radius * 50.0 * self.h_CPC)
+            # Virtual target entity at the receiver level
+            virt_vert = np.array([ [-1.0, 1.0], [-1.0, -1.0], [1.0, -1.0], [1.0, 1.0] ]) * (self.rec_radius * 50.0 * self.h_CPC)
             slices = 4
             iyaml+='\n- entity:\n'
             iyaml+='    name: virtual_target\n'
@@ -298,24 +397,19 @@ class CPC:
             iyaml+='          - operation: AND \n'
             iyaml+='            vertices: \n'
             for i in range(len(virt_vert)):
-                iyaml+='            - %s\n' % ([virt_vert[i][0],virt_vert[i][1]])
+                iyaml+='            - %s\n' % ([virt_vert[i][0], virt_vert[i][1]])
             iyaml+='\n'
             #
             # Secondary Reflector
-            # focal image: distance between hyperbola vertex and aiming point of heliostats
-            # focal real: distance between hyperbola vertex and aiming point of secondary reflector (aperture of the CPC)
-            focal_image = aim_z - secref_z
-            focal_real = abs(rec_z + self.h_CPC - secref_z) # aim at the aperture of the CPC
-            print('HYPERBOLA focal IMAGE: ', focal_image)
-            print('HYPERBOLA focal REAL: ', focal_real)
+            secref_vert, virt_vert, virt_vert_z=self.secrefpolygonsclipping(rec_param[14])
             iyaml+='- entity:\n'
             iyaml+='    name: %s\n' % 'secondary_reflector'
             iyaml+='    primary: 0\n'
-            iyaml+='    transform: { translation: %s, rotation: %s }\n' % ([0, 0, secref_z], [0., 0, 0])
+            iyaml+='    transform: { translation: %s, rotation: %s }\n' % ([0, self.secref_y, self.secref_z], [-self.secref_angle_deg, 0., 0.])
             iyaml+='    geometry:\n'
             iyaml+='    - material: *%s\n' % 'material_sec_mirror'
             iyaml+='      hyperbol:\n'
-            iyaml+='        focals: &hyperbol_focals { real: %s, image: %s }\n' % (focal_real, focal_image)
+            iyaml+='        focals: &hyperbol_focals { real: %s, image: %s }\n' % (self.focal_real, self.focal_image)
             iyaml+='        slices: 100\n'
             iyaml+='        clip: \n'
             if len(secref_vert)>1:
@@ -328,25 +422,13 @@ class CPC:
                 iyaml+='        - operation: AND \n'
                 iyaml+='          circle: { radius: %s, center: [0,0]} \n' % secref_vert[0]
             #
-            # CREATE a virtual target entity above the secondary reflector
-
-            if len(secref_vert)>1:
-                xmax=max(secref_vert[:,0])
-                ymax=max(secref_vert[:,1])
-            else:
-                xmax=ymax=secref_vert[0]
-            virt_vert = np.array([ [-xmax, ymax], [-xmax, -ymax], [xmax, -ymax], [xmax, ymax] ])*50
-            zmax=self.hyperboloid(xmax, ymax, focal_image, focal_real)
-            #print('X HYPERBOLA: ', xmax)
-            #print('Y HYPERBOLA: ', ymax)
-            #print('Z HYPERBOLA: ', zmax)
-            z_trans = secref_z+zmax+5
-            if z_trans < aim_z:
-                z_trans = aim_z
+            # Virtual target entity above the secondary reflector
+            if virt_vert_z < self.aim_z:
+                virt_vert_z = self.aim_z
             iyaml+='\n- entity:\n'
             iyaml+='    name: virtual_sec_ref\n'
             iyaml+='    primary: 0\n'
-            iyaml+='    transform: { translation: %s, rotation: %s }\n' % ([0, 0, z_trans], [0., 180., 0])
+            iyaml+='    transform: { translation: %s, rotation: %s }\n' % ([0, self.secref_y, virt_vert_z], [0., 180., 0])
             iyaml+='    geometry: \n'
             iyaml+='      - material: *%s\n' % 'material_virtual'
             iyaml+='        plane: \n'
@@ -358,30 +440,21 @@ class CPC:
                 iyaml+='            - %s\n' % ([virt_vert[i][0],virt_vert[i][1]])
             iyaml+='\n'
             #
-            # CREATE the facets of the CPC
-            # For each face, the x,y,z translations and the clipping polygon are calculated
-            # The clipping polygon is individual to a face if nCPC = 4 and the receiver is not a regular polygon (xRec!=yRec)
-            cpc_face_pos=self.regularpolygon(self.rec_x, self.rec_y, cpc_nfaces, 0)
-            cpc_face_polygon=self.cpcfaceclipping(cpc_nZ, self.theta, self.focal_length, cpc_nfaces, self.rec_radius)
-            rec_vert = np.insert(rec_vert,0,rec_vert[cpc_nfaces-1],axis=0)
-            increment = np.zeros(cpc_nfaces)
-            if self.rec_x != self.rec_y:
-                for i in range(cpc_nfaces):
-                    increment[i] = np.linalg.norm(rec_vert[i]-rec_vert[i+1])/2 - self.rec_radius
-            # implement individual facets of the CPC
-            for i in range(cpc_nfaces):
-                gamma = i*2.*np.pi/cpc_nfaces
+            # CPC Facets: implement individual faces of the CPC
+            cpc_face_polygon, cpc_faces_trans = self.cpcfaceparameters()
+            rec_vert = np.insert(rec_vert,0,rec_vert[self.cpc_nfaces-1],axis=0)
+            for i in range(self.cpc_nfaces):
+                gamma = i*2.*np.pi/self.cpc_nfaces
                 iyaml+='- entity:\n'
                 iyaml+='    name: %s\n' % ('CPC_face_'+str(i))
-                x_trans, y_trans, z_trans = self.xyztranslations(self.theta, gamma, cpc_face_pos[i][0], cpc_face_pos[i][1], rec_z)
-                iyaml+='    transform: { translation: %s }\n' % ([x_trans, y_trans, z_trans])
+                iyaml+='    transform: { translation: %s }\n' % ([cpc_faces_trans[i][0],cpc_faces_trans[i][1],cpc_faces_trans[i][2]])
                 iyaml+='    children: \n'
                 iyaml+='    - name: RotationGamma\n'
                 iyaml+='      transform: { rotation: %s } \n' % ([0, 0, gamma*180.0/np.pi])
                 iyaml+='      children: \n'
                 iyaml+='      - name: RotationTheta\n'
                 iyaml+='        primary: 0\n'
-                iyaml+='        transform: {rotation: %s } \n' % ([cpc_theta_deg, 0, 0.])
+                iyaml+='        transform: {rotation: %s } \n' % ([self.theta*180.0/np.pi, 0, 0.])
                 iyaml+='        geometry:\n'
                 iyaml+='        - material: *%s\n' % 'material_cpc'
                 iyaml+='          parabolic-cylinder:\n'
@@ -390,15 +463,16 @@ class CPC:
                 iyaml+='            clip: \n'
                 iyaml+='            - operation: AND \n'
                 iyaml+='              vertices: \n'
-                midlength = int(len(cpc_face_polygon)/2)
+                increment = np.linalg.norm(rec_vert[i]-rec_vert[i+1])/2 - self.rec_radius
+                midlength = int(len(cpc_face_polygon) / 2)
                 for j in range(midlength):
-                    iyaml+='               - %s\n' % ([cpc_face_polygon[j][0]+increment[i],cpc_face_polygon[j][1]])
+                    iyaml+='               - %s\n' % ([cpc_face_polygon[j][0]+increment,cpc_face_polygon[j][1]])
                 for j in range(midlength,midlength*2):
-                    iyaml+='               - %s\n' % ([cpc_face_polygon[j][0]-increment[i],cpc_face_polygon[j][1]])
+                    iyaml+='               - %s\n' % ([cpc_face_polygon[j][0]-increment,cpc_face_polygon[j][1]])
                 iyaml+='\n'
             #
-            # CREATE the receiver objects in receiver yaml
-            # receiver at the CPC exit and 2 virtuals surfaces
+            #
+            # Receivers objects in receiver yaml (receiver polygon, CPC, secondary mirror and 2 virtuals surfaces)
             rcv = '\n'
             rcv+='- name: receiver \n'
             rcv+='  side: %s \n' % 'FRONT_AND_BACK'
@@ -406,7 +480,7 @@ class CPC:
             rcv+='- name: secondary_reflector \n'
             rcv+='  side: %s \n' % 'FRONT'
             rcv+='  per_primitive: %s \n' % 'INCOMING_AND_ABSORBED'
-            for i in range(cpc_nfaces):
+            for i in range(self.cpc_nfaces):
                 rcv+='- name: %s\n' % ('CPC_face_'+str(i)+'.RotationGamma.RotationTheta')
                 rcv+='  side: %s \n' % 'FRONT'
                 rcv+='  per_primitive: %s \n' % 'INCOMING_AND_ABSORBED'
@@ -430,16 +504,20 @@ if __name__=='__main__':
         rec_grid=20.
         n_CPC_faces=4
         theta_deg=20.
-        cpc_h=0.
+        cpc_h_ratio=1.
         n_Z=20
         aim_z = 30.
-        sec_z = 22.
-        rho_bd= 1. # front
+        secref_inv_eccen = 0.72
+        secref_angle_deg = 20.
+        rho_bd = 1. # front
         slope_error = 0.
         secref_vert = np.array([[-15,25],[-15,-10],[15,-10],[15,25]])
 
+        bd_param=np.array([rec_w, rec_l, rec_z, rec_grid, n_CPC_faces, theta_deg, cpc_h_ratio, n_Z, aim_z,
+        secref_inv_eccen, secref_angle_deg, rho_bd, rho_bd, slope_error, secref_vert])
+
         cpc=CPC()
-        cpc.beamdowncomponents(rec_w, rec_l, rec_z, rec_grid, n_CPC_faces, theta_deg, cpc_h, n_Z, aim_z, sec_z, rho_bd, rho_bd, slope_error, secref_vert)
+        cpc.beamdowncomponents(bd_param)
 
         eta=1.
         print('total efficiency:', eta)

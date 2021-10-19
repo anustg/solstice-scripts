@@ -96,7 +96,6 @@ def process_raw_results(rawfile, savedir, rho_mirror, dni, verbose=False, num_vi
 
 	#number of intermediate refelctives surfaces from hliostat mirror to target, as it is the case for the beam-down
 	num_int_surf=num_rec-num_virt-1
-	
 	# Only 1 receiver
 	rec_id=get_rc(num_res+2,1) # the id number of the receiver
 	rec_area=get_rc(num_res+2,2) # m2
@@ -120,7 +119,6 @@ def process_raw_results(rawfile, savedir, rho_mirror, dni, verbose=False, num_vi
 	rec_back_absorbed_err=get_rc(num_res+2,36)
 	rec_back_eff=get_rc(num_res+2,-2)
 	rec_back_eff_err=get_rc(num_res+2,-1)
-
 
 	# Intermediate Reflectives surfaces
 	if(num_int_surf>0):

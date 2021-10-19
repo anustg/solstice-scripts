@@ -179,7 +179,6 @@ class Master:
 				#else:
 				#	dni=0.
 
-
 				sys.stderr.write("\n"+green('Sun position: %s \n'%c))
 				print('azimuth: %.2f'% azimuth, ', elevation: %.2f'%elevation)
 
