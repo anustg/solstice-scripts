@@ -124,7 +124,7 @@ def read_vtk(vtkfile, savedir='.',  dataname=None):
 
 
         elif dataname in line:
-			read_vtk(vtkfile, savedir='.',  dataname=None)
+            read_vtk(vtkfile, savedir='.',  dataname=None)
             print('\nData: %s\n'%dataname)
 
             v= [int(s) for s in re.findall(r'-?\d+\.?\d*', line)]
