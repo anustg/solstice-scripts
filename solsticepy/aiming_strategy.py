@@ -5,6 +5,7 @@ Modified deviation-based aiming strategy for flat receiver.
 import numpy as np
 from sys import path
 #from numpy import *
+import random
 
 def aiming_flat(folder,h_rec,l_rec,C_aiming,csv,tower_h,Exp):
 	"""Aiming strategy for a flat receiver
