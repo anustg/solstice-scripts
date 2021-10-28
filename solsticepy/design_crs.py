@@ -301,10 +301,13 @@ class CRS:
 			print('')			
 			print('Method 1')
 			self.Q_in_rcv=Q_in_des
+			self.Q_in_rcv_i=[] # the incident power on each aperture			
 			if self.receiver=='multi-aperture':
-				self.Q_in_rcv_i=[] # the incident power on each aperture
 				for ap in range(self.num_aperture):
 					self.Q_in_rcv_i.append(0.)
+			else:
+				self.Q_in_rcv_i.append(0.)
+						
 			power=0.
 			select_hst=np.array([])
 			if self.receiver=='multi-aperture-individual':
