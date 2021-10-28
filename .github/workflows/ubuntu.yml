@@ -55,7 +55,7 @@ jobs:
 
     - name: Install Solstice
       run: |
-        sudo apt install libpolyclipping-dev libtbb-dev libyaml-dev  libgomp1
+        sudo apt install build-essential libpolyclipping-dev libtbb-dev libyaml-dev  libgomp1
         export UBVER=`lsb_release -cs`
         export SOLSTICEURL="https://cloudstor.aarnet.edu.au/plus/s/TaoO6XnrGRiwoiC/download?path=%2F&files=solstice-0.9-x86_64-$UBVER.tar.gz"
         sudo tar zxv --strip-components=3 -C /usr/local < <(wget "$SOLSTICEURL" -q -O-)
