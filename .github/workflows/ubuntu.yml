@@ -45,8 +45,8 @@ jobs:
     - name: Show Python context
       run: |
         python3 -m pip list
-
-   - name: Lint with flake8
+        
+    - name: Lint with flake8
       run: |
         # stop the build if there are Python syntax errors or undefined names
         flake8 src/python --count --select=E9,F63,F7,F82 --show-source --statistics
