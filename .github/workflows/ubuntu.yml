@@ -1,0 +1,92 @@
+# This workflow will install Python dependencies, run tests and lint with a variety of Python versions
+# For more information see: https://help.github.com/actions/language-and-framework-guides/using-python-with-github-actions
+
+name: solsticepy Linux
+
+on:
+  workflow_dispatch:
+    #
+  push:
+    branches: [ $default-branch, master]
+  pull_request:
+    branches:  [ $default-branch, master]
+    #[ $default-branch, master-m ]
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-20.04, ubuntu-18.04]
+        include:
+          - os: ubuntu-20.04
+            python-version: 3.8
+          - os: ubuntu-18.04
+            python-version: 3.6
+
+    env:
+      PYTEST_ADDOPTS: --color=yes
+      
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Install Python dependencies
+      run: |
+        python3 -m pip install --upgrade pip 
+        python3 -m pip install numpy scipy matplotlib colorama uncertainties pytest flake8
+        # if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+    - name: Show Python context
+      run: |
+        python3 -m pip list
+
+   - name: Lint with flake8
+      run: |
+        # stop the build if there are Python syntax errors or undefined names
+        flake8 src/python --count --select=E9,F63,F7,F82 --show-source --statistics
+        # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
+        flake8 src/python --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics        
+
+    - name: Install Solstice
+      run: |
+        sudo apt install libpolyclipping-dev libtbb-dev libyaml-dev  libgomp1
+        export UBVER=`lsb_release -cs`
+        export SOLSTICEURL="https://cloudstor.aarnet.edu.au/plus/s/TaoO6XnrGRiwoiC/download?path=%2F&files=solstice-0.9-x86_64-$UBVER.tar.gz"
+        sudo tar zxv --strip-components=3 -C /usr/local < <(wget "$SOLSTICEURL" -q -O-)
+        echo "CHECK SOLSTICE DEPS"
+        export PATH=$PATH:/usr/local/bin
+        export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib
+        ldd `which solstice`
+        echo "CHECKING SOLSTICE RUNS..."
+        solstice --version
+        echo "-----"
+        echo "SOLSTICE VERSION:"
+        solstice --version
+
+
+    - name: Build SolarTherm
+      run: |
+        export PATH=$PATH:/usr/local/bin:~/.local/bin
+        export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib
+        export PYTHONPATH=$PYTHONPATH:/usr/local/share/dakota/Python
+        scons
+
+    - name: Install solsticepy
+      run: |
+        python3 -m pip install .
+
+            
+    - name: Test solsticepy
+      run: |
+        cd tests
+        python -m pytest
+
+
+
+# vim: ts=2:sw=2:et
