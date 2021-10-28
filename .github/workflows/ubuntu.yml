@@ -70,18 +70,11 @@ jobs:
         solstice --version
 
 
-    - name: Build SolarTherm
-      run: |
-        export PATH=$PATH:/usr/local/bin:~/.local/bin
-        export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib
-        export PYTHONPATH=$PYTHONPATH:/usr/local/share/dakota/Python
-        scons
-
     - name: Install solsticepy
       run: |
         python3 -m pip install .
 
-            
+        
     - name: Test solsticepy
       run: |
         cd tests
