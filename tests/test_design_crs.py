@@ -6,7 +6,7 @@ import unittest
 import solsticepy
 from solsticepy.design_crs import CRS
 from solsticepy.input import Parameters
-from solsticepy.output_motab import output_matadata_motab, output_motab, read_motab
+from solsticepy.output_motab import output_metadata_motab, output_motab, read_motab
 from solsticepy.process_raw import get_breakdown
 import os
 import numpy as np
@@ -59,7 +59,7 @@ class TestDesignCRS(unittest.TestCase):
 				self.tablefile=None
 			else:                                                
 				A_helio=pm.H_helio*pm.W_helio
-				output_matadata_motab(table=self.oelt, field_type=pm.field_type, aiming='single', n_helios=crs.n_helios, A_helio=A_helio, eff_design=crs.eff_des, eff_annual=crs.eff_annual, H_rcv=pm.H_rcv, W_rcv=pm.W_rcv, H_tower=pm.H_tower, Q_in_rcv=pm.Q_in_rcv, A_land=A_land, savedir=self.tablefile)
+				output_metadata_motab(table=self.oelt, field_type=pm.field_type, aiming='single', n_helios=crs.n_helios, A_helio=A_helio, eff_design=crs.eff_des, eff_annual=crs.eff_annual, H_rcv=pm.H_rcv, W_rcv=pm.W_rcv, H_tower=pm.H_tower, Q_in_rcv=pm.Q_in_rcv, A_land=A_land, savedir=self.tablefile)
 		#get_breakdown(self.casedir)
 
 		end=time.time()

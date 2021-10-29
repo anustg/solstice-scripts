@@ -15,7 +15,7 @@ from .cal_sun import *
 from .gen_yaml import gen_yaml, Sun
 from .gen_vtk import *
 from .input import Parameters
-from .output_motab import output_matadata_motab, output_motab
+from .output_motab import output_metadata_motab, output_motab
 from .master import *
 
 
@@ -653,7 +653,7 @@ if __name__=='__main__':
 		    tablefile=None
 		else:                                                
 		    A_helio=pm.H_helio*pm.W_helio
-		    output_matadata_motab(table=oelt, field_type=pm.field_type, aiming='single', n_helios=self.n_helios, A_helio=A_helio, eff_design=self.eff_des, H_rcv=pm.H_rcv, W_rcv=pm.W_rcv, H_tower=pm.H_tower, Q_in_rcv=pm.Q_in_rcv, A_land=A_land, savedir=tablefile)
+		    output_metadata_motab(table=oelt, field_type=pm.field_type, aiming='single', n_helios=self.n_helios, A_helio=A_helio, eff_design=self.eff_des, H_rcv=pm.H_rcv, W_rcv=pm.W_rcv, H_tower=pm.H_tower, Q_in_rcv=pm.Q_in_rcv, A_land=A_land, savedir=tablefile)
 
 
 	end=time.time()
