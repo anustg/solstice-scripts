@@ -28,8 +28,8 @@ class TestDesignCRS(unittest.TestCase):
 
 			pm=Parameters()
 			pm.Q_in_rcv=56e6
-			pm.n_row_oelt=5
-			pm.n_col_oelt=22
+			pm.n_row_oelt=3
+			pm.n_col_oelt=5
 			pm.H_tower=120.
 			pm.H_rcv=12.
 			pm.W_rcv=12.
@@ -49,7 +49,7 @@ class TestDesignCRS(unittest.TestCase):
 
 			crs.yaml(dni=900,sunshape=pm.sunshape,csr=pm.crs,half_angle_deg=pm.half_angle_deg,std_dev=pm.std_dev)
 
-			self.oelt, A_land=crs.field_design_annual(dni_des=900., num_rays=int(5e6), nd=pm.n_row_oelt, nh=pm.n_col_oelt, weafile=weafile, method=1, Q_in_des=pm.Q_in_rcv, n_helios=None, zipfiles=False, gen_vtk=False, plot=False)
+			self.oelt, A_land=crs.field_design_annual(dni_des=900., num_rays=int(1e6), nd=pm.n_row_oelt, nh=pm.n_col_oelt, weafile=weafile, method=1, Q_in_des=pm.Q_in_rcv, n_helios=None, zipfiles=False, gen_vtk=False, plot=False)
 
 			self.n_helios=crs.n_helios
 			self.eff_des=crs.eff_des
@@ -82,9 +82,9 @@ class TestDesignCRS(unittest.TestCase):
 		if os.path.exists(self.tablefile):
 			oelt_generated='successful'
 		self.assertEqual(oelt_generated,'successful')
-		self.assertTrue(abs(self.n_helios-740) < 5)
-		self.assertTrue(abs(self.eff_des-0.757) < 0.01)
-		self.assertTrue(abs(self.eff_annual-0.64) < 0.05)
+		self.assertTrue(abs(self.n_helios-741) < 5)
+		self.assertTrue(abs(self.eff_des-0.756) < 0.01)
+		self.assertTrue(abs(self.eff_annual-0.579) < 0.05)
 		#os.system('rm -rf %s'%self.casedir)
 
 if __name__ == '__main__':
