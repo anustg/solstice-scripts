@@ -209,7 +209,8 @@ class CRS:
 				# run solstice
 				if elevation<1.:
 					efficiency_total=0
-					performance_hst=np.zeros((nhst, 9))  
+					performance_hst=np.zeros((nhst, 9)) 
+					performance_hst[:,0]=1. 
 					efficiency_hst=np.zeros(nhst)
 				else:
 					efficiency_total, performance_hst=self.master.run(azimuth, elevation, num_rays, self.hst_rho, dni, folder=onesunfolder, gen_vtk=gen_vtk, printresult=False, verbose=self.verb, system=system)
@@ -276,6 +277,7 @@ class CRS:
 
 		sys.stderr.write("\n"+green('Design Point: \n'))		
 		efficiency_total, performance_hst_des=self.master.run(azi_des, ele_des, num_rays, self.hst_rho, dni_des, folder=designfolder, gen_vtk=gen_vtk, printresult=False, verbose=self.verb, system=system)
+		sys.stderr.write(yellow("Total efficiency: {:f}\n".format(efficiency_total)))
 		
 		#res=np.loadtxt(designfolder+'/result-formatted.csv', dtype=str, delimiter=',')
 		#res_hst=np.loadtxt(designfolder+'/heliostats-raw.csv', dtype=str, delimiter=',')
