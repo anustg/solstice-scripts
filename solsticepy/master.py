@@ -24,12 +24,12 @@ def run_prog(name,args,output_file=None,verbose=True):
 		sys.stderr.write("Running '%s' with args: %s\n" % (name," ".join(args1)))
 	if output_file is not None:
 		# any error will cause an exception (and we capture the output to a file)
-		res = subprocess.check_output([prog]+args1, shell=True)
+		res = subprocess.run([prog]+args1,check=True,stdout=subprocess.PIPE)
 		with open(output_file,'w') as f:
 			f.write(res.decode('ascii'))
 	else:
 		# any error will cause an exception...
-		subprocess.check_call([prog]+args1, shell=True)
+		subprocess.run([prog]+args1,check=True)
 
 class Master:
 
