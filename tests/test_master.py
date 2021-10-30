@@ -12,7 +12,7 @@ import numpy as np
 class TestMaster(unittest.TestCase):
 	def setUp(self):
 
-		self.casedir='./test_master'
+		self.casedir='./test-master'
 
 		DNI = 1000 # W/m2
 		sunshape = 'pillbox'
