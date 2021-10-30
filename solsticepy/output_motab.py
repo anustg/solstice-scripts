@@ -277,7 +277,7 @@ def read_motab(filename, multi_aperture=False):
 		content=f.read().splitlines()
 	f.close()
 	res=content[4].split(',')
-
+	nr=0
 	if multi_aperture:
 
 		eff_des=float(res[1])
@@ -308,17 +308,17 @@ def read_motab(filename, multi_aperture=False):
 			solar_hour=np.array([])
 			declination=np.array([])
 
-			t=re.findall("[-+]?\d*\.\d+|\d+", content[6+i*8])
+			t=re.findall("[-+]?\d*\.\d+|\d+", content[6+i*(nr+3)])
 
 			nr=int(t[-2])-1
 			nc=int(t[-1])-1
 
-			t=content[7+i*8].split(' ')
+			t=content[7+i*(nr+3)].split(' ')
 
 			for v in t[1:]:
 				solar_hour=np.append(solar_hour, float(v))
 
-			for t in content[8+i*8: 8+nr+i*8]:
+			for t in content[8+i*(nr+3): 8+nr+i*(nr+3)]:
 				v=t.split(' ')
 				declination=np.append(declination, float(v[0]))
 				oelt=np.append(oelt, np.array(v[1:],dtype=float))
