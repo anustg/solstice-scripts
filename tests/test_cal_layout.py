@@ -4,6 +4,7 @@ from __future__ import division
 import unittest
 
 from solsticepy.cal_layout import *
+from solsticepy.design_multi_aperture import MultiApertureConfiguration
 import os
 import numpy as np
 
@@ -15,6 +16,7 @@ class TestLayout(unittest.TestCase):
 		self.height=10.
 		self.hst_z=5., 
 		self.towerheight=250.
+		self.towerdiameter=30.
 		self.R1=80.
 		self.fb=0.6
 		self.dsep=0.
@@ -34,6 +36,8 @@ class TestLayout(unittest.TestCase):
 		num_aperture=3
 		ang_rang=180.
 		rec_w=[12., 12., 12.]
+		mac=MultiApertureConfiguration(n=num_aperture, gamma=ang_rang, H_tower=self.towerheight, R_tower=self.towerdiameter/2., W_rcv=rec_w, H_rcv=rec_w, parallel=False)
+		
 		rec_z=[self.towerheight, self.towerheight, self.towerheight]
 		pos_and_aim, Nzones, Nrows_zone=radial_stagger(
 				latitude=self.latitude, 
@@ -46,10 +50,7 @@ class TestLayout(unittest.TestCase):
 				fb=self.fb, 
 				dsep=self.dsep, 
 				field=field, 
-				num_aperture=num_aperture, 
-				gamma=ang_rang, 
-				rec_w=rec_w, 
-				rec_z=rec_z,
+				mac=mac,
 				savedir=self.savedir, 
 				verbose=False,
 				plot=self.plot,

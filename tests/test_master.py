@@ -35,11 +35,12 @@ class TestMaster(unittest.TestCase):
 		tower_h=80. # tower height
 		tower_r=0.01 # tower radius
 
-		field, Nzones, Nrows_zone=radial_stagger(latitude=latitude, num_hst=1000, width=hst_w, height=hst_h, hst_z=3., towerheight=tower_h, R1=50., fb=0.5, dsep=0., field='polar', savedir=self.casedir, plot=False, verbose=False)
-		hst_pos=field[2:,:3]
-		hst_foc=field[2:,3] 
-		hst_aims=field[2:,4:]
-
+		pos_and_aiming, Nzones, Nrows_zone=radial_stagger(latitude=latitude, num_hst=1000, width=hst_w, height=hst_h, hst_z=3., towerheight=tower_h, R1=50., fb=0.5, dsep=0., field='polar', savedir=self.casedir, plot=False, verbose=False)
+		hst_pos=pos_and_aiming[2:,:3]
+		hst_foc=pos_and_aiming[2:,3] 
+		hst_aims=pos_and_aiming[2:,4:7]
+		hst_aim_idx=pos_and_aiming[2:,7]
+			
 		#
 		# the receiver
 		# ============
@@ -73,10 +74,10 @@ class TestMaster(unittest.TestCase):
 
 		self.eta, self.performance_hst=master.run(azimuth, elevation, num_rays, rho_refl,sun.dni, folder=self.casedir+'/test_run', gen_vtk=False, verbose=False)
 
-		self.table, self.ANNUAL=master.run_annual(nd=5, nh=5, latitude=latitude, num_rays=num_rays, num_hst=len(hst_pos),rho_mirror=rho_refl, dni=DNI, verbose=False)
+		self.table, self.ANNUAL=master.run_annual(nd=5, nh=5, latitude=latitude, num_rays=num_rays, num_hst=len(hst_pos),rho_mirror=rho_refl, dni=DNI, hst_aim_idx=hst_aim_idx,verbose=False)
 
 	def test_touching(self):
-		self.assertEqual(round(self.eta.n, 2), 0.47)
+		self.assertTrue(abs(self.eta.n-0.459)/0.459< 0.01)
 		#os.system('rm -rf '+self.casedir)
 
 

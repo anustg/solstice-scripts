@@ -18,7 +18,7 @@ class TestMultiApertureConfiguration(unittest.TestCase):
 		self.w_rcv=10.
 		self.h_rcv=10.
 		self.H_tower=200.
-		
+		self.R_tower=15.
 
 	def test_3_apertures(self):
 		n=3
@@ -35,11 +35,11 @@ class TestMultiApertureConfiguration(unittest.TestCase):
 						[0.,   90., 180.],
 						[-90., 30., 150.]])
 		LV=np.r_[1, 3, 2]
-		Z=np.r_[200., 190., 180.]
+		Z=np.r_[200., 180., 190.]
 
 		for j in range(len(gamma)):
 			g=gamma[j]
-			MAC=MultiApertureConfiguration(n, g, self.H_tower, W_rcv, H_rcv)
+			MAC=MultiApertureConfiguration(n, g, self.H_tower, self.R_tower, W_rcv, H_rcv)
 			for i in range(n):
 				omega_i=MAC.get_angular_pos(i)
 				xi, yi, zi=MAC.get_cood_pos(i)
@@ -79,11 +79,11 @@ class TestMultiApertureConfiguration(unittest.TestCase):
 						[-90., -30., 30.,  90.,   150.,  210., ]])
 
 		LV=np.r_[1, 3, 5, 6, 4, 2]
-		Z=np.r_[200., 190., 179., 167., 153.5, 138.5]
+		Z=np.r_[200., 179., 153.5, 138.5, 167., 190.]
 
 		for j in range(len(gamma)):
 			g=gamma[j]
-			MAC=MultiApertureConfiguration(n, g, self.H_tower, W_rcv, H_rcv)
+			MAC=MultiApertureConfiguration(n, g, self.H_tower, self.R_tower, W_rcv, H_rcv)
 			for i in range(n):
 				omega_i=MAC.get_angular_pos(i)
 				xi, yi, zi=MAC.get_cood_pos(i)
