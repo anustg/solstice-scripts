@@ -1,6 +1,6 @@
 import numpy as np
 #from tracer.models.heliostat_field import solar_vector
-#import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 from scipy.spatial import Delaunay
 from .gen_vtk import gen_vtk
 
@@ -281,8 +281,7 @@ class FieldPF:
 		plt.colorbar(cs)
 		nv=(self.view>=1.5)
 		plt.scatter(x[nv], y[nv], c='gray')
-		plt.title('Receiver view \n tilt %s deg'%pm )
-		#plt.title('Receiver view \n Tower height %s m'%pm )
+		plt.title('Receiver view \n tilt %s deg'%tilt)
 		plt.savefig(open(savename, 'w'),dpi=500, bbox_inches='tight')
 		plt.close()	
        

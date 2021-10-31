@@ -6,7 +6,7 @@ import unittest
 import solsticepy
 from solsticepy.design_crs import CRS
 from solsticepy.input import Parameters
-from solsticepy.output_motab import output_matadata_motab_multi_aperture, read_motab
+from solsticepy.output_motab import output_metadata_motab_multi_aperture, read_motab
 from solsticepy.design_multi_aperture import MultiApertureConfiguration
 import os
 import numpy as np
@@ -71,7 +71,7 @@ class TestMultiAperture(unittest.TestCase):
 			else:                                                
 				A_helio=pm.H_helio*pm.W_helio
 
-				output_matadata_motab_multi_aperture(
+				output_metadata_motab_multi_aperture(
 							TABLE=self.oelt, 
 							eff_design = crs.eff_des,
 							eff_annual = crs.eff_annual,

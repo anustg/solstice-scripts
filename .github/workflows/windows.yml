@@ -1,0 +1,63 @@
+# This workflow will install Python dependencies, run tests and lint with a variety of Python versions
+# For more information see: https://help.github.com/actions/language-and-framework-guides/using-python-with-github-actions
+
+name: solsticepy msys2
+
+on:
+  workflow_dispatch:
+    branches: [ $default-branch, master]
+  push:
+
+    branches: [ $default-branch, master]
+
+  pull_request:
+    branches:  [ $default-branch, master]
+
+jobs:
+  build:
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+
+    defaults:
+      run:
+        shell: msys2 {0}
+
+    env:
+      PYTEST_ADDOPTS: --color=yes
+
+    steps:
+    - uses: msys2/setup-msys2@v2
+      with:
+        update: true
+        install: >-
+          mingw-w64-x86_64-python
+          mingw-w64-x86_64-python-pip
+          mingw-w64-x86_64-python-numpy
+          mingw-w64-x86_64-python-scipy
+          mingw-w64-x86_64-python-matplotlib
+
+    - uses: actions/checkout@v2
+
+    - name: Install Python dependencies
+      run: |
+        echo "WHICH PYTHON =" `which python`
+        python3 -m pip install uncertainties colorama pytest
+
+
+    - name: Install Solstice
+      run: |
+        wget https://github.com/anustg/solstice-scripts/releases/download/v0.9.0-3/solstice-0.9.0.exe
+        cmd /C "start solstice-0.9.0.exe /S"
+        python3 -c "import solsticepy;print(solsticepy.find_prog('solstice'))"
+
+    - name: Install solsticepy
+      run: |
+        python3 -m pip install .
+
+    - name: Test solsticepy
+      run: |
+        cd tests
+        python -m pytest
+
+# vim: ts=2:sw=2:et

@@ -15,7 +15,7 @@ from .cal_sun import *
 from .gen_yaml import gen_yaml, Sun
 from .gen_vtk import *
 from .input import Parameters
-from .output_motab import output_matadata_motab, output_motab
+from .output_motab import output_metadata_motab, output_motab
 from .master import *
 
 
@@ -206,7 +206,8 @@ class CRS:
 				# run solstice
 				if elevation<1.:
 					efficiency_total=0
-					performance_hst=np.zeros((nhst, 9))  
+					performance_hst=np.zeros((nhst, 9)) 
+					performance_hst[:,0]=1. 
 					efficiency_hst=np.zeros(nhst)
 				else:
 					efficiency_total, performance_hst=self.master.run(azimuth, elevation, num_rays, self.hst_rho, dni, folder=onesunfolder, gen_vtk=gen_vtk, printresult=False, verbose=self.verb, system=system)
@@ -273,6 +274,7 @@ class CRS:
 
 		sys.stderr.write("\n"+green('Design Point: \n'))		
 		efficiency_total, performance_hst_des=self.master.run(azi_des, ele_des, num_rays, self.hst_rho, dni_des, folder=designfolder, gen_vtk=gen_vtk, printresult=False, verbose=self.verb, system=system)
+		sys.stderr.write(yellow("Total efficiency: {:f}\n".format(efficiency_total)))
 		
 		#res=np.loadtxt(designfolder+'/result-formatted.csv', dtype=str, delimiter=',')
 		#res_hst=np.loadtxt(designfolder+'/heliostats-raw.csv', dtype=str, delimiter=',')
@@ -299,6 +301,14 @@ class CRS:
 			print('')			
 			print('Method 1')
 			self.Q_in_rcv=Q_in_des
+
+			self.Q_in_rcv_i=[] # the incident power on each aperture			
+			if self.receiver=='multi-aperture':
+				for ap in range(self.num_aperture):
+					self.Q_in_rcv_i.append(0.)
+			else:
+				self.Q_in_rcv_i.append(0.)
+
 			power=0.
 			select_hst=np.array([])
 			if self.receiver=='multi-aperture-individual':
@@ -749,7 +759,7 @@ if __name__=='__main__':
 		    tablefile=None
 		else:                                                
 		    A_helio=pm.H_helio*pm.W_helio
-		    output_matadata_motab(table=oelt, field_type=pm.field_type, aiming='single', n_helios=self.n_helios, A_helio=A_helio, eff_design=self.eff_des, H_rcv=pm.H_rcv, W_rcv=pm.W_rcv, H_tower=pm.H_tower, Q_in_rcv=pm.Q_in_rcv, A_land=A_land, savedir=tablefile)
+		    output_metadata_motab(table=oelt, field_type=pm.field_type, aiming='single', n_helios=self.n_helios, A_helio=A_helio, eff_design=self.eff_des, H_rcv=pm.H_rcv, W_rcv=pm.W_rcv, H_tower=pm.H_tower, Q_in_rcv=pm.Q_in_rcv, A_land=A_land, savedir=tablefile)
 
 
 	end=time.time()

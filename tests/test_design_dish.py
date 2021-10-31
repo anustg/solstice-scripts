@@ -5,7 +5,7 @@ import unittest
 
 import solsticepy
 from solsticepy.design_dish import Dish
-from solsticepy.output_motab import output_matadata_motab, output_motab, read_motab
+from solsticepy.output_motab import output_metadata_motab, output_motab, read_motab
 import os
 import numpy as np
 import time

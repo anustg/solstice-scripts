@@ -56,7 +56,7 @@ def output_motab(table,savedir=None, title=None):
 	f.close()
 
 
-def output_matadata_motab(table, field_type, aiming, n_helios, A_helio, eff_design, eff_annual, H_rcv, W_rcv, H_tower, Q_in_rcv, A_land, savedir=None, details_en=None):
+def output_metadata_motab(table, field_type, aiming, n_helios, A_helio, eff_design, eff_annual, H_rcv, W_rcv, H_tower, Q_in_rcv, A_land, savedir=None, details_en=None):
 	"""Output the .motab file to work with the SolarTherm program
 
 	``Arguments``
@@ -124,7 +124,7 @@ def output_matadata_motab(table, field_type, aiming, n_helios, A_helio, eff_desi
 
 
 
-def output_matadata_motab_multi_aperture(TABLE, eff_design, eff_annual, A_land, H_tower, A_helio, n_helios_total, Q_in_rcv_total, num_aperture, Q_in_rcv, n_helios, H_rcv, W_rcv, Z_rcv, mac, savedir=None):
+def output_metadata_motab_multi_aperture(TABLE, eff_design, eff_annual, A_land, H_tower, A_helio, n_helios_total, Q_in_rcv_total, num_aperture, Q_in_rcv, n_helios, H_rcv, W_rcv, Z_rcv, mac, savedir=None):
 	"""Output the .motab file to work with the SolarTherm program
 
 	``Arguments``
@@ -277,6 +277,7 @@ def read_motab(filename, multi_aperture=False):
 		content=f.read().splitlines()
 	f.close()
 	res=content[4].split(',')
+
 	nr=0
 	if multi_aperture:
 
