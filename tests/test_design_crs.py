@@ -28,7 +28,7 @@ class TestDesignCRS(unittest.TestCase):
 
 			pm=Parameters()
 			pm.Q_in_rcv=56e6
-
+			pm.n_row_oelt=3
 			pm.n_col_oelt=4
 			pm.H_tower=120.
 			pm.H_rcv=12.

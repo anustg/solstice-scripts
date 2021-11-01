@@ -140,9 +140,9 @@ class MultiApertureConfiguration:
 
 	def get_pair_idx(self, i):
 		if self.mode=='even':
-			assert i<=(n/2-1), "i must lower than %s"%(n/2-1)
+			assert i<=(self.n/2-1), "i must lower than %s"%(self.n/2-1)
 		elif self.mode=='odd':
-			assert i<=((n-1)/2), "i must lower than %s"%((n-1)/2)
+			assert i<=((self.n-1)/2), "i must lower than %s"%((self.n-1)/2)
 		return -i-1
 
 	def get_cood_pos(self, i):
