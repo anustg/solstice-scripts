@@ -442,7 +442,7 @@ class BD:
 		A_land=(Xmax-Xmin)*(Ymax-Ymin)
 		print('land area', A_land)
 
-		np.savetxt(self.casedir+'/lookup_table.csv', oelt, fmt='%s', delimiter=',')
+		#np.savetxt(self.casedir+'/lookup_table.csv', oelt, fmt='%s', delimiter=',')
 
 		designfolder=self.casedir+'/des_point'
 		day=self.sun.days(21, 'Mar')
