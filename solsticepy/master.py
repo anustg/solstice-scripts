@@ -143,7 +143,6 @@ class Master:
 		  * dni (float): the direct normal irradiance (W/m2), required to obtain performance of individual heliostat
 		  * gen_vtk (bool): True - perform postprocessing for visualisation of  each individual ray-tracing scene (each sun position), False - no postprocessing for visualisation
 
-
 		``Return``
 
 		  * No return value (results files are created and written)
@@ -153,7 +152,7 @@ class Master:
 		RECV_IN = self.in_case(self.casedir, 'input-rcv.yaml')
 
 		sun=SunPosition()
-		AZI, ZENITH,table,case_list=sun.annual_angles(latitude, casefolder=self.casedir, nd=nd, nh=nh)
+		AZI, ZENITH, table, case_list=sun.annual_angles(latitude, casefolder=self.casedir, nd=nd, nh=nh)
 		case_list=case_list[1:]
 		SOLSTICE_AZI, SOLSTICE_ELE=sun.convert_convention('solstice', AZI, ZENITH)
 

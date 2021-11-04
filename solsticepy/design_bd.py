@@ -66,7 +66,7 @@ class BD:
 		return cpc_h
 
 	def receiversystem(self, receiver, rec_abs=1., rec_w=1.2, rec_l=10., rec_z=0., rec_grid=200, cpc_nfaces=4, cpc_theta_deg=20., cpc_h_ratio=1.,
-	cpc_nZ=20., rim_angle_x=45., rim_angle_y=None, aim_z=62., secref_inv_eccen=0.67, secref_angle_deg=0., rho_secref=0.95, rho_cpc=0.95, slope_error=0.0, ):
+	cpc_nZ=20., rim_angle_x=45., rim_angle_y=None, aim_z=62., secref_inv_eccen=0.67, tilt_secref=0., rho_secref=0.95, rho_cpc=0.95, slope_error=0.0, ):
 		'''
 		Variables:
 		- cpc_theta_deg
@@ -93,7 +93,7 @@ class BD:
 		    # If rim_angle_y is none, the hyperboloid is clipped with a circle instead of a polygon.
 		    (13) aim_z   : float, z (vertical) location of the heliostats' aiming point (m)
 		    (14) secref_inv_eccen    : float, hyperboloid inverse eccentricity: ratio of the apex distance over the foci distance to the origin, must be between 0 and 1
-		    (15) secref_angle_deg    : float, angle of the tilted axis of the hyperboloid, from the vertical to the North (+) or South (-), [-180,180]
+		    (15) tilt_secref    : float, angle (in degree) of the tilted axis of the hyperboloid, from the vertical to the North (+) or South (-), [-180,180]
 		    (16) rho_secref	: float, secondary mirror and CPC reflectivity property, e.g. 0.95
 		    (17) rho_cpc	: float, CPC reflectivity property, e.g. 0.95
 		    (18) slope_error	: float, slope error of secondary mirror and CPC reflectivity (?)
@@ -103,16 +103,16 @@ class BD:
 
 		# Aiming point
 		cpc_height = self.CPCmaxheight(rec_w, rec_l, cpc_nfaces, cpc_theta_deg) * cpc_h_ratio
-		self.aim_y = (aim_z - (rec_z+cpc_height)) * np.tan(secref_angle_deg * np.pi/180.)
+		self.aim_y = (aim_z - (rec_z+cpc_height)) * np.tan(tilt_secref * np.pi/180.)
 
 		# Maximum radius of field along the axis
 		if rim_angle_y is None:
 			rim_angle_y = rim_angle_x
-		self.y_max = self.maximumfieldradius(aim_z, rim_angle_y-secref_angle_deg) + self.aim_y
-		self.y_min = - self.maximumfieldradius(aim_z, rim_angle_y+secref_angle_deg) - self.aim_y
+		self.y_max = self.maximumfieldradius(aim_z, rim_angle_y-tilt_secref) + self.aim_y
+		self.y_min = - self.maximumfieldradius(aim_z, rim_angle_y+tilt_secref) - self.aim_y
 		self.x_max = self.maximumfieldradius(aim_z, rim_angle_x)
 
-		self.rec_param=np.array([rec_w, rec_l, rec_z, rec_grid, cpc_nfaces, cpc_theta_deg, cpc_h_ratio, cpc_nZ, aim_z, secref_inv_eccen, secref_angle_deg, rho_secref, rho_cpc, slope_error, np.array([rim_angle_x,rim_angle_y])])
+		self.rec_param=np.array([rec_w, rec_l, rec_z, rec_grid, cpc_nfaces, cpc_theta_deg, cpc_h_ratio, cpc_nZ, aim_z, secref_inv_eccen, tilt_secref, rho_secref, rho_cpc, slope_error, np.array([rim_angle_x,rim_angle_y])])
 
 	def heliostatfield(self, field, hst_rho, slope, hst_w, hst_h, tower_h, hst_z=0., num_hst=0., tower_r=0.01, R1=0., fb=0., dsep=0., x_max=-1.0, y_max=-1.0):
 
@@ -204,7 +204,7 @@ class BD:
 		self.hst_foc=layout[:,3].astype(float)
 		self.hst_aims=layout[:,4:7].astype(float)
 
-		np.savetxt(self.casedir+'/trimmed_field.csv', self.hst_pos, fmt='%s', delimiter=',')
+		#np.savetxt(self.casedir+'/trimmed_field.csv', self.hst_pos, fmt='%s', delimiter=',')
 
 	def yaml(self, dni=1000,sunshape=None,csr=0.01,half_angle_deg=0.2664,std_dev=0.2):
 		'''
@@ -233,7 +233,6 @@ class BD:
 		'''
 		Design a field according to the ranked annual performance of heliostats
 		(DNI weighted)
-
 		'''
 		print('')
 		print('Start field design')
@@ -300,7 +299,6 @@ class BD:
 					efficiency_total, performance_hst=self.master.run(azimuth, elevation, num_rays, self.hst_rho, dni, folder=onesunfolder, gen_vtk=gen_vtk, printresult=False, system='beamdown')
 
 					efficiency_hst=performance_hst[:,-1]/performance_hst[:,0]
-
 
 				hst_annual[c]=performance_hst
 				sys.stderr.write(yellow("Total efficiency: {:f}\n".format(efficiency_total)))
@@ -425,7 +423,7 @@ class BD:
 			            if c==float(val[0]):
 			                oelt[a+3,b+3]=eff
 
-		np.savetxt(self.casedir+'/lookup_table.csv', oelt, fmt='%s', delimiter=',')
+		#np.savetxt(self.casedir+'/lookup_table.csv', oelt, fmt='%s', delimiter=',')
 
 		return oelt, A_land
 
@@ -435,7 +433,7 @@ class BD:
 		Annual performance of a known field
 		'''
 		self.n_helios=len(self.hst_pos)
-		oelt, ANNUAL=self.master.run_annual(nd=nd, nh=nh, latitude=self.latitude, num_rays=num_rays, num_hst=self.n_helios, rho_mirror=self.hst_rho, dni=dni_des, system='beamdown')
+		oelt, ANNUAL=self.master.run_annual(nd=nd, nh=nh, latitude=self.latitude, num_rays=num_rays, num_hst=self.n_helios, rho_mirror=self.hst_rho, dni=dni_des, gen_vtk=gen_vtk, system='beamdown')
 
 		Xmax=max(self.hst_pos[:,0])
 		Xmin=min(self.hst_pos[:,0])
@@ -575,7 +573,7 @@ if __name__=='__main__':
 		print(pm.fb)
 		print(pm.H_tower)
 		pm.secref_inv_eccen=0.72
-		pm.secref_angle_deg=12.
+		pm.tilt_secref=12.
 		bd=BD(latitude=pm.lat, casedir=casedir)
 		weafile='./demo_TMY3_weather.motab'
 
@@ -595,7 +593,7 @@ if __name__=='__main__':
 		slope_error = 0.0
 
 
-		bd.receiversystem(receiver='beam_down', rec_abs=float(pm.alpha_rcv), rec_w=float(rec_w), rec_l=float(rec_l), rec_z=float(rec_z), rec_grid=int(rec_grid), cpc_nfaces=int(n_CPC_faces), cpc_theta_deg=float(theta_deg), cpc_h_ratio=None, cpc_nZ=float(n_Z), rim_angle_x=float(xrim_angle), rim_angle_y=float(yrim_angle), aim_z=float(pm.H_tower), secref_inv_eccen=float(pm.secref_inv_eccen), secref_angle_deg=float(pm.secref_angle_deg), rho_secref=float(rho_bd), rho_cpc=float(rho_bd), slope_error=float(slope_error))
+		bd.receiversystem(receiver='beam_down', rec_abs=float(pm.alpha_rcv), rec_w=float(rec_w), rec_l=float(rec_l), rec_z=float(rec_z), rec_grid=int(rec_grid), cpc_nfaces=int(n_CPC_faces), cpc_theta_deg=float(theta_deg), cpc_h_ratio=None, cpc_nZ=float(n_Z), rim_angle_x=float(xrim_angle), rim_angle_y=float(yrim_angle), aim_z=float(pm.H_tower), secref_inv_eccen=float(pm.secref_inv_eccen), tilt_secref=float(pm.tilt_secref), rho_secref=float(rho_bd), rho_cpc=float(rho_bd), slope_error=float(slope_error))
 
 		bd.heliostatfield(field='surround', hst_rho=pm.rho_helio, slope=pm.slope_error, hst_w=pm.W_helio, hst_h=pm.H_helio, tower_h=pm.H_tower, hst_z=pm.Z_helio, num_hst=num_hst, tower_r=pm.R_tower, R1=pm.R1, fb=pm.fb, dsep=pm.dsep, x_max=150., y_max=150.)
 

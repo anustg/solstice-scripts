@@ -187,7 +187,7 @@ class CPC:
             self.cpc_nZ=int(rec_param[7])
             self.aim_z=rec_param[8]
             secref_inv_eccen=rec_param[9]
-            self.secref_angle_deg=rec_param[10]
+            self.tilt_secref=rec_param[10]
             self.rho_secref=rec_param[11]
             self.rho_cpc=rec_param[12]
             self.slope_error=rec_param[13]
@@ -223,6 +223,8 @@ class CPC:
             self.h_CPC = self.rec_radius*(1 + 1/np.sin(self.theta)) / np.tan(self.theta)
             self.h_CPC *= cpc_h_ratio
 
+            print('Heigth of the CPC: ', self.h_CPC)
+
 
         def secrefparameters(self, secref_inv_eccen):
             '''
@@ -230,7 +232,7 @@ class CPC:
             focal image: distance between hyperbola apex and aiming point of heliostats
             focal real: distance between hyperbola apex and aiming point of secondary reflector (aperture of the CPC)
             '''
-            secref_angle = self.secref_angle_deg * np.pi/180.
+            secref_angle = self.tilt_secref * np.pi/180.
             real_foci_z = (self.h_CPC+self.rec_z)
 
             assert self.aim_z > real_foci_z, 'The imaginary foci of the hyperbol is lower than its real foci'
@@ -333,7 +335,7 @@ class CPC:
                 # Secondary Reflector (hyperboloid)
                 (9) aim_z   : float, z (vertical) location of the heliostats' aiming point (m)
                 (10) secref_inv_eccen    : float, hyperboloid inverse eccentricity: ratio of the apex distance over the foci distance to the origin, must be between 0 and 1
-                (11) secref_angle_deg    : float, angle of the tilted axis of the hyperboloid, from the vertical to the North (+) or South (-), [-180,180]
+                (11) tilt_secref    : float, angle (in degree) of the tilted axis of the hyperboloid, from the vertical to the North (+) or South (-), [-180,180]
                 (12) rho_secref	: float, secondary mirror reflectivity property, [0,1]
                 (13) rho_cpc	: float, CPC reflectivity property, [0,1]
                 (14) slope_error	: float, slope error of secondary mirror and CPC refelctivity (?)
@@ -405,7 +407,7 @@ class CPC:
             iyaml+='- entity:\n'
             iyaml+='    name: %s\n' % 'secondary_reflector'
             iyaml+='    primary: 0\n'
-            iyaml+='    transform: { translation: %s, rotation: %s }\n' % ([0, self.secref_y, self.secref_z], [-self.secref_angle_deg, 0., 0.])
+            iyaml+='    transform: { translation: %s, rotation: %s }\n' % ([0, self.secref_y, self.secref_z], [-self.tilt_secref, 0., 0.])
             iyaml+='    geometry:\n'
             iyaml+='    - material: *%s\n' % 'material_sec_mirror'
             iyaml+='      hyperbol:\n'
@@ -508,13 +510,13 @@ if __name__=='__main__':
         n_Z=20
         aim_z = 30.
         secref_inv_eccen = 0.72
-        secref_angle_deg = 20.
+        tilt_secref = 20.
         rho_bd = 1. # front
         slope_error = 0.
         secref_vert = np.array([[-15,25],[-15,-10],[15,-10],[15,25]])
 
         bd_param=np.array([rec_w, rec_l, rec_z, rec_grid, n_CPC_faces, theta_deg, cpc_h_ratio, n_Z, aim_z,
-        secref_inv_eccen, secref_angle_deg, rho_bd, rho_bd, slope_error, secref_vert])
+        secref_inv_eccen, tilt_secref, rho_bd, rho_bd, slope_error, secref_vert])
 
         cpc=CPC()
         cpc.beamdowncomponents(bd_param)
