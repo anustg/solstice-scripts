@@ -209,8 +209,8 @@ class Master:
 			run=np.append(run,c)
 
 		ANNUAL=np.vstack((annual_title, ANNUAL))
-		np.savetxt(self.casedir+'/lookup_table.csv', table, fmt='%s', delimiter=',')
-		np.savetxt(self.casedir+'/result-heliostats-annual-performance.csv', ANNUAL, fmt='%s', delimiter=',')
-		sys.stderr.write("\n"+green("Lookup table saved.\n"))
+		#np.savetxt(self.casedir+'/lookup_table.csv', table, fmt='%s', delimiter=',')
+		#np.savetxt(self.casedir+'/result-heliostats-annual-performance.csv', ANNUAL, fmt='%s', delimiter=',')
+		#sys.stderr.write("\n"+green("Lookup table saved.\n"))
 		sys.stderr.write(green("Completed successfully.\n"+"\n"))
 		return table, ANNUAL
