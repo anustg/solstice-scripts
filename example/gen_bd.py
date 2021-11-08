@@ -4,6 +4,7 @@
 #
 import solsticepy
 from solsticepy.design_bd import *
+from solsticepy.gen_vtk import read_vtk_annual
 import numpy as np
 import os
 from glob import glob

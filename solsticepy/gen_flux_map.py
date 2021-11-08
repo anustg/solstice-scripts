@@ -157,6 +157,8 @@ def genfluxmap(points, indices, data):
 	# title = np.array(['X (m)', 'Y (m)', 'flux (W/m2)'])
 	# flux_map_2D = np.vstack((title, flux_map_2D))
 
+	flux_map_1D = np.hstack((len(flux_map_1D), flux_map_1D))
+
 	return flux_map_2D, flux_map_1D
 
 def trianglearea(vertices):
