@@ -53,7 +53,7 @@ def find_prog(name,version_required=None):
 
 	  * path (str): path of the required Solstice executable program
 	"""
-	
+
 	if platform.system()=="Windows":
 		path = os.path.join(find_solstice_root(version_required),"bin","%s.exe"%(name,));
 		if not os.path.exists(path):
@@ -62,10 +62,9 @@ def find_prog(name,version_required=None):
 	else:
 		# assume all solstice programs are on the PATH
 		import subprocess
-		DEVNULL = open(os.devnull, 'wb')
-		rc = subprocess.call(['which',name],stdout=DEVNULL)
-		DEVNULL.close()
-		if rc:
+		with open(os.devnull, 'wb') as DEVNULL:
+			proc = subprocess.run(['which',name],stdout=DEVNULL)
+		if proc.returncode:
 			raise RuntimeError("Program '%s' was not found in the PATH" %(name))
 		return name
 
@@ -78,15 +77,14 @@ if __name__=="__main__":
 	spath = os.path.join(dirn,"bin","solstice.exe")
 
 	# check that installed version of solstice is 0.9.0:
-	ret = subprocess.check_output([spath,"--version"])
-	assert ret.decode('ascii').strip() == "Solstice 0.9.0"
+	proc = subprocess.run([spath,"--version"],encoding='utf-8',stdout=subprocess.PIPE)
+	assert proc.stdout.strip() == "Solstice 0.9.0"
 
 	# output the help text from solstice:
-	subprocess.check_call([spath,"-h"])
+	subprocess.run([spath,"-h"])
 
 # you should see the 'solstice -help' output shown in your console.
 
-# checked with Python 2.7 32-bit on Windows 7 
+# checked with Python 2.7 32-bit on Windows 7
 # checked with Python 3.8.2 32-bit on Windows 10
 # checked with Python 3.8.2 64-bit on Windows 10
-

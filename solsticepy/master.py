@@ -24,12 +24,12 @@ def run_prog(name,args,output_file=None,verbose=True):
 		sys.stderr.write("Running '%s' with args: %s\n" % (name," ".join(args1)))
 	if output_file is not None:
 		# any error will cause an exception (and we capture the output to a file)
-		res = subprocess.check_output([prog]+args1)
+		res = subprocess.run([prog]+args1,check=True,stdout=subprocess.PIPE)
 		with open(output_file,'w') as f:
 			f.write(res.decode('ascii'))
 	else:
 		# any error will cause an exception...
-		subprocess.check_call([prog]+args1)
+		subprocess.run([prog]+args1,check=True)
 
 class Master:
 
@@ -209,8 +209,8 @@ class Master:
 			run=np.append(run,c)
 
 		ANNUAL=np.vstack((annual_title, ANNUAL))
-		#np.savetxt(self.casedir+'/lookup_table.csv', table, fmt='%s', delimiter=',')
-		#np.savetxt(self.casedir+'/result-heliostats-annual-performance.csv', ANNUAL, fmt='%s', delimiter=',')
-		#sys.stderr.write("\n"+green("Lookup table saved.\n"))
+		np.savetxt(self.casedir+'/lookup_table.csv', table, fmt='%s', delimiter=',')
+		np.savetxt(self.casedir+'/result-heliostats-annual-performance.csv', ANNUAL, fmt='%s', delimiter=',')
+		sys.stderr.write("\n"+green("Lookup table saved.\n"))
 		sys.stderr.write(green("Completed successfully.\n"+"\n"))
 		return table, ANNUAL
