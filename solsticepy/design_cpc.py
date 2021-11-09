@@ -142,7 +142,7 @@ class CPC:
             pos_vertex = np.vstack((pos_vertex,neg_vertex[::-1]))
             return pos_vertex
 
-    	def intersectionlinehyperbol(self, a_hyper, b_hyper, m_line, z0_line):
+        def intersectionlinehyperbol(self, a_hyper, b_hyper, m_line, z0_line):
             '''
             intersection point between hyperbola and line:
             z^2/b^2 - y^2/a^2 = 1

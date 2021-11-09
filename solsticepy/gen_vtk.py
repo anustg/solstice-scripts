@@ -84,9 +84,9 @@ def read_vtk(vtkfile, savedir='.', dataname=None, gencsv=False, vtkname='', suff
     else:
         filename = glob(os.path.join(vtkfile,'*-'+vtkname+'.vtk'))
         if len(filename)>0:
-	    filename = filename[0]
+        	filename = filename[0]
         else:
-	    return 0
+        	return 0
 
     if os.path.isfile(filename):
         f=open(filename, 'r')
@@ -98,91 +98,94 @@ def read_vtk(vtkfile, savedir='.', dataname=None, gencsv=False, vtkname='', suff
         num_polygon=0
         normals=np.array([])
         while i<l:
-	    line=content[i]
-	    if 'POINTS' in line:
-	    	v= [int(s) for s in line.split() if s.isdigit()]
-	    	num_points=v[0]
-	    	start=i+1
-	    	j=start
-	    	end=i+num_points+1
-	    	points=np.array([])
-	    	while j<end:
-		    line=content[j]
-		    v =[float(s) for s in re.findall(r'-?\d+\.?\d*', line)]
-		    points=np.append(points, v)
-		    j+=1
+        	line=content[i]
+        	if 'POINTS' in line:
+        		v= [int(s) for s in line.split() if s.isdigit()]
+        		num_points=v[0]
+        		start=i+1
+        		j=start
+        		end=i+num_points+1
+        		points=np.array([])
+        		while j<end:
+        			line=content[j]
+        			v =[float(s) for s in re.findall(r'-?\d+\.?\d*', line)]
+        			points=np.append(points, v)
+        			j+=1
+        			
+        		points=points.reshape(num_points, 3)
+        		title=np.array(['X', 'Y', 'Z'])
+        		points=np.vstack((title, points))
+        		i+=num_points
 
-	    	points=points.reshape(num_points, 3)
-	    	title=np.array(['X', 'Y', 'Z'])
-	    	points=np.vstack((title, points))
-	    	i+=num_points
+        	elif 'POLYGONS' in line:
+        		v= [int(s) for s in line.split() if s.isdigit()]
+        		num_polygon=v[0]
+        		num_verts=int(v[1]/v[0])-1 # number of vertices
+        		start=i+1
+        		j=start
+        		end=i+num_polygon+1
+        		indices=np.array([])
+        		while j<end:
+        			line=content[j]
+        			v =[float(s) for s in re.findall(r'-?\d+\.?\d*', line)]
+        			indices=np.append(indices, v[1:])
+        			j+=1
+        		
+        		title=np.array([])
+        		for t in range(num_verts):
+        			title=np.append(title, 'polygon index %s'%(t+1))
+        		indices=indices.reshape(num_polygon, num_verts)
+        		indices=np.vstack((title, indices))
+        		i+=num_polygon
 
-	    elif 'POLYGONS' in line:
-	    	v= [int(s) for s in line.split() if s.isdigit()]
-	    	num_polygon=v[0]
-	    	num_verts=int(v[1]/v[0])-1 # number of vertices
-	    	start=i+1
-	    	j=start
-	    	end=i+num_polygon+1
-	    	indices=np.array([])
-	    	while j<end:
-		    line=content[j]
-		    v =[float(s) for s in re.findall(r'-?\d+\.?\d*', line)]
-		    indices=np.append(indices, v[1:])
-		    j+=1
-	    	title=np.array([])
-	    	for t in range(num_verts):
-		    title=np.append(title, 'polygon index %s'%(t+1))
-	    	indices=indices.reshape(num_polygon, num_verts)
-	    	indices=np.vstack((title, indices))
-	    	i+=num_polygon
+        	elif dataname in line:
+        		#print('\nData: %s\n'%dataname)
+        		v= [int(s) for s in re.findall(r'-?\d+\.?\d*', line)]
+        		name=v[0]
+        		num_v=num_polygon
+        		start=i+2
+        		j=start
+        		end=start+num_v
+        		data=np.array([dataname])
+        		while j<end:
+        			line=content[j]
+        			v =[float(s) for s in re.findall(r'-?\S+\.?\d*', line)]
+        			data=np.append(data, v[0]) #save the nominal value, v[1] is the error value
+        			j+=1
+        			
+        		i+=num_v
+        		data=data.reshape(num_polygon+1, 1)
 
-	    elif dataname in line:
-	    	#print('\nData: %s\n'%dataname)
-	    	v= [int(s) for s in re.findall(r'-?\d+\.?\d*', line)]
-	    	name=v[0]
-	    	num_v=num_polygon
-	    	start=i+2
-	    	j=start
-	    	end=start+num_v
-	    	data=np.array([dataname])
-	    	while j<end:
-		    line=content[j]
-		    v =[float(s) for s in re.findall(r'-?\S+\.?\d*', line)]
-		    data=np.append(data, v[0]) #save the nominal value, v[1] is the error value
-		    j+=1
-	    	i+=num_v
-	    	data=data.reshape(num_polygon+1, 1)
+        	elif 'NORMALS cell_normals float' in line:
+        		num_verts=3 # number of vertices
+        		start=i+1
+        		j=start
+        		end=i+num_polygon+1
+        		while j<end:
+        			line=content[j]
+        			v =[float(s) for s in re.findall(r'-?\d+\.?\d*', line)]
+        			normals=np.append(normals, v)
+        			j+=1
+        			
+        		title=np.array(['X', 'Y', 'Z'])
+        		normals=normals.reshape(num_polygon, 3)
+        		normals=np.vstack((title, normals))
+        		i+=num_polygon
 
-	    elif 'NORMALS cell_normals float' in line:
-	    	num_verts=3 # number of vertices
-	    	start=i+1
-	    	j=start
-	    	end=i+num_polygon+1
-	    	while j<end:
-		    line=content[j]
-		    v =[float(s) for s in re.findall(r'-?\d+\.?\d*', line)]
-		    normals=np.append(normals, v)
-		    j+=1
-	    	title=np.array(['X', 'Y', 'Z'])
-	    	normals=normals.reshape(num_polygon, 3)
-	    	normals=np.vstack((title, normals))
-	    	i+=num_polygon
-
-	    else:
-	    	i+=1
+        	else:
+        		i+=1
 
         output=np.hstack((indices, data))
 
         #np.savetxt(savedir+'/%s_mesh_data_'%vtkname+suffix+'.csv', output, fmt='%s', delimiter=',')
         #np.savetxt(savedir+'/%s_mesh_vertices_'%vtkname+suffix+'.csv', points, fmt='%s', delimiter=',')
         if len(normals)>0:
-	    	np.savetxt(savedir+'/%s_mesh_normals_'%vtkname+suffix+'.csv', normals, fmt='%s', delimiter=',')
+        	np.savetxt(savedir+'/%s_mesh_normals_'%vtkname+suffix+'.csv', normals, fmt='%s', delimiter=',')
 
         if gencsv:
-	    	flux_map_2D, flux_map_1D = genfluxmap(points[1:].astype(float), indices[1:].astype(float), data[1:].astype(float))
-	    	#np.savetxt(savedir+'/%s_2D_FluxMap_'%vtkname+suffix+'.csv', flux_map_2D, fmt='%s', delimiter=',') #in W/m2
-	    	np.savetxt(savedir+'/%s_1D_FluxMap_'%vtkname+suffix+'.csv', flux_map_1D, fmt='%s', delimiter=',') #in W/m2
+        	flux_map_2D, flux_map_1D = genfluxmap(points[1:].astype(float), indices[1:].astype(float), data[1:].astype(float))
+        	np.savetxt(savedir+'/%s_2D_FluxMap_'%vtkname+suffix+'.csv', flux_map_2D, fmt='%s', delimiter=',') #in W/m2
+        	np.savetxt(savedir+'/%s_1D_FluxMap_'%vtkname+suffix+'.csv', flux_map_1D, fmt='%s', delimiter=',') #in W/m2
 
 
 def read_vtk_annual(vtkfile, vtkname='receiver', savedir='.',  dataname=None, ncases=0, gencsv=True, deletefolder=False):

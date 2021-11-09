@@ -128,7 +128,7 @@ class Master:
 				sys.stderr.write(green("Completed successfully.\n"))
 			return eta, performance_hst
 
-	def run_annual(self, nd, nh, latitude, num_rays, num_hst, rho_mirror, dni, gen_vtk=False, system='crs'):
+	def run_annual(self, nd, nh, latitude, num_rays, num_hst, rho_mirror, dni, gen_vtk=False, system='crs', verbose=False):
 
 		"""Run a list of optical simulations to obtain annual performance (lookup table) using Solstice
 
@@ -161,10 +161,12 @@ class Master:
 		# i.e. performance is not dni-weighted
 
 		if system=='beamdown':
-			ANNUAL=np.zeros((num_hst, 10))
+			n_factors = 10
+			ANNUAL=np.zeros((num_hst, n_factors))
 			annual_title=np.array(['Q_solar','Q_cosine', 'Q_shade', 'Q_hst_abs', 'Q_block', 'Q_atm', 'Q_int_surf_abs', 'Q_spil', 'Q_refl', 'Q_rcv_abs'])
 		else:
-			ANNUAL=np.zeros((num_hst, 9))
+			n_factors = 9
+			ANNUAL=np.zeros((num_hst, n_factors))
 			annual_title=np.array(['Q_solar','Q_cosine', 'Q_shade', 'Q_hst_abs', 'Q_block', 'Q_atm', 'Q_spil', 'Q_refl', 'Q_rcv_abs'])
 		run=np.r_[0]
 
@@ -186,11 +188,11 @@ class Master:
 				# run solstice
 				if elevation<1.: # 1 degree
 				    efficiency_total=ufloat(0,0)
-				    performance_hst=np.zeros((num_hst, 9))
+				    performance_hst=np.zeros((num_hst, n_factors))
 				else:
-					efficiency_total, performance_hst=self.run(azimuth, elevation, num_rays, rho_mirror, dni, folder=onesunfolder, gen_vtk=gen_vtk, printresult=False, system=system)
+				    efficiency_total, performance_hst=self.run(azimuth, elevation, num_rays, rho_mirror, dni, folder=onesunfolder, gen_vtk=gen_vtk, printresult=False, system=system, verbose=verbose)
 
-					sys.stderr.write(yellow("Total efficiency: {:f}\n".format(efficiency_total)))
+				    sys.stderr.write(yellow("Total efficiency: {:f}\n".format(efficiency_total)))
 
 				ANNUAL+=performance_hst
 			else:

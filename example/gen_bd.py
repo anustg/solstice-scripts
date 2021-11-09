@@ -51,7 +51,7 @@ pm.sunshape='buie'
 pm.crs=0.02
 pm.Q_in_rcv=40e6
 pm.n_row_oelt=5
-pm.n_col_oelt=22
+pm.n_col_oelt=5
 pm.H_rcv=10.
 pm.W_rcv=1.2
 pm.W_helio=6.1 #1.84 # ASTRI helio size
@@ -101,7 +101,7 @@ oelt, A_land=bd.field_design_annual(dni_des=900., num_rays=int(1e5), nd=pm.n_row
 # Recalculate the annual efficiency of the designed field and create vtk
 bd.yaml(sunshape=pm.sunshape,csr=pm.crs,half_angle_deg=pm.half_angle_deg,std_dev=pm.std_dev)
 
-oelt, A_land=bd.annual_oelt(dni_des=900., num_rays=int(1e5), nd=pm.n_row_oelt, nh=pm.n_col_oelt, zipfiles=False, gen_vtk=True, plot=False)
+oelt, A_land=bd.annual_oelt(dni_des=900., num_rays=int(1e5), nd=pm.n_row_oelt, nh=pm.n_col_oelt, zipfiles=False, gen_vtk=True, plot=False, verbose=True)
 
 if (A_land==0):
     tablefile=None

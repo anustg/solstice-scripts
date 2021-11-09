@@ -170,25 +170,25 @@ class BD:
 
 		    Xmax = max(layout[:,0].astype(float))
 		    if (x_max>R1) and (Xmax>x_max+margin):
-				xx=layout[:,0].astype(float)
-				select_hst=(np.abs(xx)<(x_max+margin))
-				layout=layout[select_hst,:]
+		        xx=layout[:,0].astype(float)
+		        select_hst=(np.abs(xx)<(x_max+margin))
+		        layout=layout[select_hst,:]
 
 		    Ymax = max(layout[:,1].astype(float))
 		    if (y_max>R1) and (Ymax>(y_max+margin)):
-				yy=layout[:,1].astype(float)
-				select_hst=(yy<(y_max+margin))
-				layout=layout[select_hst,:]
+		        yy=layout[:,1].astype(float)
+		        select_hst=(yy<(y_max+margin))
+		        layout=layout[select_hst,:]
 
 		    Ymin = min(layout[:,1].astype(float))
 		    if (Ymin<(y_min-margin)):
-				yy=layout[:,1].astype(float)
-				select_hst=(yy>(y_min-margin))
-				layout=layout[select_hst,:]
+		        yy=layout[:,1].astype(float)
+		        select_hst=(yy>(y_min-margin))
+		        layout=layout[select_hst,:]
 
-		    maxHelio=15000 # Maximum number of heliostats to avoid Sosltice slow processing
+		    maxHelio=10000 # Maximum number of heliostats to avoid Sosltice slow processing
 		    if len(layout[:,0])>maxHelio:
-				layout=layout[:maxHelio,:].astype(float)
+		        layout=layout[:maxHelio,:].astype(float)
 
 		    self.hst_zone=layout[:,7].astype(float)
 		    self.hst_row=layout[:,8].astype(float)
@@ -206,7 +206,7 @@ class BD:
 
 		#np.savetxt(self.casedir+'/trimmed_field.csv', self.hst_pos, fmt='%s', delimiter=',')
 
-	def yaml(self, dni=1000,sunshape=None,csr=0.01,half_angle_deg=0.2664,std_dev=0.2):
+	def yaml(self, dni=1000, sunshape=None, csr=0.01, half_angle_deg=0.2664, std_dev=0.2):
 		'''
 		Generate YAML files for the Solstice simulation
 		'''
@@ -428,12 +428,12 @@ class BD:
 		return oelt, A_land
 
 
-	def annual_oelt(self, dni_des, num_rays, nd, nh, zipfiles=False, gen_vtk=False, plot=False):
+	def annual_oelt(self, dni_des, num_rays, nd, nh, zipfiles=False, gen_vtk=False, plot=False, verbose=False):
 		'''
 		Annual performance of a known field
 		'''
 		self.n_helios=len(self.hst_pos)
-		oelt, ANNUAL=self.master.run_annual(nd=nd, nh=nh, latitude=self.latitude, num_rays=num_rays, num_hst=self.n_helios, rho_mirror=self.hst_rho, dni=dni_des, gen_vtk=gen_vtk, system='beamdown')
+		oelt, ANNUAL=self.master.run_annual(nd=nd, nh=nh, latitude=self.latitude, num_rays=num_rays, num_hst=self.n_helios, rho_mirror=self.hst_rho, dni=dni_des, gen_vtk=gen_vtk, system='beamdown', verbose=verbose)
 
 		Xmax=max(self.hst_pos[:,0])
 		Xmin=min(self.hst_pos[:,0])
@@ -442,7 +442,7 @@ class BD:
 		A_land=(Xmax-Xmin)*(Ymax-Ymin)
 		print('land area', A_land)
 
-		#np.savetxt(self.casedir+'/lookup_table.csv', oelt, fmt='%s', delimiter=',')
+		np.savetxt(self.casedir+'/lookup_table.csv', oelt, fmt='%s', delimiter=',')
 
 		designfolder=self.casedir+'/des_point'
 		day=self.sun.days(21, 'Mar')
@@ -453,7 +453,7 @@ class BD:
 		azi_des, ele_des=self.sun.convert_convention('solstice', azi, zen)
 
 		sys.stderr.write("\n"+green('Design Point: \n'))
-		efficiency_total, performance_hst_des=self.master.run(azi_des, ele_des, num_rays, self.hst_rho, dni_des, folder=designfolder, gen_vtk=gen_vtk, printresult=False, system='beamdown')
+		efficiency_total, performance_hst_des=self.master.run(azi_des, ele_des, num_rays, self.hst_rho, dni_des, folder=designfolder, gen_vtk=gen_vtk, printresult=False, system='beamdown', verbose=verbose)
 		self.eff_des=efficiency_total.n
 		self.Q_in_rcv=np.sum(performance_hst_des[:,-1])
 
