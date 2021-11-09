@@ -96,12 +96,12 @@ hst_z=pm.Z_helio, num_hst=pm.n_helios, R1=pm.R1, fb=pm.fb, dsep=pm.dsep, x_max=3
 
 bd.yaml(sunshape=pm.sunshape,csr=pm.crs,half_angle_deg=pm.half_angle_deg,std_dev=pm.std_dev)
 
-oelt, A_land=bd.field_design_annual(dni_des=900., num_rays=int(1e7), nd=pm.n_row_oelt, nh=pm.n_col_oelt, weafile=weafile, method=1, Q_in_des=pm.Q_in_rcv, n_helios=None, zipfiles=False, gen_vtk=False, plot=False)
+oelt, A_land=bd.field_design_annual(dni_des=900., num_rays=int(1e5), nd=pm.n_row_oelt, nh=pm.n_col_oelt, weafile=weafile, method=1, Q_in_des=pm.Q_in_rcv, n_helios=None, zipfiles=False, gen_vtk=False, plot=False)
 
 # Recalculate the annual efficiency of the designed field and create vtk
 bd.yaml(sunshape=pm.sunshape,csr=pm.crs,half_angle_deg=pm.half_angle_deg,std_dev=pm.std_dev)
 
-oelt, A_land=bd.annual_oelt(dni_des=900., num_rays=int(1e7), nd=pm.n_row_oelt, nh=pm.n_col_oelt, zipfiles=False, gen_vtk=True, plot=False)
+oelt, A_land=bd.annual_oelt(dni_des=900., num_rays=int(1e5), nd=pm.n_row_oelt, nh=pm.n_col_oelt, zipfiles=False, gen_vtk=True, plot=False)
 
 if (A_land==0):
     tablefile=None
