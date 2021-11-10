@@ -7,7 +7,6 @@ from solsticepy.design_bd import *
 from solsticepy.gen_vtk import read_vtk_annual
 import numpy as np
 import os
-from glob import glob
 
 #==================================================
 # INPUT PARAMETERS
@@ -109,8 +108,6 @@ else:
     A_helio=pm.H_helio*pm.W_helio
     output_matadata_motab(table=oelt, field_type=pm.field_type, aiming='single', n_helios=bd.n_helios, A_helio=A_helio, eff_design=bd.eff_des, H_rcv=pm.H_rcv, W_rcv=pm.W_rcv, H_tower=pm.H_tower, Q_in_rcv=bd.Q_in_rcv, A_land=A_land, savedir=tablefile)
 
-filename = glob(os.path.join(casefolder,'sunpos_*'))
-
 # Read vtk and produce 1D flux map
 dataname='Front_faces_Absorbed_flux'
-read_vtk_annual(vtkfile=casefolder, vtkname='receiver', savedir=casefolder,  dataname=dataname, ncases=len(filename), gencsv=True)
+read_vtk_annual(casefolder=casefolder, vtkname='receiver', savedir=casefolder,  dataname=dataname, gencsv=True)
