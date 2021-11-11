@@ -1,4 +1,9 @@
+import solsticepy
+from solsticepy.gen_vtk import *
+from solsticepy.cal_sun import *
 import numpy as np
+from glob import glob
+import shutil
 
 def basevectors(point1, point2, point3):
     '''
@@ -31,6 +36,7 @@ def basevectors(point1, point2, point3):
 
     print('Cos vectors base: ', abs(np.vdot(vbase_x,vbase_y)))
     return origin, vbase_x, vbase_y, vbase_z
+
 
 def projection(point3D, origin, vbase_x, vbase_y, vbase_z):
     '''
@@ -90,17 +96,56 @@ def sortarray(y_coordinate, boundaries, coordinates, values, areas):
 	return output_values.T
 
 
-def genfluxmap(points, indices, data):
+def trianglearea(vertices):
 	'''
-	Gives 2D and 1D flux map
-	points: 2D or 3D coordinates of the mesh (polygons)
-	indices: index of polygon vertex
-	data: flux of each polygon (mesh cell) in W/m2
+	Return the area of the triangle polygon following shoelace formula or algorithm
+	'''
+	v1 = vertices[0]
+	v2 = vertices[1]
+	v3 = vertices[2]
+	return 0.5*np.abs(v1[0]*(v2[1] - v3[1]) + v2[0]*(v3[1] - v1[1]) + v3[0]*(v1[1] - v2[1]))
+
+
+def localcoordinates(points_3D, vertices):
+	'''
+	Convert 3D coordinate points in 2D local coordinates of the corresponding flat surface
+	'''
+	n_dimension = len(points_3D[0])
+	i = 0
+	while i < n_dimension:
+		min_coord = min(points_3D[:,i].astype(float))
+		max_coord = max(points_3D[:,i].astype(float))
+		if ((min_coord == 0.0) and (max_coord == 0.0)):
+			points_2D = np.delete(points_3D, i, 1)
+			i += n_dimension
+			n_dimension -= 1
+		i += 1
+
+	if n_dimension > 2:
+		n_points = len(points_3D)
+		p1 = vertices[0]
+		p2 = vertices[1]
+		p3 = vertices[2]
+		origin, vbase_x, vbase_y, vbase_z = basevectors(p1, p2, p3)
+
+		points_2D = np.zeros((n_points, 2))
+		for i in range(n_points):
+			p_x, p_y = projection(points_3D[i], origin, vbase_x, vbase_y, vbase_z)
+			points_2D[i] = [p_x, p_y]
+
+	return points_2D
+
+
+def genfluxmap(vtkfile, dataname):
+	'''
+	Gives 2D and 1D flux map from vtk file
 	2D flux map (W/m2): nber of columns of pixels + list of flux distribution of each rectangle pixel (n column, m rows),
 	flux distribution starts at the bottom left corner of the discretized surface
 	1D flux map (W/m2): list of flux distribution of the surface discretized along its local second axes (1 column only, n rows),
 	flux distribution starts at the bottom of the discretized surface
 	'''
+	points, indices, data = read_vtk(vtkfile=vtkfile, dataname=dataname)
+
 	n_dimension = len(points[0])
 	n_vertices = len(indices[0])
 	n_polygons = len(indices)
@@ -161,49 +206,90 @@ def genfluxmap(points, indices, data):
 
 	return flux_map_2D, flux_map_1D
 
-def trianglearea(vertices):
-	'''
-	Return the area of the triangle polygon following shoelace formula or algorithm
-	NB:
-	'''
-	v1 = vertices[0]
-	v2 = vertices[1]
-	v3 = vertices[2]
-	return 0.5*np.abs(v1[0]*(v2[1] - v3[1]) + v2[0]*(v3[1] - v1[1]) + v3[0]*(v1[1] - v2[1]))
 
-def localcoordinates(points_3D, vertices):
+def getsunangles(casefolder, latitude):
 	'''
-	Convert 3D coordinate points in 2D local coordinates of the corresponding flat surface
+	Returns declination (deg) and hour (deg) angles given by the sun position in file 'simul'
+
+	  * latitude (float): latitude latitude (deg)
+	  * zenith angle (deg) converted to SolsticePy definition (cf cal_sun module)
+	  * azimuth angle (deg) converted to SolsticePy definition (cf cal_sun module)
 	'''
-	n_dimension = len(points_3D[0])
-	i = 0
-	while i < n_dimension:
-		min_coord = min(points_3D[:,i].astype(float))
-		max_coord = max(points_3D[:,i].astype(float))
-		if ((min_coord == 0.0) and (max_coord == 0.0)):
-			points_2D = np.delete(points_3D, i, 1)
-			i += n_dimension
-			n_dimension -= 1
-		i += 1
+	filename = glob(os.path.join(casefolder,'simul'))
+	f=open(filename[0], 'r')
+	content=f.readlines()
+	f.close()
 
-	if n_dimension > 2:
-		n_points = len(points_3D)
-		p1 = vertices[0]
-		p2 = vertices[1]
-		p3 = vertices[2]
-		origin, vbase_x, vbase_y, vbase_z = basevectors(p1, p2, p3)
+	l=len(content)
+	i=0
+	num_polygon=0
+	normals=np.array([])
+	while i<l:
+		line=content[i]
+		if 'Sun' in line:
+		    v = re.split(r'\s',line)
+		    sol_azi = float(v[3])
+		    if sol_azi>180.:
+			sol_azi -= 360.
+		    azimuth=-(90.+sol_azi)
+		    zenith=90.-float(v[4])
+		    i+=l
+		else:
+		    i+=1
 
-		points_2D = np.zeros((n_points, 2))
-		for i in range(n_points):
-			p_x, p_y = projection(points_3D[i], origin, vbase_x, vbase_y, vbase_z)
-			points_2D[i] = [p_x, p_y]
+	sun=SunPosition()
+	declination, hour = sun.convert_AZEL_to_declination_hour(zenith, azimuth, latitude)
 
-	return points_2D
+	return round(declination,3), round(hour,3)
+
+
+def gencsvannual(casefolder, vtkname='receiver', savedir='.',  dataname=None, latitude=None, deletefolder=False):
+	'''
+	Generate the 1D and 2D flux map for every sun position folder containing 'vtk' files used for the 1&2D flux maps
+	and the 'simul' files used to calculate the sun angles.
+	1D flux map contains:
+	(1) number of discretization
+	(2) declination of the sun position (deg) // Optional: if latitude is not equal to None
+	(3) hour angle of the sun position (deg) // Optional: if latitude is not equal to None
+	(4 - end) flux map of each cell (W/m2)
+
+	``Arguments``
+
+	  * casefolder (str): path of the case folder
+	  * vtkname (str): vtk name given to the surface of interest for the flux map
+	  * savedir (str): path/location to store the csv files
+	  * dataname (str): the name of the data that is of interest
+	  * latitude (float): latitude used to calculate the sun angles (deg)
+	  If latitude = None, no sun angles are calculated and included in the 1D flux map
+	  * deletefolder (bool): If True, the folder of the sun position containing vtk and simul files is deleted
+	'''
+	## First Design Point
+	foldername = 'des_point*'
+	for k in range(2):
+		filenames = glob(os.path.join(casefolder,foldername))
+
+		for i in range(len(filenames)):
+			vtkfile = glob(os.path.join(filenames[i],'*-'+vtkname+'.vtk'))
+			extension = os.path.splitext(os.path.split(filenames[i])[1])[0]
+			if len(vtkfile)>0:
+				_ , flux_map_1D = genfluxmap(vtkfile=vtkfile[0], dataname=dataname)
+
+	        		if latitude != None:
+	            			declination, hour = getsunangles(casefolder=filenames[i], latitude=latitude)
+	            			flux_map_1D = np.insert(flux_map_1D,1,(declination, hour))
+
+	    			np.savetxt(savedir+'/%s_1D_FluxMap_'%vtkname+extension+'.csv', flux_map_1D, fmt='%s', delimiter=',') #in W/m2
+	    			#np.savetxt(savedir+'/%s_2D_FluxMap_'%vtkname+extension+'.csv', flux_map_2D, fmt='%s', delimiter=',') #in W/m2
+
+			if deletefolder:
+				shutil.rmtree(filenames[i])
+
+		## Then, All Sun Positions
+		foldername = 'sunpos_*'
+
 
 
 if __name__=='__main__':
-
-    p1=np.array([0,0,0])
-    p2=np.array([0,1,0])
-    p3=np.array([0,0,1])
-    basevectors(p1,p2,p3)
+	casefolder = '.'
+	dataname = 'Front_faces_Absorbed_flux'
+	gencsvannual(casefolder=casefolder, vtkname='receiver', savedir='.',  dataname=dataname, latitude=None, deletefolder=False)

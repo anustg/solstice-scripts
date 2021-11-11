@@ -4,7 +4,7 @@
 #
 import solsticepy
 from solsticepy.design_bd import *
-from solsticepy.gen_vtk import read_vtk_annual
+from solsticepy.gen_flux_map import gencsvannual
 import numpy as np
 import os
 
@@ -110,4 +110,4 @@ else:
 
 # Read vtk and produce 1D flux map
 dataname='Front_faces_Absorbed_flux'
-read_vtk_annual(casefolder=casefolder, vtkname='receiver', savedir=casefolder,  dataname=dataname, gencsv=True)
+gencsvannual(casefolder=casefolder, vtkname='receiver', savedir=casefolder, dataname=dataname, latitude=pm.lat, deletefolder=False)

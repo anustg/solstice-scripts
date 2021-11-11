@@ -1,11 +1,8 @@
-import solsticepy
-from solsticepy.gen_flux_map import *
 import os, re
 import numpy as np
-from glob import glob
-import shutil
 
-def gen_vtk(savedir, points, indices, norms, colormap=True, DATA=None, gencsv=False):
+
+def gen_vtk(savedir, points, indices, norms, colormap=True, DATA=None):
     '''Generate 3D views of a heliostat field with triangular mesh in the VTK format that can be visualised in ParaView software
 
     ``Arguments``
@@ -63,31 +60,25 @@ def gen_vtk(savedir, points, indices, norms, colormap=True, DATA=None, gencsv=Fa
     f.close()
 
 
-def read_vtk(vtkfile, savedir='.', dataname=None, gencsv=False, vtkname='', suffix=''):
+def read_vtk(vtkfile, dataname=None, savecsv=False, savedir='.'):
     '''This function reads a vtkfile (.vtk), obtains the points and indices of the mesh, and the data in each mesh according to the dataname that is given,
     and saves the information in a .csv format with a name that is the same as the prefix of the .vtk file
 
     ``Arguments``
 
     * vtkfile (str): directory to the .vtk file
-    * savedir (str): directory to save the .csv file
     * dataname (str): the name of the data that is of interest
+    * savecsv (bool): Wether to save the csv files or not in the `savedir`
+    * savedir (str): directory to save the .csv file
 
-    ``Return``
-    * a csv file saved in the `savedir`
+    ``Returns``
+    * points (3xfloat): coordinates of each points of the mesh (vertex of each polygon)
+    * indices (n*integer): n index of n vertex of each polygon
+    * data (float): flux of individual cells in W/m2
 
     '''
-    if vtkname == '':
-        filename = vtkfile
-        vtkname = os.path.splitext(os.path.split(vtkfile)[1])[0]
-    else:
-        filename = glob(os.path.join(vtkfile,'*-'+vtkname+'.vtk'))
-        if len(filename)>0:
-        	filename = filename[0]
-        else:
-        	return 0
 
-    f=open(filename, 'r')
+    f=open(vtkfile, 'r')
     content=f.readlines()
     f.close()
 
@@ -175,40 +166,16 @@ def read_vtk(vtkfile, savedir='.', dataname=None, gencsv=False, vtkname='', suff
 
     output=np.hstack((indices, data))
 
-    #np.savetxt(savedir+'/%s_mesh_data_'%vtkname+suffix+'.csv', output, fmt='%s', delimiter=',')
-    #np.savetxt(savedir+'/%s_mesh_vertices_'%vtkname+suffix+'.csv', points, fmt='%s', delimiter=',')
-    if len(normals)>0:
-    	np.savetxt(savedir+'/%s_mesh_normals_'%vtkname+suffix+'.csv', normals, fmt='%s', delimiter=',')
+    if savecsv:
+        vtkname = os.path.splitext(os.path.split(vtkfile)[1])[0]
+        np.savetxt(savedir+'/%s_mesh_data_'%vtkname+'.csv', output, fmt='%s', delimiter=',')
+        np.savetxt(savedir+'/%s_mesh_vertices_'%vtkname+'.csv', points, fmt='%s', delimiter=',')
+        if len(normals)>0:
+            np.savetxt(savedir+'/%s_mesh_normals_'%vtkname+'.csv', normals, fmt='%s', delimiter=',')
 
-    if gencsv:
-    	flux_map_2D, flux_map_1D = genfluxmap(points[1:].astype(float), indices[1:].astype(float), data[1:].astype(float))
-    	#np.savetxt(savedir+'/%s_2D_FluxMap_'%vtkname+suffix+'.csv', flux_map_2D, fmt='%s', delimiter=',') #in W/m2
-    	np.savetxt(savedir+'/%s_1D_FluxMap_'%vtkname+suffix+'.csv', flux_map_1D, fmt='%s', delimiter=',') #in W/m2
-
-
-def read_vtk_annual(casefolder, vtkname='receiver', savedir='.',  dataname=None, gencsv=True, deletefolder=False):
-	'''
-	'''
-
-	## Design Point
-	filenames = glob(os.path.join(casefolder,'des_point*'))
-	for i in range(len(filenames)):
-		vtkfolder = filenames[i]
-		extension = os.path.splitext(os.path.split(vtkfolder)[1])[0]
-		read_vtk(vtkfile=vtkfolder, savedir=savedir, dataname=dataname, gencsv=gencsv, vtkname=vtkname, suffix=extension)
-		if deletefolder:
-			shutil.rmtree(vtkfolder)
-
-	## All sun positions
-	filenames = glob(os.path.join(casefolder,'sunpos_*'))
-	for i in range(len(filenames)):
-		vtkfolder = filenames[i]
-		extension = os.path.splitext(os.path.split(vtkfolder)[1])[0]
-		read_vtk(vtkfile=vtkfolder, savedir=savedir, dataname=dataname, gencsv=gencsv, vtkname=vtkname, suffix=extension)
-		if deletefolder:
-			shutil.rmtree(vtkfolder)
+    return points[1:].astype(float), indices[1:].astype(float), data[1:].astype(float)
 
 
 if __name__=='__main__':
     #gen_vtk()
-    read_vtk(vtkfile='../tests/data/example_rec.vtk', savedir='../tests/data', dataname='Front_faces_Absorbed_flux')
+    read_vtk(vtkfile='../tests/data/example_rec.vtk', dataname='Front_faces_Absorbed_flux', savecsv=True, savedir='../tests/data')

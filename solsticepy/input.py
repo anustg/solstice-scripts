@@ -177,6 +177,7 @@ class Parameters:
 		param=np.array([
 				['method', self.method, '-'],
 				['field', self.field_type, '-'],
+				['latitude',self.lat,'deg'],
 				['Q_in_rcv', self.Q_in_rcv, 'W'],
 				['n_helios(pre_des if method ==1)', self.n_helios, '-'],
 				['W_helio', self.W_helio, 'm'],
