@@ -116,16 +116,32 @@ class Parameters:
 
 	def BeamDown(self):
 		'''
+			(1) rcv_type  			: str, 'beam_down', 'crs', 'cylinder', 'particle' or 'stl', type of the receiver
+			(2) cpc_theta_deg   	: float, acceptance half angle of CPC (deg)
+			(3) cpc_h_ratio     	: float, ratio of CPC critical height [0,1]
+			(4) cpc_nfaces  		: int, number of faces of 2D-crossed CPC
+			(5) cpc_nZ 				: int, rendering of each CPC face in Solstice
+			(6) n_H_rcv   			: int, number of discretisation of the receiver in the height direction
+			(7) aperture_angle_x   	: float, angle of the aperture of the hyperboloid in the zOx plan with angle vertex at aiming point (imaginary focus of the hyperboloid) (deg) ]0.,180?[
+			(8) aperture_angle_y 	: float, angle of the aperture of the hyperboloid in the zOy plan with angle vertex at aiming point (imaginary focus of the hyperboloid) (deg) ]0.,180?[
+		    # If aperture_angle_y is None, the hyperboloid is clipped with a circle instead of a polygon.
+			(8) secref_offset 		: float, offset angle of the median line in the zOy plan of the mirror passing through the aiming point with regards to the symmetrical axis of the hyperboloid (deg) ]-100?,100?[
+			(9) secref_inv_eccen    : float, hyperboloid inverse eccentricity [0,1]
+			(10) tilt_secref     	: float, angle of the tilted axis of the hyperboloid with regards to the vertical axis. Positive angle when axis is tilted towards the North and negative towards South (deg) [-180,180]
+			(11) rho_secref			: float, reflectivity of secondary reflector ]0,1]
+			(12) rho_cpc			: float, reflectivity of CPC ]0,1]
+			(13) slope_error_bd		: float, slope error of CPC and secondary reflector (radians)
 		'''
 		self.rcv_type='beam_down'
-		self.cpc_theta_deg=20.	# acceptance half angle of CPC
-		self.cpc_h_ratio=1. 	# ratio of CPC critical height [0,1]
-		self.cpc_nfaces=4		# number of faces of 2D-crossed CPC
-		self.cpc_nZ=30			# rendering of CPC faces in Solstice
-		self.n_H_rcv=20			# rendering of flux map on receiver
-		self.rim_angle_x=45.	# field and hyperboloid rim angle in the zOx plan
-		self.rim_angle_y=45.	# field and hyperboloid rim angle in the zOy plan
-		self.secref_inv_eccen=0.6	# Hyperboloid inverse eccentricity [0,1]
+		self.cpc_theta_deg=20.
+		self.cpc_h_ratio=1.
+		self.cpc_nfaces=4
+		self.cpc_nZ=30
+		self.n_H_rcv=20
+		self.aperture_angle_x=45.
+		self.aperture_angle_y=45.
+		self.secref_offset=None
+		self.secref_inv_eccen=0.6
 		self.tilt_secref=0.	# angle in degree of the tilted axis of the hyperboloid, from the vertical to the North (+) or South (-), [-180,180]
 		self.rho_secref=0.95		# reflecticity property of secondary reflector from Beam-Down components
 		self.rho_cpc=0.95		# reflecticity property of cpc from Beam-Down components
@@ -202,8 +218,9 @@ class Parameters:
 				['cpc_h_ratio', self.cpc_h_ratio, '-'],
 				['cpc_nfaces', self.cpc_nfaces, '-'],
 				['cpc_nZ', self.cpc_nZ, '-'],
-				['rim_angle_x', self.rim_angle_x, '-'],
-				['rim_angle_y', self.rim_angle_y, '-'],
+				['aperture_angle_x', self.aperture_angle_x, '-'],
+				['aperture_angle_y', self.aperture_angle_y, '-'],
+				['secref_offset', self.secref_offset, '-'],
 				['secref_inv_eccen', self.secref_inv_eccen, '-'],
 				['tilt_secref', self.tilt_secref, 'deg'],
 				['tilt_rcv', self.tilt_rcv, 'deg'],

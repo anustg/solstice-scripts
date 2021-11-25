@@ -45,8 +45,8 @@ class BD:
 		'''
 		max_field_rim_angle = 82.9
 
-		if rim_angle > max_field_rim_angle:
-			rim_angle = max_field_rim_angle
+		if abs(rim_angle) > max_field_rim_angle:
+			rim_angle = max_field_rim_angle * np.sign(rim_angle)
 		distance = vertical_distance * np.tan(rim_angle*np.pi/180.)
 
 		return distance
@@ -66,12 +66,12 @@ class BD:
 		return cpc_h
 
 	def receiversystem(self, receiver, rec_abs=1., rec_w=1.2, rec_l=10., rec_z=0., rec_grid=200, cpc_nfaces=4, cpc_theta_deg=20., cpc_h_ratio=1.,
-	cpc_nZ=20., rim_angle_x=45., rim_angle_y=None, aim_z=62., secref_inv_eccen=0.67, tilt_secref=0., rho_secref=0.95, rho_cpc=0.95, slope_error=0.0, ):
+	cpc_nZ=20., aperture_angle_x=45., aperture_angle_y=None, secref_offset=0., aim_z=62., secref_inv_eccen=0.67, tilt_secref=0., rho_secref=0.95, rho_cpc=0.95, slope_error=0.0, ):
 		'''
 		Variables:
 		- cpc_theta_deg
-		- rim_angle_x
-		- rim_angle_y
+		- aperture_angle_x
+		- aperture_angle_y
 		- aim_z (tower height)
 		- rec_z (optional)
 		Arguments:
@@ -88,15 +88,17 @@ class BD:
 		    (9) cpc_h_ratio     : float, ratio of critical CPC height calculated with cpc_theta_deg, [0,1]
 		    (10) cpc_nZ     : int, number of number of incrementation for the clipping polygon for the construction of each CPC face
 		    # Arguments for Secondary Reflector
-		    (11) rim_angle_x : float, rim angle of the hyperboloid and the field formed wih vertical axis in the zOx plan (deg) ]0.,100?[
-		    (12) rim_angle_y : float, rim angle of the hyperboloid and the field formed wih vertical axis in the zOy plan (deg) ]0.,100?[
-		    # If rim_angle_y is none, the hyperboloid is clipped with a circle instead of a polygon.
-		    (13) aim_z   : float, z (vertical) location of the heliostats' aiming point (m)
-		    (14) secref_inv_eccen    : float, hyperboloid inverse eccentricity: ratio of the apex distance over the foci distance to the origin, must be between 0 and 1
-		    (15) tilt_secref    : float, angle (in degree) of the tilted axis of the hyperboloid, from the vertical to the North (+) or South (-), [-180,180]
-		    (16) rho_secref	: float, secondary mirror and CPC reflectivity property, e.g. 0.95
-		    (17) rho_cpc	: float, CPC reflectivity property, e.g. 0.95
-		    (18) slope_error	: float, slope error of secondary mirror and CPC reflectivity (?)
+		    (11) aperture_angle_x : float, angle of the aperture of the hyperboloid in the zOx plan with angle vertex at aiming point (imaginary focus of the hyperboloid) (deg) ]0.,180?[
+		    (12) aperture_angle_y : float, angle of the aperture of the hyperboloid in the zOy plan with angle vertex at aiming point (imaginary focus of the hyperboloid) (deg) ]0.,180?[
+		    # If aperture_angle_y is None, the hyperboloid is clipped with a circle instead of a polygon.
+			(13) secref_offset : float, offset angle between the symmetrical axis of the hyperboloid and the line passing through the aiming point and the center of the secondary mirror in the zOy plan (deg) ]-100?,100?[
+			# If secref_offset is None, the mirror is centered at the symmetrical axis of the hyperboloid along both plans: zOy and zOx
+			(14) aim_z   : float, z (vertical) location of the heliostats' aiming point (m)
+		    (15) secref_inv_eccen    : float, hyperboloid inverse eccentricity: ratio of the apex distance over the foci distance to the origin, must be between 0 and 1
+		    (16) tilt_secref    : float, angle (in degree) of the tilted axis of the hyperboloid, from the vertical to the North (+) or South (-), [-180,180]
+		    (17) rho_secref	: float, secondary mirror and CPC reflectivity property, e.g. 0.95
+		    (18) rho_cpc	: float, CPC reflectivity property, e.g. 0.95
+		    (19) slope_error	: float, slope error of secondary mirror and CPC reflectivity (?)
 		'''
 		self.receiver=receiver
 		self.rec_abs=rec_abs
@@ -106,13 +108,23 @@ class BD:
 		self.aim_y = (aim_z - (rec_z+cpc_height)) * np.tan(tilt_secref * np.pi/180.)
 
 		# Maximum radius of field along the axis
-		if rim_angle_y is None:
+		rim_angle_x = aperture_angle_x/2.
+		if aperture_angle_y is None:
 			rim_angle_y = rim_angle_x
-		self.y_max = self.maximumfieldradius(aim_z, rim_angle_y-tilt_secref) + self.aim_y
-		self.y_min = - self.maximumfieldradius(aim_z, rim_angle_y+tilt_secref) - self.aim_y
+		else:
+			rim_angle_y = aperture_angle_y/2.
+		## To Check
+		angle = -tilt_secref + secref_offset + rim_angle_y
+		self.y_max = self.maximumfieldradius(aim_z, angle) + self.aim_y
+		angle = -tilt_secref + secref_offset - rim_angle_y
+		self.y_min = self.maximumfieldradius(aim_z, angle) + self.aim_y
 		self.x_max = self.maximumfieldradius(aim_z, rim_angle_x)
 
-		self.rec_param=np.array([rec_w, rec_l, rec_z, rec_grid, cpc_nfaces, cpc_theta_deg, cpc_h_ratio, cpc_nZ, aim_z, secref_inv_eccen, tilt_secref, rho_secref, rho_cpc, slope_error, np.array([rim_angle_x,rim_angle_y])])
+		print('y_max: ', self.y_max)
+		print('y_min: ', self.y_min)
+		print('x_max: ', self.x_max)
+
+		self.rec_param=np.array([rec_w, rec_l, rec_z, rec_grid, cpc_nfaces, cpc_theta_deg, cpc_h_ratio, cpc_nZ, aim_z, secref_inv_eccen, tilt_secref, rho_secref, rho_cpc, slope_error, np.array([aperture_angle_x, aperture_angle_y, secref_offset])])
 
 	def heliostatfield(self, field, hst_rho, slope, hst_w, hst_h, tower_h, hst_z=0., num_hst=0., tower_r=0.01, R1=0., fb=0., dsep=0., x_max=-1.0, y_max=-1.0):
 
@@ -155,7 +167,7 @@ class BD:
 		        x_max = self.x_max
 		        y_max = self.y_max
 		        y_min = self.y_min
-		        r_max = np.sqrt(x_max**2 + y_max**2)*1.1
+		        r_max = np.sqrt(x_max**2 + max(abs(y_max),abs(y_min))**2)*1.1
 		        pos_and_aiming=radial_stagger(latitude=self.latitude, num_hst=num_hst, width=hst_w, height=hst_h, hst_z=hst_z, towerheight=tower_h, R1=R1, fb=fb, dsep=0., field=field, savedir=savefolder, plot=False, tower_y=self.aim_y, r_field_max= r_max)
 		    else:
 		        pos_and_aiming=radial_stagger(latitude=self.latitude, num_hst=num_hst, width=hst_w, height=hst_h, hst_z=hst_z, towerheight=tower_h, R1=R1, fb=fb, dsep=0., field=field, savedir=savefolder, plot=False, tower_y=self.aim_y )
@@ -175,7 +187,7 @@ class BD:
 		        layout=layout[select_hst,:]
 
 		    Ymax = max(layout[:,1].astype(float))
-		    if (y_max>R1) and (Ymax>(y_max+margin)):
+		    if (Ymax>(y_max+margin)):
 		        yy=layout[:,1].astype(float)
 		        select_hst=(yy<(y_max+margin))
 		        layout=layout[select_hst,:]
@@ -256,7 +268,7 @@ class BD:
 		select_hst=(Qin>0.)
 		QinMax=np.sum(Qin[select_hst])
 		sys.stderr.write("\n"+yellow("Maximum Incident NRJ (W) at design Point: {:f}\n".format(QinMax)))
-		assert QinMax > Q_in_des, 'There is not enough incident energy on the receiver to satisfy the design condition'
+		# assert QinMax > Q_in_des, 'There is not enough incident energy on the receiver to satisfy the design condition'
 
 		# ANNUAL Performance
 
@@ -587,13 +599,13 @@ if __name__=='__main__':
 		theta_deg=20.
 		n_Z=30
 		# Secondary refector 'hyperboloid'
-		xrim_angle = 45.
-		yrim_angle = 80.
+		aperture_angle_x = 45.
+		aperture_angle_y = 80.
 		rho_bd = 0.95
 		slope_error = 0.0
 
 
-		bd.receiversystem(receiver='beam_down', rec_abs=float(pm.alpha_rcv), rec_w=float(rec_w), rec_l=float(rec_l), rec_z=float(rec_z), rec_grid=int(rec_grid), cpc_nfaces=int(n_CPC_faces), cpc_theta_deg=float(theta_deg), cpc_h_ratio=None, cpc_nZ=float(n_Z), rim_angle_x=float(xrim_angle), rim_angle_y=float(yrim_angle), aim_z=float(pm.H_tower), secref_inv_eccen=float(pm.secref_inv_eccen), tilt_secref=float(pm.tilt_secref), rho_secref=float(rho_bd), rho_cpc=float(rho_bd), slope_error=float(slope_error))
+		bd.receiversystem(receiver='beam_down', rec_abs=float(pm.alpha_rcv), rec_w=float(rec_w), rec_l=float(rec_l), rec_z=float(rec_z), rec_grid=int(rec_grid), cpc_nfaces=int(n_CPC_faces), cpc_theta_deg=float(theta_deg), cpc_h_ratio=None, cpc_nZ=float(n_Z), aperture_angle_x=float(aperture_angle_x), aperture_angle_y=float(aperture_angle_y), aim_z=float(pm.H_tower), secref_inv_eccen=float(pm.secref_inv_eccen), tilt_secref=float(pm.tilt_secref), rho_secref=float(rho_bd), rho_cpc=float(rho_bd), slope_error=float(slope_error))
 
 		bd.heliostatfield(field='surround', hst_rho=pm.rho_helio, slope=pm.slope_error, hst_w=pm.W_helio, hst_h=pm.H_helio, tower_h=pm.H_tower, hst_z=pm.Z_helio, num_hst=num_hst, tower_r=pm.R_tower, R1=pm.R1, fb=pm.fb, dsep=pm.dsep, x_max=150., y_max=150.)
 

@@ -68,7 +68,6 @@ class CPC:
             '''
             Gives transformation coordinates of rotation around X-axis of theta
             followed by rotation around Z-axis of gamma angle.
-
             Arguments:
               (1) y_para : y coordinate of the parabola defined in yOz plan (m)
               (2) z_para : z coordinate of the parabola defined in yOz plan (m)
@@ -89,7 +88,6 @@ class CPC:
         def cpcfacetranslation(self, y_min_para, z_min_para, gamma, x_position, y_position, z_position):
             '''
             Gives the translation of a CPC face for yaml file creation.
-
             Arguments:
               (1) gamma : angle of rotation of the CPC face around the z-axis (radian)
               (2) x_position : x coordinate of the final position in the global coordinate system
@@ -142,33 +140,38 @@ class CPC:
             pos_vertex = np.vstack((pos_vertex,neg_vertex[::-1]))
             return pos_vertex
 
-        def intersectionlinehyperbol(self, a_hyper, b_hyper, m_line, z0_line):
+        def intersectionlinehyperbol(self, a_hyper, b_hyper, m_angle, z0_line):
             '''
             intersection point between hyperbola and line:
-            z^2/b^2 - y^2/a^2 = 1
+            z^2/a^2 - y^2/b^2 = 1
             z = m*y + z0
             '''
-            a_hyper_sqrt = a_hyper**2
-            m_line_sqrt = m_line**2
-
-            if abs(m_line) < 0.0000000001:
-                y_inter = np.sqrt(a_hyper_sqrt * ((z0_line**2)/(b_hyper**2)-1))
+            if m_angle == 0:
+                y_inter = 0.
 
             else:
-                aCoef_poly = b_hyper**2 - a_hyper_sqrt / m_line_sqrt
-                bCoef_poly = 2*z0_line*a_hyper_sqrt / m_line_sqrt
-                cCoef_poly = -a_hyper_sqrt * ((z0_line**2) / m_line_sqrt + b_hyper**2)
-                delta = bCoef_poly**2 - 4*aCoef_poly*cCoef_poly
-                root1 = (-bCoef_poly+np.sqrt(delta)) / (2*aCoef_poly)
-                root2 = (-bCoef_poly-np.sqrt(delta)) / (2*aCoef_poly)
-                if root1>0. and root2>0. and m_line<0.:	# the line intersects the upper sheet of the hyperbola twice
-                    z_inter = min(root1,root2)
-                else:	# the line intersects the upper and lower sheet of the hyperbola
-                    z_inter = max(root1,root2)
-                y_inter = (z_inter-z0_line)/m_line
-                #check = (z_inter**2)/a_hyper_sqrt - (y_inter**2)/b_hyper_sqrt
-                #print('equation resolution should be 1, and it is: ', check)
-                assert y_inter > 0, 'Negative hyperboloid radius value'
+                m_line = -1 / np.tan(m_angle * np.pi/180.)
+                a_over_m_sqrt = a_hyper**2 / m_line**2
+
+                if abs(m_line) < 0.000000001: # abs(m_angle) == 90:
+                    y_inter = np.sqrt(a_hyper**2 * ((z0_line**2)/(b_hyper**2)-1))
+
+                else:
+                    aCoef_poly = b_hyper**2 - a_over_m_sqrt
+                    bCoef_poly = 2*z0_line * a_over_m_sqrt
+                    cCoef_poly = - a_over_m_sqrt * (z0_line**2) - (a_hyper**2 * b_hyper**2)
+                    delta = bCoef_poly**2 - 4*aCoef_poly*cCoef_poly
+                    root1 = (-bCoef_poly+np.sqrt(delta)) / (2*aCoef_poly)
+                    root2 = (-bCoef_poly-np.sqrt(delta)) / (2*aCoef_poly)
+                    # If both roots are positives, the line intersects the upper sheet of the hyperbola twice,
+                    # Else, the line intersects the upper sheet of the hyperbola once and potentially the lower sheet once
+                    if root1>0. and root2>0. and abs(m_angle) < 90.:
+                        z_inter = min(root1,root2)
+                    else:
+                        z_inter = max(root1,root2)
+                    y_inter = (z_inter-z0_line)/m_line
+                    #check = (z_inter**2)/a_hyper**2 - (y_inter**2)/b_hyper**2
+                    #print('equation resolution should be 1, and it is: ', check)
 
             return y_inter
 
@@ -220,7 +223,7 @@ class CPC:
             Calculate Parameters of the parabola (CPC height, acceotance angle in rad, focal length)
             '''
             self.theta = cpc_theta_deg * np.pi/180.
-            self.h_CPC = self.rec_radius*(1 + 1/np.sin(self.theta)) / np.tan(self.theta)
+            self.h_CPC = self.rec_radius * (1 + 1/np.sin(self.theta)) / np.tan(self.theta)
             self.h_CPC *= cpc_h_ratio
 
             print('Heigth of the CPC: ', self.h_CPC)
@@ -239,7 +242,7 @@ class CPC:
 
             aim_y =  (self.aim_z-real_foci_z) * np.tan(secref_angle)
             foci_dist = np.sqrt((self.aim_z-real_foci_z)**2 + aim_y**2)/2.
-            self.focal_image = (1-secref_inv_eccen)*foci_dist
+            self.focal_image = (1-secref_inv_eccen) * foci_dist
             self.focal_real = 2*foci_dist - self.focal_image
 
             self.secref_z = real_foci_z + self.focal_real * np.cos(secref_angle)
@@ -253,41 +256,57 @@ class CPC:
             '''
             Calculate the clipping polygon of the secondary reflector (dimensions)
             Calculate the clipping polygon of the virtual surface associated to secondary reflector (dimensions)
-            if length of secref_vert is 2 (rim_angle_x, rim_angle_y), the clipping polygon is calculated with the 2 rim angles
-            if rim_angle_y = None, the clipping polygon is a circle
+            if length of secref_vert is 2 (aperture_angle_x, aperture_angle_y), the clipping polygon is calculated with the 2 rim angles
+            if aperture_angle_y = None, the clipping polygon is a circle
             '''
-            if len(secref_vert) is 2:
-                rim_angle_x=secref_vert[0]
-                rim_angle_y=secref_vert[1]
+            center=None
+            ## Secondary reflector
+            if len(secref_vert) is 3:
+                aperture_angle_x=abs(secref_vert[0])
+                aperture_angle_y=secref_vert[1]
+                secref_offset=secref_vert[2]
 
                 foci_dist = (self.focal_image + self.focal_real) / 2.
                 a_hyper = (self.focal_real-foci_dist)
                 b_hyper = np.sqrt(self.focal_image*self.focal_real)
-                m_line = -1 / np.tan(rim_angle_x*np.pi/180.)
-                x_inter = self.intersectionlinehyperbol(a_hyper, b_hyper, m_line, foci_dist)
+                m_angle = aperture_angle_x/2.
+                x_max = self.intersectionlinehyperbol(a_hyper, b_hyper, m_angle, foci_dist)
 
-                if rim_angle_y is None:
-                    secref_vert = np.array([x_inter])
-                    xmax=ymax=x_inter
+                if aperture_angle_y is None:
+                    rim_angle_y = aperture_angle_x/2.
                 else:
-                    m_line = -1 / np.tan(rim_angle_y*np.pi/180.)
-                    y_inter = self.intersectionlinehyperbol(a_hyper, b_hyper, m_line, foci_dist)
-                    secref_vert = np.array([[0.,y_inter],[-x_inter,y_inter],[-x_inter,0.],[-x_inter,-y_inter],[0.,-y_inter],[x_inter,-y_inter],[x_inter,0.],[x_inter,y_inter]])
-                    xmax=max(secref_vert[:,0])
-                    ymax=max(secref_vert[:,1])
+                    rim_angle_y = abs(aperture_angle_y)/2.
+
+                m_angle = (- self.tilt_secref + secref_offset - rim_angle_y)
+                print('m_angle: ', m_angle)
+                y_min = self.intersectionlinehyperbol(a_hyper, b_hyper, m_angle, foci_dist)
+                print('y_min:',y_min)
+                m_angle = (- self.tilt_secref + secref_offset + rim_angle_y)
+                print('m_angle: ', m_angle)
+                y_max = self.intersectionlinehyperbol(a_hyper, b_hyper, m_angle, foci_dist)
+                print('y_max:',y_max)
+
+                if aperture_angle_y is None:
+                    secref_vert = np.array([x_max])
+                    center=np.array([0.,(y_max+y_min)/2.])
+                    y_max=x_max
+                else:
+                    secref_vert = np.array([[0.,y_max],[-x_max,y_max],[-x_max,0.],[-x_max,y_min],[0.,y_min],[x_max,y_min],[x_max,0.],[x_max,y_max]])
+                    y_max=max(abs(y_min),abs(y_max))
 
             else:
-                xmax=max(secref_vert[:,0])
-                ymax=max(secref_vert[:,1])
+                x_max=max(secref_vert[:,0])
+                y_max=max(secref_vert[:,1])
 
-            virt_vert = np.array([ [-xmax, ymax], [-xmax, -ymax], [xmax, -ymax], [xmax, ymax] ])*50
-            zmax=self.hyperboloid(xmax, ymax)
-            #print('X HYPERBOLA: ', xmax)
-            #print('Y HYPERBOLA: ', ymax)
-            #print('Z HYPERBOLA: ', zmax)
-            virt_vert_z = self.secref_z+zmax+5
+            ## Vitual surface above secondary reflector
+            virt_vert = np.array([ [-x_max, y_max], [-x_max, -y_max], [x_max, -y_max], [x_max, y_max] ])*50
+            z_max=self.hyperboloid(x_max, y_max)
+            #print('X HYPERBOLA: ', x_max)
+            #print('Y HYPERBOLA: ', y_max)
+            #print('Z HYPERBOLA: ', z_max)
+            virt_vert_z = self.secref_z+z_max+5
 
-            return secref_vert, virt_vert, virt_vert_z
+            return secref_vert, virt_vert, virt_vert_z, center
 
 
         def cpcfaceparameters(self):
@@ -403,7 +422,7 @@ class CPC:
             iyaml+='\n'
             #
             # Secondary Reflector
-            secref_vert, virt_vert, virt_vert_z=self.secrefpolygonsclipping(rec_param[14])
+            secref_vert, virt_vert, virt_vert_z, center=self.secrefpolygonsclipping(rec_param[14])
             iyaml+='- entity:\n'
             iyaml+='    name: %s\n' % 'secondary_reflector'
             iyaml+='    primary: 0\n'
@@ -422,7 +441,7 @@ class CPC:
                 iyaml+='\n'
             else:
                 iyaml+='        - operation: AND \n'
-                iyaml+='          circle: { radius: %s, center: [0,0]} \n' % secref_vert[0]
+                iyaml+='          circle: { radius: %s, center: %s} \n' % (secref_vert[0], [center[0], center[1]])
             #
             # Virtual target entity above the secondary reflector
             if virt_vert_z < self.aim_z:
