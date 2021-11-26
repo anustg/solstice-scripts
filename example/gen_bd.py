@@ -33,7 +33,7 @@ while 1:
 pm=Parameters()
 
 # Variables
-pm.H_tower=150.453433 # 80. # tower height or vertical distance to aiming point (located at the center of xOy plan)
+pm.H_tower=150.453433 # tower height or vertical distance to aiming point (located at the center of xOy plan)
 pm.cpc_theta_deg=10.516461   # acceptance half angle of the CPC in degree
 pm.cpc_h_ratio=1.0 # must be inferior or equal to 1
 pm.aperture_angle_x = 70.038185 # 80 # aperture angle of the heliostat field in the xOz plan in degree ]0,180]
@@ -85,6 +85,8 @@ tablefile=casefolder+'/OELT_Solstice.motab'
 #weafile='./demo_TMY3_weather.motab'
 weafile='./AUS_WA_Leinster_Airport_954480_TMY.motab'
 bd=BD(latitude=pm.lat, casedir=casefolder)
+bd.A_secref=None
+bd.A_cpc=None
 
 # Design the field: Create an oversized field and trim the oversized field to the requested power at design point
 bd.receiversystem(receiver=pm.rcv_type, rec_abs=float(pm.alpha_rcv), rec_w=float(pm.W_rcv), rec_l=float(pm.H_rcv), rec_z=float(pm.Z_rcv), rec_grid=int(pm.n_H_rcv),
@@ -104,7 +106,7 @@ if no_flux_map:
         tablefile=None
     else:
         A_helio=pm.H_helio*pm.W_helio
-        output_matadata_motab(table=oelt, field_type=pm.field_type, aiming='single', n_helios=bd.n_helios, A_helio=A_helio, eff_design=bd.eff_des, H_rcv=pm.H_rcv, W_rcv=pm.W_rcv, H_tower=pm.H_tower, Q_in_rcv=bd.Q_in_rcv, A_land=A_land, savedir=tablefile)
+        output_matadata_motab(table=oelt, field_type=pm.field_type, aiming='single', n_helios=bd.n_helios, A_helio=A_helio, eff_design=bd.eff_des, H_rcv=pm.H_rcv, W_rcv=pm.W_rcv, H_tower=pm.H_tower, Q_in_rcv=bd.Q_in_rcv, A_land=A_land, A_secref=bd.A_secref, A_cpc=bd.A_cpc, savedir=tablefile)
 
 else:
     # Recalculate the annual efficiency of the designed field and create vtk
@@ -116,7 +118,7 @@ else:
         tablefile=None
     else:
         A_helio=pm.H_helio*pm.W_helio
-        output_matadata_motab(table=oelt, field_type=pm.field_type, aiming='single', n_helios=bd.n_helios, A_helio=A_helio, eff_design=bd.eff_des, H_rcv=pm.H_rcv, W_rcv=pm.W_rcv, H_tower=pm.H_tower, Q_in_rcv=bd.Q_in_rcv, A_land=A_land, savedir=tablefile)
+        output_matadata_motab(table=oelt, field_type=pm.field_type, aiming='single', n_helios=bd.n_helios, A_helio=A_helio, eff_design=bd.eff_des, H_rcv=pm.H_rcv, W_rcv=pm.W_rcv, H_tower=pm.H_tower, Q_in_rcv=bd.Q_in_rcv, A_land=A_land, A_secref=bd.A_secref, A_cpc=bd.A_cpc, savedir=tablefile)
 
     # Read vtk and produce 1D flux map
     dataname='Front_faces_Absorbed_flux'

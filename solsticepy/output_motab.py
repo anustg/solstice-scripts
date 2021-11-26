@@ -55,7 +55,7 @@ def output_motab(table,savedir=None, title=None):
 	f.close()
 
 
-def output_matadata_motab(table, field_type, aiming, n_helios, A_helio, eff_design, H_rcv, W_rcv, H_tower, Q_in_rcv, A_land, savedir=None, details_en=None):
+def output_matadata_motab(table, field_type, aiming, n_helios, A_helio, eff_design, H_rcv, W_rcv, H_tower, Q_in_rcv, A_land, A_secref=None, A_cpc=None, savedir=None, details_en=None):
 	"""Output the .motab file to work with the SolarTherm program
 
 	``Arguments``
@@ -70,6 +70,8 @@ def output_matadata_motab(table, field_type, aiming, n_helios, A_helio, eff_desi
 		* H_tower (float), tower height (m)
 		* Q_in_rcv (float): the incident power on the receiver (W)
 		* A_land (float): the total land area of the field (m2)
+		* A_secref (float): area of the secondary reflector for a beam-down system (m2)
+		* A_cpc (float): area of the Compound Parabolic Concentrator for a beam-down system (m2)
 		* savedir (str): the directory to save this .motab file
 		* details_en (dict): the key of the dict is the name of the breakdown of energy (loss), the value of the dict is a numpy array that contains the value of the energy (loss) with the corresponding declination and hour angles
 
@@ -79,9 +81,14 @@ def output_matadata_motab(table, field_type, aiming, n_helios, A_helio, eff_desi
 	f=open(savedir, 'w')
 	f.write('#1\n')
 	f.write('#Comments: Field type: %s, Aiming Strategy: %s, Date:%s\n'%(field_type, aiming, datetime.now()))
-	f.write('#METALABELS,n_helios,A_helio,Eff_design,H_rcv,W_rcv,H_tower, Q_in_rcv, A_land\n')
-	f.write('##METAUNITS,real,m2,real,m,m,m,W,m2\n')
-	f.write('#METADATA,%s,%s,%s,%s,%s,%s,%s,%s\n'%(n_helios,A_helio,eff_design,H_rcv,W_rcv,H_tower,Q_in_rcv,A_land))
+	if A_secref is None:
+		f.write('#METALABELS,n_helios,A_helio,Eff_design,H_rcv,W_rcv,H_tower, Q_in_rcv, A_land\n')
+		f.write('##METAUNITS,real,m2,real,m,m,m,W,m2\n')
+		f.write('#METADATA,%s,%s,%s,%s,%s,%s,%s,%s\n'%(n_helios,A_helio,eff_design,H_rcv,W_rcv,H_tower,Q_in_rcv,A_land))
+	else:
+		f.write('#METALABELS,n_helios,A_helio,A_secref,A_cpc,Eff_design,H_rcv,W_rcv,H_tower, Q_in_rcv, A_land\n')
+		f.write('##METAUNITS,real,m2,m2,m2,real,m,m,m,W,m2\n')
+		f.write('#METADATA,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s\n'%(n_helios,A_helio,A_secref,A_cpc,eff_design,H_rcv,W_rcv,H_tower,Q_in_rcv,A_land))
 
 	# size of the lookup table
 	m=np.shape(table)[0]-2

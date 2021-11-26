@@ -2,6 +2,7 @@ import os
 import sys
 import numpy as np
 import time
+from scipy.integrate import quad
 
 class CPC:
         '''
@@ -238,7 +239,7 @@ class CPC:
             secref_angle = self.tilt_secref * np.pi/180.
             real_foci_z = (self.h_CPC+self.rec_z)
 
-            assert self.aim_z > real_foci_z, 'The imaginary foci of the hyperbol is lower than its real foci'
+            #assert self.aim_z > real_foci_z, 'The imaginary foci of the hyperbol is lower than its real foci'
 
             aim_y =  (self.aim_z-real_foci_z) * np.tan(secref_angle)
             foci_dist = np.sqrt((self.aim_z-real_foci_z)**2 + aim_y**2)/2.
@@ -278,13 +279,9 @@ class CPC:
                     rim_angle_y = abs(aperture_angle_y)/2.
 
                 m_angle = (- self.tilt_secref + secref_offset - rim_angle_y)
-                print('m_angle: ', m_angle)
                 y_min = self.intersectionlinehyperbol(a_hyper, b_hyper, m_angle, foci_dist)
-                print('y_min:',y_min)
                 m_angle = (- self.tilt_secref + secref_offset + rim_angle_y)
-                print('m_angle: ', m_angle)
                 y_max = self.intersectionlinehyperbol(a_hyper, b_hyper, m_angle, foci_dist)
-                print('y_max:',y_max)
 
                 if aperture_angle_y is None:
                     secref_vert = np.array([x_max])
@@ -301,9 +298,6 @@ class CPC:
             ## Vitual surface above secondary reflector
             virt_vert = np.array([ [-x_max, y_max], [-x_max, -y_max], [x_max, -y_max], [x_max, y_max] ])*50
             z_max=self.hyperboloid(x_max, y_max)
-            #print('X HYPERBOLA: ', x_max)
-            #print('Y HYPERBOLA: ', y_max)
-            #print('Z HYPERBOLA: ', z_max)
             virt_vert_z = self.secref_z+z_max+5
 
             return secref_vert, virt_vert, virt_vert_z, center
