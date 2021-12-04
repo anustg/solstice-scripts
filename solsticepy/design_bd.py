@@ -43,7 +43,7 @@ class BD:
 		Calculate the field maximum radius along x or y axis
 		max_field_rim_angle: Maximum field rim angle which corresponds to 8xTH (TH=Tower Height)
 		'''
-		max_field_rim_angle = 82.9
+		max_field_rim_angle = 87.
 
 		if abs(rim_angle) > max_field_rim_angle:
 			rim_angle = max_field_rim_angle * np.sign(rim_angle)
@@ -298,7 +298,7 @@ class BD:
 		select_hst=(Qin>0.)
 		QinMax=np.sum(Qin[select_hst])
 		sys.stderr.write("\n"+yellow("Maximum Incident NRJ (W) at design Point: {:f}\n".format(QinMax)))
-		# assert QinMax > Q_in_des, 'There is not enough incident energy on the receiver to satisfy the design condition'
+		assert QinMax > Q_in_des, 'There is not enough incident energy on the receiver to satisfy the design condition'
 
 
 

@@ -149,6 +149,7 @@ class CPC:
             '''
             if m_angle == 0:
                 y_inter = 0.
+                z_inter = self.hyperboloid(0., y_inter)
 
             else:
                 m_line = -1 / np.tan(m_angle * np.pi/180.)
@@ -156,6 +157,7 @@ class CPC:
 
                 if abs(m_line) < 0.000000001: # abs(m_angle) == 90:
                     y_inter = np.sqrt(a_hyper**2 * ((z0_line**2)/(b_hyper**2)-1))
+                    z_inter = self.hyperboloid(0., y_inter)
 
                 else:
                     aCoef_poly = b_hyper**2 - a_over_m_sqrt
@@ -174,7 +176,7 @@ class CPC:
                     #check = (z_inter**2)/a_hyper**2 - (y_inter**2)/b_hyper**2
                     #print('equation resolution should be 1, and it is: ', check)
 
-            return y_inter
+            return y_inter, z_inter
 
 
         def dependantparameters(self, rec_param):
@@ -271,36 +273,42 @@ class CPC:
                 a_hyper = (self.focal_real-foci_dist)
                 b_hyper = np.sqrt(self.focal_image*self.focal_real)
                 m_angle = aperture_angle_x/2.
-                x_max = self.intersectionlinehyperbol(a_hyper, b_hyper, m_angle, foci_dist)
+                x_inter_max, z_inter_max = self.intersectionlinehyperbol(a_hyper, b_hyper, m_angle, foci_dist)
 
                 if aperture_angle_y is None:
                     rim_angle_y = aperture_angle_x/2.
                 else:
                     rim_angle_y = abs(aperture_angle_y)/2.
 
-                m_angle = (- self.tilt_secref + secref_offset - rim_angle_y)
-                y_min = self.intersectionlinehyperbol(a_hyper, b_hyper, m_angle, foci_dist)
-                m_angle = (- self.tilt_secref + secref_offset + rim_angle_y)
-                y_max = self.intersectionlinehyperbol(a_hyper, b_hyper, m_angle, foci_dist)
+                m_angle = secref_offset - rim_angle_y
+                y_inter_min, z_inter_min = self.intersectionlinehyperbol(a_hyper, b_hyper, m_angle, foci_dist)
+                m_angle = secref_offset + rim_angle_y
+                y_inter_max, z_inter_max = self.intersectionlinehyperbol(a_hyper, b_hyper, m_angle, foci_dist)
 
                 if aperture_angle_y is None:
-                    secref_vert = np.array([x_max])
-                    center=np.array([0.,(y_max+y_min)/2.])
-                    y_max=x_max
+                    secref_vert = np.array([x_inter_max])
+                    if secref_offset == 0.:
+                        y_center = 0.
+                    else:
+                        y_center = (y_inter_max + y_inter_min)/2.
+                    center=np.array([0., y_center])
+                    y_max=max(x_inter_max,abs(y_inter_max),abs(y_inter_min))
                 else:
-                    secref_vert = np.array([[0.,y_max],[-x_max,y_max],[-x_max,0.],[-x_max,y_min],[0.,y_min],[x_max,y_min],[x_max,0.],[x_max,y_max]])
-                    y_max=max(abs(y_min),abs(y_max))
+                    secref_vert = np.array([[0.,y_inter_max],[-x_inter_max,y_inter_max],[-x_inter_max,0.],[-x_inter_max,y_inter_min],[0.,y_inter_min],[x_inter_max,y_inter_min],[x_inter_max,0.],[x_inter_max,y_inter_max]])
+                    y_max=max(abs(y_inter_max),abs(y_inter_min))
 
             else:
-                x_max=max(secref_vert[:,0])
-                y_max=max(secref_vert[:,1])
+                x_inter_max=max(abs(secref_vert[:,0]))
+                y_max=max(abs(secref_vert[:,1]))
 
             ## Vitual surface above secondary reflector
-            virt_vert = np.array([ [-x_max, y_max], [-x_max, -y_max], [x_max, -y_max], [x_max, y_max] ])*50
-            z_max=self.hyperboloid(x_max, y_max)
-            virt_vert_z = self.secref_z+z_max+5
+            virt_vert = np.array([ [-x_inter_max, y_max], [-x_inter_max, -y_max], [x_inter_max, -y_max], [x_inter_max, y_max] ])*50
+            z_max = self.focal_real + self.hyperboloid(x_inter_max, y_max)
+            asb_secref_tilt = abs(self.tilt_secref * np.pi/180.)
+            z_max = z_max * np.cos(asb_secref_tilt) + y_max * np.sin(asb_secref_tilt)
+            z_max += (self.h_CPC+self.rec_z)
 
-            return secref_vert, virt_vert, virt_vert_z, center
+            return secref_vert, virt_vert, z_max, center
 
 
         def cpcfaceparameters(self):

@@ -33,27 +33,27 @@ while 1:
 pm=Parameters()
 
 # Variables
-pm.H_tower=150.453433 # tower height or vertical distance to aiming point (located at the center of xOy plan)
-pm.cpc_theta_deg=10.516461   # acceptance half angle of the CPC in degree
-pm.cpc_h_ratio=1.0 # must be inferior or equal to 1
-pm.aperture_angle_x = 70.038185 # 80 # aperture angle of the heliostat field in the xOz plan in degree ]0,180]
-pm.aperture_angle_y = 67.097593 # 80 # aperture angle of the heliostat field in the xOz plan in degree ]0,180]
-pm.secref_offset = 30.  # Offset of the mirror central line with regards to the hyperboloid axis of symmetry [-100,100]
-pm.tilt_secref = -30. # 5. # angle of the tilted axis of the hyperboloid, from the vertical to the North (+) or South (-), [-180,180]
-pm.secref_inv_eccen = 0.622431 # hyperboloid inverse eccentricity, [0,1]
+pm.H_tower=80.64 # 150.64 # tower height or vertical distance to aiming point (located at the center of xOy plan)
+pm.cpc_theta_deg=26. # 32. acceptance half angle of the CPC in degree
+pm.cpc_h_ratio=0.6 # 1. must be inferior or equal to 1
+pm.aperture_angle_x = 160. # 100. aperture angle of the heliostat field in the xOz plan in degree ]0,180]
+pm.aperture_angle_y = None # aperture angle of the heliostat field in the xOz plan in degree ]0,180]
+pm.secref_offset = 0.  # -15. Offset of the mirror central line with regards to the hyperboloid axis of symmetry [-100,100]
+pm.tilt_secref = 5. # 30. # angle of the tilted axis of the hyperboloid, from the vertical to the North (+) or South (-), [-180,180]
+pm.secref_inv_eccen = 0.7 # 0.55 hyperboloid inverse eccentricity, [0,1]
 pm.Z_rcv=0.
-pm.fb=0.16153
+pm.fb=0.9618 #0.152
 
 
 # fixed parameters
 # =========
 pm.sunshape='buie'
 pm.crs=0.02
-pm.Q_in_rcv=40e6
+pm.Q_in_rcv=50e6
 pm.n_row_oelt=5
-pm.n_col_oelt=5
-pm.H_rcv=10.
-pm.W_rcv=1.2
+pm.n_col_oelt=22
+pm.H_rcv=8.
+pm.W_rcv=8.
 pm.W_helio=6.1 #1.84 # ASTRI helio size
 pm.H_helio=6.1 # 2.44
 pm.field_type='surround'
@@ -68,7 +68,7 @@ print(pm.R1)
 pm.rcv_type='beam_down'
 # 2D-crossed cpc with n faces
 pm.cpc_nfaces=4
-pm.n_H_rcv=20
+pm.n_H_rcv=80
 pm.cpc_nZ=30
 # Properties for Mirrors surfaces
 pm.rho_helio=0.9
