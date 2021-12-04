@@ -149,7 +149,6 @@ class CPC:
             '''
             if m_angle == 0:
                 y_inter = 0.
-                z_inter = self.hyperboloid(0., y_inter)
 
             else:
                 m_line = -1 / np.tan(m_angle * np.pi/180.)
@@ -157,7 +156,6 @@ class CPC:
 
                 if abs(m_line) < 0.000000001: # abs(m_angle) == 90:
                     y_inter = np.sqrt(a_hyper**2 * ((z0_line**2)/(b_hyper**2)-1))
-                    z_inter = self.hyperboloid(0., y_inter)
 
                 else:
                     aCoef_poly = b_hyper**2 - a_over_m_sqrt
@@ -176,7 +174,7 @@ class CPC:
                     #check = (z_inter**2)/a_hyper**2 - (y_inter**2)/b_hyper**2
                     #print('equation resolution should be 1, and it is: ', check)
 
-            return y_inter, z_inter
+            return y_inter
 
 
         def dependantparameters(self, rec_param):
@@ -273,7 +271,7 @@ class CPC:
                 a_hyper = (self.focal_real-foci_dist)
                 b_hyper = np.sqrt(self.focal_image*self.focal_real)
                 m_angle = aperture_angle_x/2.
-                x_inter_max, z_inter_max = self.intersectionlinehyperbol(a_hyper, b_hyper, m_angle, foci_dist)
+                x_inter_max = self.intersectionlinehyperbol(a_hyper, b_hyper, m_angle, foci_dist)
 
                 if aperture_angle_y is None:
                     rim_angle_y = aperture_angle_x/2.
@@ -281,9 +279,9 @@ class CPC:
                     rim_angle_y = abs(aperture_angle_y)/2.
 
                 m_angle = secref_offset - rim_angle_y
-                y_inter_min, z_inter_min = self.intersectionlinehyperbol(a_hyper, b_hyper, m_angle, foci_dist)
+                y_inter_min = self.intersectionlinehyperbol(a_hyper, b_hyper, m_angle, foci_dist)
                 m_angle = secref_offset + rim_angle_y
-                y_inter_max, z_inter_max = self.intersectionlinehyperbol(a_hyper, b_hyper, m_angle, foci_dist)
+                y_inter_max = self.intersectionlinehyperbol(a_hyper, b_hyper, m_angle, foci_dist)
 
                 if aperture_angle_y is None:
                     secref_vert = np.array([x_inter_max])
