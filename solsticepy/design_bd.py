@@ -298,7 +298,7 @@ class BD:
 		select_hst=(Qin>0.)
 		QinMax=np.sum(Qin[select_hst])
 		sys.stderr.write("\n"+yellow("Maximum Incident NRJ (W) at design Point: {:f}\n".format(QinMax)))
-		assert QinMax > Q_in_des, 'There is not enough incident energy on the receiver to satisfy the design condition'
+		# assert QinMax > Q_in_des, 'There is not enough incident energy on the receiver to satisfy the design condition'
 
 
 
