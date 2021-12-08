@@ -148,7 +148,7 @@ class Parameters:
 		self.slope_error_bd=2.e-3 # radian
 		self.n_helios=300
 		self.sunshape='buie'
-		self.crs=0.02
+		self.crs=0.028
 
 
 	def simulation(self):
