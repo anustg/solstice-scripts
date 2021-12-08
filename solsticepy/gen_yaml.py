@@ -57,7 +57,7 @@ class Sun:
 		return s
 
 
-def gen_yaml(sun, hst_pos, hst_foc, hst_aims,hst_w, hst_h
+def gen_yaml(sun, hst_pos, hst_foc, hst_aims, hst_row_idx, hst_w, hst_h
 		, rho_refl, slope_error, receiver, rec_param, rec_abs
 		, outfile_yaml, outfile_recv
 		, hemisphere='North', tower_h=0.01, tower_r=0.01,  spectral=False
@@ -72,6 +72,7 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims,hst_w, hst_h
 	  * `hst_pos` (nx3 numpy array): heliostat positions (x, y, z) (first of the 'field' parameters)
 	  * `hst_foc` (nx1 numpy array): heliostat focal length
 	  * `hst_aims` (nx3 numpy array): heliostat aiming point (ax, ay, az)
+	  * `hst_row_idx` (nx1 numpy array): row index of each heliostat in the whole field
 	  * `hst_w` (float): heliostat mirror width  (in x direction)
 	  * `hst_h` (float): heliostat mirror height (in y direction)
 	  * `hst_z` (float): heliostat center height (in z direction)
@@ -254,6 +255,7 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims,hst_w, hst_h
 		aim_z=np.r_[hst_aims[2]]
 		num_hst=1
 		hst_foc=np.r_[hst_foc]
+		num_rows=1
 	else:
 		hst_x=hst_pos[:,0]
 		hst_y=hst_pos[:,1]
@@ -262,16 +264,23 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims,hst_w, hst_h
 		aim_y=hst_aims[:,1]
 		aim_z=hst_aims[:,2]
 		num_hst=len(hst_x)
+		num_rows=int(max(hst_row_idx))+1
 	slices = 4 # slices for the envelop circle
 	pts_hst = [ [-hst_w*0.5, -hst_h*0.5], [-hst_w*0.5, hst_h*0.5], [hst_w*0.5, hst_h*0.5], [hst_w*0.5,-hst_h*0.5] ]
-	# CREATE a reflective facet (mirror)
-	for i in range(0,num_hst):
-		name_hst_g = 'hst_g_'+str(i)
+	
+	# CREATE heliostat geometry
+	for i in range(num_rows):
+		row=int(i)
+		ii=(hst_row_idx==row)
+		focals=hst_foc[ii]
+		focals=focals.astype(float)
+		foc=np.average(focals)
+		name_hst_g = 'hst_g_row'+str(i)
 		iyaml+='- geometry: &%s\n' % name_hst_g 
 		iyaml+='  - material: *%s\n' % 'material_mirror' 
 		#iyaml+='    transform: { translation: %s, rotation: %s }\n' % ([hst_x[i], hst_y[i], hst_z[i]], [0, 0, 0]) )
 		iyaml+='    parabol: \n'
-		iyaml+='      focal: %s\n' % hst_foc[i]
+		iyaml+='      focal: %s\n' % foc
 		iyaml+='      clip: \n'  
 		iyaml+='      - operation: AND \n'
 		iyaml+='        vertices: %s\n' % pts_hst
@@ -293,22 +302,58 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims,hst_w, hst_h
 	# (programming objects gathering geometries or pivot and geometries)
 	#------------------------------
 	# CREATE the heliostat templates
-	for i in range(0,num_hst):    
-		name_hst_t = 'hst_t_'+str(i)
-		iyaml+='- template: &%s\n' % name_hst_t 
-		name_hst_n = 'hst_'+ str(i)
-		iyaml+='    name: %s\n' % name_hst_n 
-		iyaml+='    primary: 0\n'   
-		iyaml+='    geometry: *pylon_g\n'
-		iyaml+='    children: \n' 
-		iyaml+='    - name: pivot\n'
-		iyaml+='      zx_pivot: {target: {position: %s}} \n' % ([aim_x[i],aim_y[i],aim_z[i]]) 
-		iyaml+='      children: \n'
-		iyaml+='      - name: reflect_surface\n'
-		iyaml+='        primary: 1\n'
-		iyaml+='        transform: {rotation: [-90,0,0]} \n'   
-		name_hst_g = 'hst_g_'+str(i)
-		iyaml+='        geometry: *%s\n' % name_hst_g 
+	
+	hst_t_names=[] # name of the template for each heliostat
+	for i in range(num_rows):
+		name_hst_g='hst_g_row'+str(i)	
+		ii=(hst_row_idx==i)	
+		aim_points=hst_aims[ii]
+		aim_names=[]
+		# find group of heliostats with same aiming points
+		for a in aim_points:
+			len_a=len(aim_names)
+			if len_a>0:
+				check=0
+				for j in range(len_a):
+					if np.array_equal(a, aim_names[j]):
+						check=1
+				if check==0:
+					aim_names.append(a)						
+			else:
+				aim_names.append(a)
+		
+		for j in range(len(aim_names)):
+			j=int(j)
+			row_aim_x=aim_names[j][0]
+			row_aim_y=aim_names[j][1]
+			row_aim_z=aim_names[j][2]	  	
+				
+			name_hst_t = 'hst_t_row_%s_aim_%s'%(i,j)
+			iyaml+='- template: &%s\n' % name_hst_t 
+			name_hst_n = 'hst_row_%s_aim_%s'%(i,j)
+			iyaml+='    name: %s\n' % name_hst_n 
+			iyaml+='    primary: 0\n'   
+			iyaml+='    geometry: *pylon_g\n'
+			iyaml+='    children: \n' 
+			iyaml+='    - name: pivot\n'
+			iyaml+='      zx_pivot: {target: {position: %s}} \n' % ([row_aim_x,row_aim_y,row_aim_z]) 
+			iyaml+='      children: \n'
+			iyaml+='      - name: reflect_surface\n'
+			iyaml+='        primary: 1\n'
+			iyaml+='        transform: {rotation: [-90,0,0]} \n'   
+			iyaml+='        geometry: *%s\n' % name_hst_g 
+
+		for h in range(num_hst):
+			a=hst_aims[h]
+			r=hst_row_idx[h]
+			if r==i:	
+				for j in range(len(aim_names)):
+					j=int(j)
+					if np.array_equal(a, aim_names[j]):
+						name_hst_t = 'hst_t_row_%s_aim_%s'%(str(int(r)), str(int(j)))
+						hst_t_names.append(name_hst_t)
+						pass
+						
 
 	# 
 	### Section (6)
@@ -337,11 +382,14 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims,hst_w, hst_h
 	# heliostat entities from the template
 	for i in range(0,num_hst):
 		name_e ='H_'+str(i)
-		name_hst_t = 'hst_t_'+str(i)
+		name_hst_t = hst_t_names[i]
 		iyaml+='\n- entity:\n'
 		iyaml+='    name: %s\n' % name_e
 		iyaml+='    transform: { translation: %s, rotation: %s }\n' % ([hst_x[i], hst_y[i], hst_z[i]], [0, 0, 0]) 
 		iyaml+='    children: [ *%s ]\n' % name_hst_t    
+
+
+
 
 	with open(outfile_yaml,'w') as f:
 		f.write(iyaml)

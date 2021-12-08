@@ -342,7 +342,7 @@ def radial_stagger(latitude, num_hst, width, height, hst_z, towerheight, R1, fb,
 		plt.savefig(savedir+'/aiming_%s.png'%plt_aiming, bbox_inches='tight')
 		plt.close()
 	'''
-	return pos_and_aiming, Nzones, Nrows_zone
+	return pos_and_aiming, Nzones, Nrows_zone, TTROW
 
 def cal_cosw_coset(latitude, towerheight, xx, yy, zz):
 	'''

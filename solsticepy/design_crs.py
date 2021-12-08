@@ -28,10 +28,12 @@ class CRS:
 	def __init__(self, latitude, casedir, nproc=0, verbose=False):
 		'''
 		Arguements:
+			latitude: float, latitude of the location
 			casedir : str, the directory of the case 
-			nproc (int): number of processors, e.g. nproc=1 will run in serial mode, 
-                                                    nproc=4 will run with 4 processors in parallel
-											        nproc=0 will run with any number of processors that are available
+			nproc (int): number of processors, 
+				e.g. nproc=1 run in serial mode, 
+                     nproc=4 run with 4 processors in parallel
+ 	     		     nproc=0 run with maximal available processors
 			verbose : bool, write results to files or not
 		'''
 		self.casedir=casedir
@@ -121,7 +123,7 @@ class CRS:
 			if not os.path.exists(savefolder):
 				os.makedirs(savefolder)
 
-			pos_and_aiming, self.Nzones, self.Nrows=radial_stagger(latitude=self.latitude, num_hst=num_hst, width=hst_w, height=hst_h, hst_z=hst_z, towerheight=tower_h, R1=R1, fb=fb, dsep=0., field=field, mac=mac, savedir=savefolder, verbose=self.verb )        
+			pos_and_aiming, self.Nzones, self.Nrows, self.TTRow=radial_stagger(latitude=self.latitude, num_hst=num_hst, width=hst_w, height=hst_h, hst_z=hst_z, towerheight=tower_h, R1=R1, fb=fb, dsep=0., field=field, mac=mac, savedir=savefolder, verbose=self.verb )        
 			  
 			layout=pos_and_aiming[2:, :]
 			self.hst_zone=layout[:,9].astype(float)     # zone number
@@ -157,7 +159,7 @@ class CRS:
 			hemisphere='North'
 		else:
 			hemisphere='South'
-		gen_yaml(sun, self.hst_pos, self.hst_foc, self.hst_aims, self.hst_w
+		gen_yaml(sun, self.hst_pos, self.hst_foc, self.hst_aims, self.TTRow, self.hst_w
 		, self.hst_h, self.hst_rho, self.slope, self.receiver, self.rec_param
 		, self.rec_abs, outfile_yaml=outfile_yaml, outfile_recv=outfile_recv
 		, hemisphere=hemisphere, tower_h=self.tower_h, tower_r=self.tower_r

@@ -165,7 +165,8 @@ class Master:
 		  * table (numpy array), the annual optical efficiency lookup table
 		  * ANNUAL (numpy array), the annual output of each heliostat
 		"""
-
+		hst_aim_idx=hst_aim_idx.astype(float)
+		
 		YAML_IN = self.in_case(self.casedir, 'input.yaml')
 		RECV_IN = self.in_case(self.casedir, 'input-rcv.yaml')
 
@@ -221,6 +222,7 @@ class Master:
 				ANNUAL+=performance_hst
 
 			for ap in range(num_aperture):
+
 				idx_apt_i=(hst_aim_idx==ap)
 				for a in range(len(table[3:])):
 					for b in range(len(table[0,3:])):

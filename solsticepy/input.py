@@ -182,9 +182,12 @@ class Parameters:
 			else:
 				self.n_helios=sum(self.Q_in_rcv)/self.W_helio/self.H_helio/self.dni_des/eta_field
 			  
-			if self.field_type!='surround':
+			if self.field_type=='polar':
 				self.n_helios*=1.5  
-
+			
+			if self.field_type=='multi-aperture' and self.gamma<200.:
+				self.n_helios*=1.5  				
+				
 
 	def saveparam(self, savedir):
 		if not os.path.exists(savedir):

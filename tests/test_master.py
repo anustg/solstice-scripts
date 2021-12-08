@@ -35,7 +35,7 @@ class TestMaster(unittest.TestCase):
 		tower_h=80. # tower height
 		tower_r=0.01 # tower radius
 
-		pos_and_aiming, Nzones, Nrows_zone=radial_stagger(latitude=latitude, num_hst=1000, width=hst_w, height=hst_h, hst_z=3., towerheight=tower_h, R1=50., fb=0.5, dsep=0., field='polar', savedir=self.casedir, plot=False, verbose=False)
+		pos_and_aiming, Nzones, Nrows_zone,hst_row_idx =radial_stagger(latitude=latitude, num_hst=1000, width=hst_w, height=hst_h, hst_z=3., towerheight=tower_h, R1=50., fb=0.5, dsep=0., field='polar', savedir=self.casedir, plot=False, verbose=False)
 		hst_pos=pos_and_aiming[2:,:3]
 		hst_foc=pos_and_aiming[2:,3] 
 		hst_aims=pos_and_aiming[2:,4:7]
@@ -66,7 +66,7 @@ class TestMaster(unittest.TestCase):
 		outfile_yaml = master.in_case(self.casedir, 'input.yaml')
 		outfile_recv = master.in_case(self.casedir, 'input-rcv.yaml')
 
-		solsticepy.gen_yaml(sun, hst_pos, hst_foc, hst_aims, hst_w, hst_h
+		solsticepy.gen_yaml(sun, hst_pos, hst_foc, hst_aims, hst_row_idx, hst_w, hst_h
 		, rho_refl, slope_error, receiver, rec_param, rec_abs
 		, outfile_yaml=outfile_yaml, outfile_recv=outfile_recv
 		, hemisphere='North', tower_h=tower_h, tower_r=tower_r,  spectral=False
