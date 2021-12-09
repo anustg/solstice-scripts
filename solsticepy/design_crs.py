@@ -372,6 +372,7 @@ class CRS:
 
 		self.hst_pos= self.hst_pos[select_hst,:]
 		self.hst_foc=self.hst_foc[select_hst]
+		self.TTRow=self.TTRow[select_hst]
 		self.hst_aims=self.hst_aims[select_hst,:]
 		self.hst_aim_idx=self.hst_aim_idx[select_hst]
 
