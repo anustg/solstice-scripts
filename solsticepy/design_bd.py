@@ -25,10 +25,14 @@ class BD:
         the sun, the field, the secondary reflector, the CPC and the receiver.
 	'''
 
-	def __init__(self, latitude, casedir):
+	def __init__(self, latitude, casedir, nproc=0):
 		'''
 		Arguements:
 			casedir : str, the directory of the case
+			nproc (int): number of processors, 
+				e.g. nproc=1 run in serial mode, 
+                     nproc=4 run with 4 processors in parallel
+ 	     		     nproc=0 run with maximal available processors			
 		'''
 		self.casedir=casedir
 
@@ -36,7 +40,7 @@ class BD:
 			os.makedirs(casedir)
 		self.latitude=latitude
 		self.sun=SunPosition()
-		self.master=Master(casedir)
+		self.master=Master(casedir,nproc)
 
 	def maximumfieldradius(self, vertical_distance, rim_angle=45.):
 		'''

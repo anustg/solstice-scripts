@@ -33,13 +33,18 @@ def run_prog(name,args,output_file=None,verbose=True):
 
 class Master:
 
-	def __init__(self, casedir='.'):
+	def __init__(self, casedir='.', nproc=0):
 		"""Set up the Solstice simulation, i.e. establishing the case folder, calling the Solstice program and post-processing the results
 
 		``Argument``
 		  * casedir (str): the case directory
+	      * nproc   (int): number of processors, e.g. nproc=1 will run in serial mode, 
+                                                      nproc=4 will run with 4 processors in parallel
+													  nproc=0 will run with any number of processors that are available
 		"""
 		self.casedir=os.path.abspath(casedir)
+		self.nproc=nproc
+
 		if not os.path.exists(self.casedir):
 		    os.makedirs(self.casedir)
 		    assert os.path.isdir(casedir)
@@ -82,7 +87,10 @@ class Master:
 		RECV_IN = self.in_case(self.casedir, 'input-rcv.yaml')
 
 		# main raytrace
-		run_prog("solstice",['-D%s,%s'%(azimuth,elevation),'-v','-n',num_rays,'-R',RECV_IN,'-fo',self.in_case(folder, 'simul'),YAML_IN])
+		if self.nproc==0:
+			run_prog("solstice",['-D%s,%s'%(azimuth,elevation),'-v','-n',num_rays,'-R',RECV_IN,'-fo',self.in_case(folder, 'simul'),YAML_IN])
+		else:
+			run_prog("solstice",['-D%s,%s'%(azimuth,elevation),'-v', '-t', self.nproc, '-n',num_rays,'-R',RECV_IN,'-fo',self.in_case(folder, 'simul'),YAML_IN])
 
 		folder=os.path.abspath(folder)
 		if gen_vtk:
