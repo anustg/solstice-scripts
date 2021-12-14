@@ -304,13 +304,18 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims, hst_row_idx, hst_w, hst_h
 	# CREATE the heliostat templates
 	
 	hst_t_names=[] # name of the template for each heliostat
+	# the heliostat x,y,z positon saved 
+	# corresponding to the sequence in the list of hst_t_names
+	hst_t_x=[]
+	hst_t_y=[]
+	hst_t_z=[]
 	for i in range(num_rows):
 		name_hst_g='hst_g_row'+str(i)	
 		ii=(hst_row_idx==i)	
-		aim_points=hst_aims[ii]
+		aim_row_i=hst_aims[ii]
+		# find group of heliostats with same aiming points		
 		aim_names=[]
-		# find group of heliostats with same aiming points
-		for a in aim_points:
+		for a in aim_row_i:
 			len_a=len(aim_names)
 			if len_a>0:
 				check=0
@@ -352,9 +357,11 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims, hst_row_idx, hst_w, hst_h
 					if np.array_equal(a, aim_names[j]):
 						name_hst_t = 'hst_t_row_%s_aim_%s'%(str(int(r)), str(int(j)))
 						hst_t_names.append(name_hst_t)
+						hst_t_x.append(hst_x[h])
+						hst_t_y.append(hst_y[h])
+						hst_t_z.append(hst_z[h])												
 						pass
 						
-
 	# 
 	### Section (6)
 	# set the entities
@@ -385,7 +392,7 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims, hst_row_idx, hst_w, hst_h
 		name_hst_t = hst_t_names[i]
 		iyaml+='\n- entity:\n'
 		iyaml+='    name: %s\n' % name_e
-		iyaml+='    transform: { translation: %s, rotation: %s }\n' % ([hst_x[i], hst_y[i], hst_z[i]], [0, 0, 0]) 
+		iyaml+='    transform: { translation: %s, rotation: %s }\n' % ([hst_t_x[i], hst_t_y[i], hst_t_z[i]], [0, 0, 0]) 
 		iyaml+='    children: [ *%s ]\n' % name_hst_t    
 
 
