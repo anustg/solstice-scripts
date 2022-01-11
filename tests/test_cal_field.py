@@ -18,7 +18,7 @@ class TestFieldPF(unittest.TestCase):
 		width=10.
 		height=10.
 
-		pos_and_aim, Nzones, Nrows_zone, TTRow=radial_stagger(latitude=34., num_hst=22640., width=width, height=height, hst_z=5., towerheight=towerheight, R1=80., fb=0.6, dsep=0., field='polar', savedir='.', plot=False)
+		pos_and_aim, Nzones, Nrows_zone=radial_stagger(latitude=34., num_hst=22640., width=width, height=height, hst_z=5., towerheight=towerheight, R1=80., fb=0.6, dsep=0., field='polar', savedir='.', plot=False)
 
 		pos=pos_and_aim[2:,:3].astype(float)
 		aim=pos_and_aim[2:,4:].astype(float)

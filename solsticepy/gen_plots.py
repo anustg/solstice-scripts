@@ -15,12 +15,16 @@ class Case:
 		hst_fn: heliostat pos_and_aim.csv file
 		pfm_fn: heliostat performance annual_hst.csv file
 		idx_fn: the index of the selected heliostats, selected_hst.csv file
+		
+		Return:
+		The X,Y,Z coordinate of the designed (selected heliostats) field layout, 
+		and the corresponding annual performance of each heliostat
 		'''
-		hst_fn=self.casedir+'/des_point/pos_and_aiming.csv'
-		pfm_fn=self.casedir+'/annual_hst.csv'
-		idx_fn=self.casedir+'/selected_hst.csv'
+		hst_fn=self.casedir+'/field_design/pos_and_aiming_yaml.csv'
+		pfm_fn=self.casedir+'/field_design/annual_hst.csv'
+		idx_fn=self.casedir+'/field_design/selected_hst.csv'
 
-		self.pos_and_aim=np.loadtxt(hst_fn, skiprows=2, delimiter=',')
+		self.pos_and_aim=np.loadtxt(hst_fn, delimiter=',')
 		X=self.pos_and_aim[:,0]
 		Y=self.pos_and_aim[:,1]
 
@@ -115,7 +119,7 @@ class Case:
 	def plot_oelt(self, num_aperture=1, vmax=0.85, vmin=0.45,savefig=None):
 
 		if num_aperture==1:
-			table=np.loadtxt(self.casedir+'/lookup_table.csv', dtype=str, delimiter=',')
+			table=np.loadtxt(self.casedir+'/performance/lookup_table.csv', dtype=str, delimiter=',')
 
 			## comparison
 			dec=table[3:,2].astype(float)
@@ -132,7 +136,7 @@ class Case:
 
 		else:
 			for i in range(num_aperture):
-				table=np.loadtxt(self.casedir+'/lookup_table_%s.csv'%i, dtype=str, delimiter=',')
+				table=np.loadtxt(self.casedir+'/performance/lookup_table_%s.csv'%i, dtype=str, delimiter=',')
 
 				## comparison
 				dec=table[3:,2].astype(float)
@@ -151,7 +155,7 @@ class Case:
 					plt.savefig(self.casedir+'/oelt_aperture_%s.png'%i, bbox_inches='tight')
 				plt.close()
 
-			table=np.loadtxt(self.casedir+'/lookup_table_total.csv', dtype=str, delimiter=',')
+			table=np.loadtxt(self.casedir+'/performance/lookup_table_total.csv', dtype=str, delimiter=',')
 
 			## comparison
 			dec=table[3:,2].astype(float)

@@ -83,6 +83,7 @@ class CRS:
 			# gamma is the anangular range of the multi-aperture configration (deg)	 
 			self.rec_param=[mac, rec_tilt, rec_grid_w, rec_grid_h]  
 
+		self.mac=mac
 
 	def heliostatfield(self, field, hst_rho, slope, hst_w, hst_h, tower_h, tower_r=0.01, hst_z=0., num_hst=0., R1=0., fb=0., dsep=0., mac=None):
 
@@ -112,10 +113,16 @@ class CRS:
 		    (13) mac    : instant,  an instance of the class MultiApertureConfiguration (see design_multi_aperture.py, or None if it is a single aperture-configuration    
 
 		 '''
+		self.hst_w=hst_w
+		self.hst_h=hst_h
+		self.hst_rho=hst_rho
+		self.slope=slope
+		self.tower_h=tower_h    
+		self.tower_r=tower_r
 	   
 		if field[-3:]=='csv':
 			print('KNOWN FIELD')
-			layout=np.loadtxt(field, delimiter=',', skiprows=2)
+			self.layout=np.loadtxt(field, delimiter=',', skiprows=2)
 
 		else:
 			# design a new field            
@@ -123,27 +130,22 @@ class CRS:
 			if not os.path.exists(savefolder):
 				os.makedirs(savefolder)
 
-			pos_and_aiming, self.Nzones, self.Nrows, self.TTRow=radial_stagger(latitude=self.latitude, num_hst=num_hst, width=hst_w, height=hst_h, hst_z=hst_z, towerheight=tower_h, R1=R1, fb=fb, dsep=0., field=field, mac=mac, savedir=savefolder, verbose=self.verb )        
+			pos_and_aiming, self.Nzones, self.Nrows=radial_stagger(latitude=self.latitude, num_hst=num_hst, width=hst_w, height=hst_h, hst_z=hst_z, towerheight=tower_h, R1=R1, fb=fb, dsep=0., field=field, mac=mac, savedir=savefolder, verbose=self.verb )            
 			  
-			layout=pos_and_aiming[2:, :]
-			self.hst_zone=layout[:,9].astype(float)     # zone number
-			self.hst_row=layout[:,10].astype(float)      # row index in the zone
+			self.layout=pos_and_aiming[2:, :]
+			self.hst_zone=self.layout[:,9].astype(float)     # zone number
+			self.hst_row=self.layout[:,10].astype(float)      # row index in the zone
+			self.TTRow=self.layout[:,12].astype(float) # row index in the total field
 
-		self.hst_w=hst_w
-		self.hst_h=hst_h
-		self.hst_rho=hst_rho
-		self.slope=slope
-		self.tower_h=tower_h    
-		self.tower_r=tower_r
 
-		self.hst_pos=layout[:,:3].astype(float)
-		self.hst_foc=layout[:,3].astype(float) 
-		self.hst_aims=layout[:,4:7].astype(float)
-		self.hst_aim_idx=layout[:,7].astype(float)
+		self.hst_pos=self.layout[:,:3].astype(float)
+		self.hst_foc=self.layout[:,3].astype(float) 
+		self.hst_aims=self.layout[:,4:7].astype(float)
+		self.hst_aim_idx=self.layout[:,7].astype(float)
 
 
 
-	def yaml(self, dni=1000,sunshape=None,csr=0.01,half_angle_deg=0.2664,std_dev=0.2):
+	def yaml(self, sunshape=None,csr=0.01,half_angle_deg=0.2664,std_dev=0.2):
 		'''
 		Generate YAML files for the Solstice simulation
 		'''
@@ -159,14 +161,30 @@ class CRS:
 			hemisphere='North'
 		else:
 			hemisphere='South'
-		gen_yaml(sun, self.hst_pos, self.hst_foc, self.hst_aims, self.TTRow, self.hst_w
+			
+						
+		hst_t_idx,hst_t_names=gen_yaml(sun, self.hst_pos, self.hst_foc, self.hst_aims, self.TTRow, self.hst_w
 		, self.hst_h, self.hst_rho, self.slope, self.receiver, self.rec_param
 		, self.rec_abs, outfile_yaml=outfile_yaml, outfile_recv=outfile_recv
 		, hemisphere=hemisphere, tower_h=self.tower_h, tower_r=self.tower_r
 		, spectral=False , medium=att_factor, one_heliostat=False)
 
+		#update the sequence of hst in yaml
+		self.TTRow=self.TTRow[hst_t_idx]
+		self.hst_pos=self.hst_pos[hst_t_idx]
+		self.hst_foc=self.hst_foc[hst_t_idx]
+		self.hst_aims=self.hst_aims[hst_t_idx]
+		self.hst_aim_idx=self.hst_aim_idx[hst_t_idx]
+		self.hst_zone=self.hst_zone[hst_t_idx]    # zone number
+		self.hst_row=self.hst_row[hst_t_idx]     # row index in the zone	
 
-	def field_design_annual(self, dni_des, num_rays, nd, nh, weafile, method, Q_in_des=None, n_helios=None, zipfiles=False, gen_vtk=False, plot=False):
+		if self.verb:
+			np.savetxt(self.casedir+'/hst_t_idx.csv', hst_t_idx, delimiter=',', fmt='%s') 
+			np.savetxt(self.casedir+'/pos_and_aiming_yaml.csv', self.layout[hst_t_idx], delimiter=',', fmt='%s')
+			np.savetxt(self.casedir+'/hst_yaml_names.csv', hst_t_names, delimiter=',', fmt='%s')
+
+
+	def field_design_annual(self, dni_des,num_rays, nd, nh, weafile, method, Q_in_des=None, n_helios=None, zipfiles=False, gen_vtk=False, plot=False):
 		'''
 		Design a field according to the ranked annual performance of heliostats 
 		(DNI weighted)
@@ -264,7 +282,7 @@ class CRS:
 					
 		ANNUAL/=annual_solar  
 		if self.verb:    
-			np.savetxt(self.casedir+'/annual_hst.csv',ANNUAL, fmt='%.2f', delimiter=',')
+			np.savetxt(self.casedir+'/annual_hst.csv',ANNUAL, fmt='%.4f', delimiter=',')
 		
 		designfolder=self.casedir+'/des_point'
 		day=self.sun.days(21, 'Mar')
@@ -305,7 +323,7 @@ class CRS:
 			self.Q_in_rcv=Q_in_des
 
 			self.Q_in_rcv_i=[] # the incident power on each aperture			
-			if self.receiver=='multi-aperture':
+			if 'multi-aperture' in self.receiver:
 				for ap in range(self.num_aperture):
 					self.Q_in_rcv_i.append(0.)
 			else:
@@ -336,11 +354,6 @@ class CRS:
 				# for single-aperture receiver 
 				# or multi-aperture receiver configuration that selects heliostats based on the total required heat
 				assert isinstance(Q_in_des, float), "Q_in_des should be float, which is the total required incident power to the receiver"
-
-				# initilise the incident power on each aperture
-				self.Q_in_rcv_i=[]
-				for ap in range(self.num_aperture):
-					self.Q_in_rcv_i.append(0.)
 
 				for i in range(len(ID)):
 					if power<Q_in_des:
@@ -375,6 +388,7 @@ class CRS:
 		self.TTRow=self.TTRow[select_hst]
 		self.hst_aims=self.hst_aims[select_hst,:]
 		self.hst_aim_idx=self.hst_aim_idx[select_hst]
+		self.layout=self.layout[select_hst]
 
 		self.n_helios=len(select_hst) # total number of heliostats
 		self.eff_des=power/float(self.n_helios)/Qsolar
@@ -399,9 +413,18 @@ class CRS:
 			#design_pos_and_aim=np.vstack((design_pos_and_aim, symmetric))
 			#designed_field=design_pos_and_aim
 			design_pos_and_aim=np.vstack((title, design_pos_and_aim))
-			np.savetxt(self.casedir+'/pos_and_aiming.csv', design_pos_and_aim, fmt='%s', delimiter=',')
+			np.savetxt(self.casedir+'/pos_and_aiming_design.csv', design_pos_and_aim, fmt='%s', delimiter=',')
 			np.savetxt(self.casedir+'/selected_hst.csv', select_hst, fmt='%.0f', delimiter=',')
 
+
+		self.n_helios_i=[]
+		for ap in range(self.num_aperture):
+				
+			idx_apt_i=(self.hst_aim_idx==ap)		
+			self.n_helios_i.append(np.sum(idx_apt_i))		
+		
+		# post-processing oelt by using the performance of each heliostats
+		'''
 		annual_solar=0.  
 		annual_field=0.
 		
@@ -443,6 +466,7 @@ class CRS:
 						dni=1618.*np.exp(-0.606/(np.sin(elevation*np.pi/180.)**0.491))
 					else:
 						dni=0.
+					run=np.append(run,c) 
 
 				for a in range(len(table[3:])):
 					for b in range(len(table[0,3:])):
@@ -476,8 +500,12 @@ class CRS:
 			# morning and afternoon wrapping for the side apertures
 			if self.num_aperture==3:
 				try:
-					oelt[0][3:,3+int(nh/2):]=oelt[2][3:, 3:3+int(nh/2)][:,::-1]
-					oelt[2][3:,3+int(nh/2):]=oelt[0][3:, 3:3+int(nh/2)][:,::-1]
+					if self.mac.gamma%360.<1e-20:
+						oelt[1][3:,3+int(nh/2):]=oelt[2][3:, 3:3+int(nh/2)][:,::-1]
+						oelt[2][3:,3+int(nh/2):]=oelt[1][3:, 3:3+int(nh/2)][:,::-1]					
+					else:
+						oelt[0][3:,3+int(nh/2):]=oelt[2][3:, 3:3+int(nh/2)][:,::-1]
+						oelt[2][3:,3+int(nh/2):]=oelt[0][3:, 3:3+int(nh/2)][:,::-1]
 				except:
 					raise Exception('The number of col (n_col_oelt) must be an even number\nThe value was %s\n'%(nh))
 
@@ -487,7 +515,11 @@ class CRS:
 						np.savetxt(self.casedir+'/lookup_table_total.csv', oelt[ap], fmt='%s', delimiter=',')			
 					else:
 						np.savetxt(self.casedir+'/lookup_table_%s.csv'%ap, oelt[ap], fmt='%s', delimiter=',')	
-			return oelt, A_land			
+						
+			'''
+	
+						
+		return A_land			
 
 
 	def field_design_dp(self, dni_des, num_rays, method, Q_in_des=None, n_helios=None, zipfiles=False, gen_vtk=False, plot=False):
@@ -585,14 +617,17 @@ class CRS:
 		return A_land			
 
 
-	def annual_oelt(self, dni_des, num_rays, nd, nh, zipfiles=False, gen_vtk=False, plot=False):
+	def annual_oelt(self, num_rays, nd, nh, zipfiles=False, gen_vtk=False, plot=False):
 		'''
 		Annual performance of a known field
 		'''  
 		self.master.casedir=self.casedir
 		self.n_helios=len(self.hst_pos) 
 		system=self.receiver
-		oelt, ANNUAL=self.master.run_annual(nd=nd, nh=nh, latitude=self.latitude, num_rays=num_rays, num_hst=self.n_helios,rho_mirror=self.hst_rho, dni=dni_des,hst_aim_idx=self.hst_aim_idx, num_aperture=self.num_aperture,gen_vtk=gen_vtk, verbose=self.verb, system=system)
+		oelt, ANNUAL=self.master.run_annual(nd=nd, nh=nh, latitude=self.latitude, num_rays=num_rays, num_hst=self.n_helios,rho_mirror=self.hst_rho, hst_aim_idx=self.hst_aim_idx, num_aperture=self.num_aperture, mac=self.mac, gen_vtk=gen_vtk, verbose=self.verb, system=system)
+
+		self.eff_annual=np.sum(ANNUAL[:,-1].astype(float))/np.sum(ANNUAL[:,0].astype(float))
+
 
 		Xmax=max(self.hst_pos[:,0])
 		Xmin=min(self.hst_pos[:,0])
@@ -600,6 +635,7 @@ class CRS:
 		Ymin=min(self.hst_pos[:,1])
 		A_land=(Xmax-Xmin)*(Ymax-Ymin)
 		print('land area', A_land)
+		print('annul eff', self.eff_annual)		
 		'''
 		designfolder=self.casedir+'/des_point'
 		day=self.sun.days(21, 'Mar')

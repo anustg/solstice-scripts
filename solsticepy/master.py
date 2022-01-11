@@ -140,7 +140,7 @@ class Master:
 				sys.stderr.write(green("Completed successfully.\n"))
 			return eta, performance_hst
 
-	def run_annual(self, nd, nh, latitude, num_rays, num_hst, rho_mirror, dni, hst_aim_idx, num_aperture=1, gen_vtk=False,verbose=False, system='crs'):
+	def run_annual(self, nd, nh, latitude, num_rays, num_hst, rho_mirror, hst_aim_idx, num_aperture=1, mac=None, gen_vtk=False,verbose=False, system='crs'):
 
 		"""Run a list of optical simulations to obtain annual performance (lookup table) using Solstice 
 
@@ -151,6 +151,7 @@ class Master:
 		  * latitude (float): the latitude angle of the plan location (deg)
 		  * num_rays (int): number of rays to be cast in the ray-tracing simulation
 		  * num_hst (int): number of heliostats 
+		  * rho_mirror (float): mirror reflectivity
 	      * nproc (int): number of processors, e.g. nproc=1 will run in serial mode, 
                                                       nproc=4 will run with 4 processors in parallel
 											    	  nproc=0 will run with any number of processors that are available
@@ -175,11 +176,8 @@ class Master:
 		case_list=case_list[1:]
 		SOLSTICE_AZI, SOLSTICE_ELE=sun.convert_convention('solstice', AZI, ZENITH)
 
-		# performance of individual heliostat is recorded
-		# TODO note, DNI is not varied in the simulation, 
-		# i.e. performance is not dni-weighted
+
 		ANNUAL=np.zeros((num_hst, 9))    
-		run=np.r_[0]
 
 		oelt={}
 		QTOT=np.zeros(np.shape(table))
@@ -190,9 +188,12 @@ class Master:
 			oelt[ap]=np.zeros(np.shape(table))
 			oelt[ap][2, 3:]=table[2, 3:].astype(float)
 			oelt[ap][3:,2]=table[3:,2].astype(float)
-			idx_apt_i=(hst_aim_idx==ap)
-			self.n_helios_i.append(np.sum(idx_apt_i))
-
+			idx_apt_i=(hst_aim_idx==ap)	
+			nhst=np.sum(idx_apt_i)					
+			self.n_helios_i.append(nhst)
+			
+		run=np.r_[0]
+				
 		for i in range(len(case_list)):     
 			c=int(case_list[i,0].astype(float))
 			if c not in run:
@@ -212,23 +213,26 @@ class Master:
 				if elevation<1.: # 1 degree
 					efficiency_total=ufloat(0,0)
 					performance_hst=np.zeros((num_hst, 9))  
+					performance_hst[:,0]=1. 
+					efficiency_hst=np.zeros(nhst)					
 				else:
 					efficiency_total, performance_hst=self.run(azimuth, elevation, num_rays, rho_mirror, dni, folder=onesunfolder, gen_vtk=gen_vtk, printresult=False, verbose=verbose, system=system)
 
-					sys.stderr.write(yellow("Total efficiency: {:f}\n".format(efficiency_total)))
+				sys.stderr.write(yellow("Total efficiency: {:f}\n".format(efficiency_total)))
 
 				ANNUAL+=performance_hst
+				run=np.append(run,c)
+				   
 			else:
 				ANNUAL+=performance_hst
 
 			for ap in range(num_aperture):
-
 				idx_apt_i=(hst_aim_idx==ap)
 				for a in range(len(table[3:])):
 					for b in range(len(table[0,3:])):
 						val=re.findall(r'\d+',    table[a+3,b+3])
 						if val==[]:
-						    oelt[ap][a+3,b+3]=0
+							oelt[ap][a+3,b+3]=0
 						else:
 							if c==float(val[0]):
 								Qtot=performance_hst[idx_apt_i,0]
@@ -239,13 +243,13 @@ class Master:
 								QTOT[a+3,b+3]+=np.sum(Qtot)
 								QIN[a+3,b+3]+=np.sum(Qin)
 
-			run=np.append(run,c)   
+
 
 
 		if verbose:
 			annual_title=np.array(['Q_solar','Q_cosine', 'Q_shade', 'Q_hst_abs', 'Q_block', 'Q_atm', 'Q_spil', 'Q_refl', 'Q_rcv_abs']) 
-			ANNUAL=np.vstack((annual_title, ANNUAL))
-			np.savetxt(self.casedir+'/result-heliostats-annual-performance.csv', ANNUAL, fmt='%s', delimiter=',')
+			annual=np.vstack((annual_title, ANNUAL))
+			np.savetxt(self.casedir+'/result-heliostats-annual-performance.csv', annual, fmt='%s', delimiter=',')
 			sys.stderr.write("\n"+green("Lookup table saved.\n"))
 
 		sys.stderr.write(green("Completed successfully.\n"+"\n"))
@@ -262,10 +266,18 @@ class Master:
 			oelt[num_aperture][3:,2]=table[3:,2].astype(float)
 
 			# morning and afternoon wrapping for the side apertures
-			if num_aperture==3:
-				oelt[0][3:,3+int(nh/2):]=oelt[2][3:, 3:3+int(nh/2)][:,::-1]
-				oelt[2][3:,3+int(nh/2):]=oelt[0][3:, 3:3+int(nh/2)][:,::-1]
-
+			try:
+				if num_aperture==3:
+					if mac.gamma%360.<1e-20:
+						oelt[1][3:,3+int(nh/2):]=oelt[2][3:, 3:3+int(nh/2)][:,::-1]
+						oelt[2][3:,3+int(nh/2):]=oelt[1][3:, 3:3+int(nh/2)][:,::-1]
+		
+					else:
+						oelt[0][3:,3+int(nh/2):]=oelt[2][3:, 3:3+int(nh/2)][:,::-1]
+						oelt[2][3:,3+int(nh/2):]=oelt[0][3:, 3:3+int(nh/2)][:,::-1]
+			except:
+				raise Exception('The number of col (n_col_oelt) must be an even number\nThe value was %s\n'%(nh))
+					
 			if verbose:
 				for ap in range(num_aperture+1):
 					if ap==num_aperture:

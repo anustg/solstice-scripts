@@ -59,9 +59,16 @@ class TestMultiAperture(unittest.TestCase):
 
 			crs.heliostatfield(field=pm.field_type, hst_rho=pm.helio_refl, slope=pm.slope_error, hst_w=pm.W_helio, hst_h=pm.H_helio, tower_h=pm.H_tower, tower_r=pm.R_tower, hst_z=pm.Z_helio, num_hst=pm.n_helios, R1=pm.R1, fb=pm.fb, dsep=pm.dsep, mac=mac)
 
-			crs.yaml(dni=900,sunshape=pm.sunshape,csr=pm.csr,half_angle_deg=pm.half_angle_deg,std_dev=pm.std_dev)
+			crs.yaml(sunshape=pm.sunshape,csr=pm.csr,half_angle_deg=pm.half_angle_deg,std_dev=pm.std_dev)
 
-			self.oelt, A_land=crs.field_design_annual(dni_des=900., num_rays=int(1e6), nd=pm.n_row_oelt, nh=pm.n_col_oelt, weafile=weafile, method=1, Q_in_des=pm.Q_in_rcv, n_helios=None, zipfiles=False, gen_vtk=False, plot=False)
+			A_land=crs.field_design_annual(dni_des=900., num_rays=int(1e6), nd=pm.n_row_oelt, nh=pm.n_col_oelt, weafile=weafile, method=1, Q_in_des=pm.Q_in_rcv, n_helios=None, zipfiles=False, gen_vtk=False, plot=False)
+
+			crs.casedir=pm.casedir+'/performance'
+			if not os.path.exists(crs.casedir):
+				os.makedirs(crs.casedir)
+			crs.yaml(sunshape=pm.sunshape, csr=pm.csr, half_angle_deg=pm.half_angle_deg, std_dev=pm.std_dev)
+			self.oelt, A_land=crs.annual_oelt(num_rays=int(pm.n_rays), nd=int(pm.n_row_oelt), nh=int(pm.n_col_oelt))	
+
 
 			self.n_helios=crs.n_helios
 			self.eff_des=crs.eff_des
@@ -97,9 +104,9 @@ class TestMultiAperture(unittest.TestCase):
 			crs.casedir=self.casedir+'/windy_optics'
 			if not os.path.exists(crs.casedir):
 				os.makedirs(crs.casedir)
-			crs.yaml(dni=1000, sunshape=pm.sunshape, csr=pm.csr, half_angle_deg=pm.half_angle_deg, std_dev=pm.std_dev)
+			crs.yaml(sunshape=pm.sunshape, csr=pm.csr, half_angle_deg=pm.half_angle_deg, std_dev=pm.std_dev)
 
-			oelt_windy, A_land=crs.annual_oelt(dni_des=pm.dni_des, num_rays=int(pm.n_rays), nd=int(pm.n_row_oelt), nh=int(pm.n_col_oelt), gen_vtk=False)	
+			oelt_windy,A_land=crs.annual_oelt(num_rays=int(pm.n_rays), nd=int(pm.n_row_oelt), nh=int(pm.n_col_oelt), gen_vtk=False)	
 			append_oelts(table=oelt_windy, identifier='windy', motabfile=self.tablefile, mac=mac)
 
 		
@@ -122,10 +129,10 @@ class TestMultiAperture(unittest.TestCase):
 		if os.path.exists(self.tablefile):
 			oelt_generated='successful'
 		self.assertEqual(oelt_generated,'successful')
-		self.assertTrue(abs(self.n_helios-756)/756. < 0.01)
-		self.assertTrue(abs(self.eff_des- 0.741)/0.741 < 0.01)
-		self.assertTrue(abs(self.eff_annual-0.672)/0.672 < 0.01)
-		#os.system('rm -rf %s'%self.casedir)
+		self.assertTrue(abs(self.n_helios-855)/855. < 0.01)
+		self.assertTrue(abs(self.eff_des- 0.728)/0.728 < 0.01)
+		self.assertTrue(abs(self.eff_annual-0.666)/0.666 < 0.01)
+		os.system('rm -rf %s'%self.casedir)
 
 if __name__ == '__main__':
 	unittest.main()

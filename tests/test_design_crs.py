@@ -43,7 +43,7 @@ class TestDesignCRS(unittest.TestCase):
 			pm.saveparam(self.casedir)
 			print(pm.fb)
 			print(pm.H_tower)
-			crs=CRS(latitude=pm.lat, casedir=self.casedir, nproc=1, verbose=True)   
+			crs=CRS(latitude=pm.lat, casedir=self.casedir+'/field_design', nproc=1, verbose=True)   
 			weafile='../example/demo_TMY3_weather.motab'
 
 			crs.receiversystem(receiver=pm.rcv_type, rec_w=float(pm.W_rcv), rec_h=float(pm.H_rcv), rec_x=float(pm.X_rcv), rec_y=float(pm.Y_rcv), rec_z=float(pm.Z_rcv), rec_tilt=float(pm.tilt_rcv), rec_grid_w=int(pm.n_W_rcv), rec_grid_h=int(pm.n_H_rcv), rec_abs=float(pm.alpha_rcv))
@@ -52,9 +52,15 @@ class TestDesignCRS(unittest.TestCase):
 
 
 
-			crs.yaml(dni=900,sunshape=pm.sunshape,csr=pm.csr,half_angle_deg=pm.half_angle_deg,std_dev=pm.std_dev)
+			crs.yaml(sunshape=pm.sunshape,csr=pm.csr,half_angle_deg=pm.half_angle_deg,std_dev=pm.std_dev)
 
-			self.oelt, A_land=crs.field_design_annual(dni_des=900., num_rays=int(1e6), nd=pm.n_row_oelt, nh=pm.n_col_oelt, weafile=weafile, method=1, Q_in_des=pm.Q_in_rcv, n_helios=None, zipfiles=False, gen_vtk=False, plot=False)
+			A_land=crs.field_design_annual(dni_des=900., num_rays=int(1e6), nd=pm.n_row_oelt, nh=pm.n_col_oelt, weafile=weafile, method=1, Q_in_des=pm.Q_in_rcv, n_helios=None, zipfiles=False, gen_vtk=False, plot=False)
+			
+			crs.casedir=self.casedir+'/performance'
+			if not os.path.exists(crs.casedir):
+				os.makedirs(crs.casedir)
+			crs.yaml(sunshape=pm.sunshape, csr=pm.csr, half_angle_deg=pm.half_angle_deg, std_dev=pm.std_dev)
+			self.oelt, A_land=crs.annual_oelt(num_rays=int(pm.n_rays), nd=int(pm.n_row_oelt), nh=int(pm.n_col_oelt))	
 
 			self.n_helios=crs.n_helios
 			self.eff_des=crs.eff_des
@@ -83,20 +89,17 @@ class TestDesignCRS(unittest.TestCase):
 		print('')
 		print('design point eff', self.eff_des)
 		print('annual eff', self.eff_annual)
+		print('num helios', self.n_helios)		
 
 		if os.path.exists(self.tablefile):
 			oelt_generated='successful'
 		self.assertEqual(oelt_generated,'successful')
 
-		self.assertTrue(abs(self.n_helios-734)/734.< 0.05)
-		self.assertTrue(abs(self.eff_des-0.763)/0.763 < 0.05)
-		self.assertTrue(abs(self.eff_annual-0.56)/0.55 < 0.05)
+		self.assertTrue(abs(self.n_helios-835)/835. < 0.05)  
+		self.assertTrue(abs(self.eff_des-0.745)/0.745 < 0.05)
+		self.assertTrue(abs(self.eff_annual-0.547)/0.547 < 0.05)
 
-		#self.assertTrue(abs(self.n_helios-741) < 5)
-		#self.assertTrue(abs(self.eff_des-0.756) < 0.01)
-		#self.assertTrue(abs(self.eff_annual-0.579) < 0.05)
-
-		#os.system('rm -rf %s'%self.casedir)
+		os.system('rm -rf %s'%self.casedir)
 
 if __name__ == '__main__':
 	unittest.main()

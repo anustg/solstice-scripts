@@ -44,7 +44,7 @@ class TestDesignCRS(unittest.TestCase):
 	def test_touching(self):
 
 		self.assertEqual(round(self.eta, 3), 0.757)		
-		#os.system('rm -rf %s'%self.casedir)
+		os.system('rm -rf %s'%self.casedir)
 
 if __name__ == '__main__':
 	unittest.main()

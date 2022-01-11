@@ -26,7 +26,7 @@ class TestLayout(unittest.TestCase):
 
 	def test_polarfield(self):
 		field='polar'
-		pos_and_aim, Nzones, Nrows_zone, TTRow=radial_stagger(self.latitude, self.num_hst, self.width, self.height, self.hst_z, self.towerheight, self.R1, self.fb, self.dsep, field, savedir=self.savedir, plot=self.plot)
+		pos_and_aim, Nzones, Nrows_zone=radial_stagger(self.latitude, self.num_hst, self.width, self.height, self.hst_z, self.towerheight, self.R1, self.fb, self.dsep, field, savedir=self.savedir, plot=self.plot)
 		num=len(pos_and_aim)-2
 		self.assertEqual(num, self.num_hst)
 		#os.system('rm *.csv')
@@ -39,7 +39,7 @@ class TestLayout(unittest.TestCase):
 		mac=MultiApertureConfiguration(n=num_aperture, gamma=ang_rang, H_tower=self.towerheight, R_tower=self.towerdiameter/2., W_rcv=rec_w, H_rcv=rec_w, parallel=False)
 		
 		rec_z=[self.towerheight, self.towerheight, self.towerheight]
-		pos_and_aim, Nzones, Nrows_zone, TTRow=radial_stagger(
+		pos_and_aim, Nzones, Nrows_zone=radial_stagger(
 				latitude=self.latitude, 
 				num_hst=self.num_hst, 
 				width=self.width, 

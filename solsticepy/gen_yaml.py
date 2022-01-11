@@ -304,11 +304,10 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims, hst_row_idx, hst_w, hst_h
 	# CREATE the heliostat templates
 	
 	hst_t_names=[] # name of the template for each heliostat
-	# the heliostat x,y,z positon saved 
+	# the heliostat x,y,z positon is saved 
 	# corresponding to the sequence in the list of hst_t_names
-	hst_t_x=[]
-	hst_t_y=[]
-	hst_t_z=[]
+
+	hst_t_idx=[] # index (record the sequence) of heliostats in the yaml file
 	for i in range(num_rows):
 		name_hst_g='hst_g_row'+str(i)	
 		ii=(hst_row_idx==i)	
@@ -357,9 +356,8 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims, hst_row_idx, hst_w, hst_h
 					if np.array_equal(a, aim_names[j]):
 						name_hst_t = 'hst_t_row_%s_aim_%s'%(str(int(r)), str(int(j)))
 						hst_t_names.append(name_hst_t)
-						hst_t_x.append(hst_x[h])
-						hst_t_y.append(hst_y[h])
-						hst_t_z.append(hst_z[h])												
+						hst_t_idx.append(h)
+											
 						pass
 						
 	# 
@@ -388,14 +386,13 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims, hst_row_idx, hst_w, hst_h
 	#
 	# heliostat entities from the template
 	for i in range(0,num_hst):
+		idx=hst_t_idx[i]
 		name_e ='H_'+str(i)
 		name_hst_t = hst_t_names[i]
 		iyaml+='\n- entity:\n'
 		iyaml+='    name: %s\n' % name_e
-		iyaml+='    transform: { translation: %s, rotation: %s }\n' % ([hst_t_x[i], hst_t_y[i], hst_t_z[i]], [0, 0, 0]) 
+		iyaml+='    transform: { translation: %s, rotation: %s }\n' % ([hst_x[idx], hst_y[idx], hst_z[idx]], [0, 0, 0]) 
 		iyaml+='    children: [ *%s ]\n' % name_hst_t    
-
-
 
 
 	with open(outfile_yaml,'w') as f:
@@ -403,6 +400,9 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims, hst_row_idx, hst_w, hst_h
 
 	with open(outfile_recv,'w') as f:
 		f.write(rcv) 
+		
+	
+	return hst_t_idx, hst_t_names
 
 
 def flat_receiver(rec_param, hemisphere='North'):
