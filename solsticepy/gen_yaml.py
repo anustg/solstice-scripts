@@ -1,6 +1,7 @@
 from __future__ import print_function
 import numpy as np
 import matplotlib.pyplot as plt
+import re
 
 #for python 2:
 #from builtins import super
@@ -704,5 +705,92 @@ def multi_aperture_receiver(rec_param, hemisphere='North', plot=False):
 
 
 
-#------------------------------
+def get_helios_from_yaml(fn, line_geo, line_temp, line_ent, show=False):
+	'''
+	This function reads the input.yaml file 
+	and returns the position and aiming point of each heliostat
+
+	Arguments:
+		fn (str): the directory of the yaml file
+		line_geo (int) : the start line number of the heliostat geometry modual
+		line_temp (int): the start line number of the heliostat template modual
+		line_ent (int) : the start line number of the heliostat entity modual
+		show (bool): show a figure plot of the positons and aiming points,  or not
+	Return:
+		A 'pos_and_aim.csv' file that contains the position and aim points of each heliostat
+	'''
+
+	f=open(fn, 'r')
+	content=f.readlines()
+	f.close()
+
+	l=len(content)
+	match_number = re.compile('-?\ *[0-9]+\.?[0-9]*(?:[Ee]\ *-?\ *[0-9]+)?')
+
+	#focals=np.array([])	
+	#for i in range(line_geo, line_temp):
+	#	line=content[i]
+	#	if 'focal' in line:
+	#		foc=[float(s) for s in re.findall(match_number, line)] 
+	#		row=[float(s) for s in re.findall(match_number, content[i-3])] 
+	#		focals=np.append(focals, (foc, row))	
+	#		print('geo', i, foc, row, focals)		
+	#focals=focals.reshape(int(len(focals)/2),2)
+
+	t_names=[]
+	aim_pos=[]
+	for i in range(line_temp, line_ent):
+		line=content[i]
+		if 'template' in line:
+			idx=[int(s) for s in re.findall(match_number, content[i+1])] 
+			name='hst_row_%s_aim_%s'%(idx[0], idx[1])
+			aim=[float(s) for s in re.findall(match_number, content[i+6])] 
+			t_names.append(name)
+			aim_pos.append(aim)
+
+	positions=np.array([])
+	t_names2=[]
+	n=0
+	for i in range(line_ent,l):
+	#for i in range(8169,8190):
+		line=content[i]
+		if 'entity' in line:
+
+			pos=[float(s) for s in re.findall(match_number, content[i+2])] 
+			aim=[int(s) for s in re.findall(match_number, content[i+3])] 
+			name='hst_row_%s_aim_%s'%(aim[0], aim[1])
+			
+			positions=np.append(positions, (pos[0], pos[1], pos[2]))
+			t_names2.append(name)
+			print('line', i)
+			n+=1
+			
+	aim_pos_2=np.array([])		
+	num_hst=n
+	foc_pos=np.array([])
+	print('\nnumber of he',n, num_hst)		
+	for i in range(num_hst):
+		for j in range(len(t_names)):
+			if np.array_equal(t_names2[i], t_names[j]):
+				aim_pos_2=np.append(aim_pos_2, aim_pos[j])
+				#row=[int(s) for s in re.findall(match_number, t_names2[i])][0]
+				#idx=(focals[:,0]==row)
+				#foc_pos=np.append(foc_pos, focals[idx,1]) 
+				
+	aim_pos_2=aim_pos_2.reshape(int(num_hst), 3)
+	positions=positions.reshape(int(num_hst),3)
+	#foc_pos=foc_pos.reshape(int(num_hst),1)
+	pos_and_aim=np.hstack((positions, aim_pos_2))
+	
+	np.savetxt('pos_and_aim.csv', pos_and_aim, fmt='%.4f', delimiter=',')
+	
+	if show:
+		plt.scatter(positions[:,0],positions[:,1], c=aim_pos_2[:,0])
+		plt.show()
+		plt.close()	
+
+
+
+
+
 
