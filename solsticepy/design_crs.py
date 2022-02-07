@@ -141,7 +141,7 @@ class CRS:
 
 
 
-	def yaml(self, dni=1000,sunshape=None,csr=0.01,half_angle_deg=0.2664,std_dev=0.2):
+	def yaml(self, dni=1000,sunshape=None,sunshape_param=None):
 		'''
 		Generate YAML files for the Solstice simulation
 		'''
@@ -151,7 +151,7 @@ class CRS:
 		#att_factor=self.get_attenuation_factor()
 		att_factor=1e-6
 		print('attenuation', att_factor)
-		sun = Sun(sunshape=sunshape, csr=csr, half_angle_deg=half_angle_deg, std_dev=std_dev)
+		sun = Sun(sunshape=sunshape, sunshape_param=sunshape_param)
 
 		if self.latitude>0:
 			hemisphere='North'

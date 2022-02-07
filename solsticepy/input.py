@@ -35,10 +35,9 @@ class Parameters:
 		'''
 		self.lat=37.44 # latitude, default: location of PS10
 		self.dni_des=1000.
-		self.sunshape='pillbox'
-		self.csr=0.01
-		self.half_angle_deg=4.65*1.e-3*180./np.pi # convert rad to degree --> solstice convention
-		self.std_dev=0.1
+		self.sunshape='pillbox' # pillbox or buie
+		# csr for buie, half_angle for pillbox
+		self.sunshape_param=4.65*1.e-3*180./np.pi # convert rad to degree --> solstice convention
 		self.extinction=1e-6
 		self.wea_file=None
 

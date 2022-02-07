@@ -16,14 +16,15 @@ class Sun:
 	>>> print(sun.yaml(spectrum = "*solar_spectrum"))
 
 	"""
-	def __init__(self,dni=1000,sunshape=None,csr=0.01,half_angle_deg=0.2664,std_dev=0.2):
+	def __init__(self,dni=1000,sunshape=None,sunshape_param=0):
 		"""Define sun parameters for Solstice input file.
 
 		`dni`: Direct normal irradance (W/m2)
 		`sunshape`: Sunshape: can be None, ``'pillbox'``,``'gaussian'`` or ``'buie'``
-		`half_angle_deg`: sun angular size (in DEGREES, half-angle) (ONLY in case of ``'pillbox'``)
-		`csr`: circumsolar ratio (ONLY in case of ``'buie'``)
-		`std_dev`: standard deviation of the angular dsn ratio (ONLY in case of ``'gaussian'``)
+		`sunshape_param`: sunshape related parameter
+					if ``'pillbox'``, angular size (in DEGREES, half-angle)
+					if ``'buie'`` , circumsolar ratio
+					if ``'gaussian'``, standard deviation of the angular dsn ratio 
 		"""
 		self.dni = dni
 		self.sunshape = sunshape
@@ -31,11 +32,11 @@ class Sun:
 			assert sunshape in ['buie','pillbox','gaussian']
 			self.sunshape = sunshape
 			if sunshape == "pillbox":
-				self.half_angle_deg = half_angle_deg
+				self.half_angle_deg = sunshape_param
 			elif sunshape == "buie":
-				self.csr = csr
+				self.csr = sunshape_param
 			elif sunshape == "gaussian":
-				self.std_dev = std_dev
+				self.std_dev = sunshape_param
 
 	def yaml(self,spectrum = None):
 		"""YAML representation of the sun for solstice-input.
