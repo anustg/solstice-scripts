@@ -57,11 +57,12 @@ class Sun:
 		return s
 
 
-def gen_yaml(sun, hst_pos, hst_foc, hst_aims,hst_w, hst_h
-		, rho_refl, slope_error, receiver, rec_param, rec_abs
+def gen_yaml(sun, hst_pos, hst_foc, hst_aims, hst_w, hst_h
+		, rho_refl, slope_error, cant, bands, receiver, rec_param, rec_abs
 		, outfile_yaml, outfile_recv
 		, hemisphere='North', tower_h=0.01, tower_r=0.01,  spectral=False
 		, medium=0, one_heliostat=False
+		, fct_w=0, fct_h=0, fct_gap=0, n_row=0, n_col=0, shape='curved'
 ):
 	"""Generate the heliostat field and receiver YAML input files for Solstice ray-tracing simulation.
 
@@ -77,6 +78,16 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims,hst_w, hst_h
 	  * `hst_z` (float): heliostat center height (in z direction)
 	  * `rho_refl` (float): reflector reflectivity
 	  * `slope_error` (float): reflector surface slope error rms, radians
+	  * `cant` (bool): True, multi-facets canted heliostats, False, ideally shaped single facet heliostat
+	  * `bands` (nparray or None): a 2D numpy array ((distance, focal length)) that specifies 
+						the distance range and focal length for each canting band, it is <= than this
+						, or None for slant range canting
+	  * `fct_w` (float): facet width (if cant==True) 
+	  * `fct_h` (float): facet height (if cant==True) 
+	  * `fct_gap` (float): facet gaps (if cant==True)  
+	  * `n_row` (int): number of rows for the facet arrangement (if cant==True)  
+	  * `n_col` (int): number of cols for the facet arrangement (if cant==True)  
+	  * `shape` (str): "curved" or "flat" shaped heliostats/facets  
 	  * `tower_h` (float): tower height (m)
 	  * `tower_r` (float): tower radius (a cylindrical shape tower) (m)
 	3. the receiver
@@ -94,7 +105,7 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims,hst_w, hst_h
 
 	Note also the type for `rec_param` should be as follows.
 	  * if ``receiver == 'flat'``: np.array([width, height, grid_w, grid_h,, x, y, z, tilt angle (deg))]
-	  * if ``receiver == 'cylinder'``: np.array([radius, height, grid_circ, grid_h, x, y, z, tilt angle (deg)])
+	  * if ``receiver == 'cylinder'``: np.array([diameter, height, grid_circ, grid_h, x, y, z, tilt angle (deg)])
 	  * if ``receiver == 'stl'``: the directory of the stl file
 	  * if ``receiver == 'multi-aperture'``:  np.array([width, height, grid_w, grid_h,, x, y, z, tilt angle (deg),num_aperture, gamma (deg) ])
 	"""
@@ -142,7 +153,6 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims,hst_w, hst_h
 	# air, glass, vacuum, etc. gathering spectral data
 	#------------------------------
 	#
-
 	#
 	# Creation of the sun and atmosphere
 	#
@@ -206,11 +216,15 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims,hst_w, hst_h
 
 
 	# 
-	### Section (4)
+	### Section (4) & (5)
 	# set the geometries
 	# (gathering shapes and materials)
 	# the tower, the receiver, the heliostat
+	# 
+	# set the templates
+	# (programming objects gathering geometries or pivot and geometries)
 	#------------------------------
+
 	#
 	# Tower Geometry
 	# (cylindrical shape)
@@ -260,21 +274,9 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims,hst_w, hst_h
 		num_hst=len(hst_x)
 	slices = 4 # slices for the envelop circle
 	pts_hst = [ [-hst_w*0.5, -hst_h*0.5], [-hst_w*0.5, hst_h*0.5], [hst_w*0.5, hst_h*0.5], [hst_w*0.5,-hst_h*0.5] ]
-	# CREATE a reflective facet (mirror)
-	for i in range(0,num_hst):
-		name_hst_g = 'hst_g_'+str(i)
-		iyaml+='- geometry: &%s\n' % name_hst_g 
-		iyaml+='  - material: *%s\n' % 'material_mirror' 
-		#iyaml+='    transform: { translation: %s, rotation: %s }\n' % ([hst_x[i], hst_y[i], hst_z[i]], [0, 0, 0]) )
-		iyaml+='    parabol: \n'
-		iyaml+='      focal: %s\n' % hst_foc[i]
-		iyaml+='      clip: \n'  
-		iyaml+='      - operation: AND \n'
-		iyaml+='        vertices: %s\n' % pts_hst
-		iyaml+='      slices: %d\n' % slices  
 
 	# CREATE the pylon "pylon_g" geometry cylindrical shape
-	h_pyl = 0.001 # pylon height
+	h_pyl = hst_z[0]*0.8 # pylon height
 	r_pyl = 0.2 # pylon radius
 	slices = 4 # slices for the envelop circle
 	iyaml+='- geometry: &%s\n' % 'pylon_g' 
@@ -283,28 +285,134 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims,hst_w, hst_h
 	iyaml+='    cylinder: {height: %7.3f, radius: %7.3f, slices: %d }\n' % (h_pyl,r_pyl,slices) 
 	#   
 
-	# 
-	### Section (5)
-	# set the templates
-	# (programming objects gathering geometries or pivot and geometries)
-	#------------------------------
-	# CREATE the heliostat templates
-	for i in range(0,num_hst):    
-		name_hst_t = 'hst_t_'+str(i)
-		iyaml+='- template: &%s\n' % name_hst_t 
-		name_hst_n = 'hst_'+ str(i)
-		iyaml+='    name: %s\n' % name_hst_n 
-		iyaml+='    primary: 0\n'   
-		iyaml+='    geometry: *pylon_g\n'
-		iyaml+='    children: \n' 
-		iyaml+='    - name: pivot\n'
-		iyaml+='      zx_pivot: {target: {position: %s}} \n' % ([aim_x[i],aim_y[i],aim_z[i]]) 
-		iyaml+='      children: \n'
-		iyaml+='      - name: reflect_surface\n'
-		iyaml+='        primary: 1\n'
-		iyaml+='        transform: {rotation: [-90,0,0]} \n'   
-		name_hst_g = 'hst_g_'+str(i)
-		iyaml+='        geometry: *%s\n' % name_hst_g 
+	if bands.any()==None:
+		dist=(hst_w+hst_h)/2.
+		min_foc=np.min(hst_foc)
+		max_foc=np.max(hst_foc)
+		bands=np.arange(min_foc+dist, max_foc+dist, dist)
+
+	if cant==True: # multi facets
+		iyaml+="""
+- geometry: &facet_g_s
+  - material: *material_mirror
+    plane:
+      clip: 
+      - operation: AND 
+        vertices: [[-0.00001, -0.00001], [-0.00001, 0.00001], [0.000015, 0.00001], [0.00001, -0.00001]]
+      slices: 4\n\n"""
+	
+		if shape=='flat':
+			iyaml+="- geometry: &facet_g\n"
+			iyaml+="  - material: *material_mirror\n"
+			iyaml+="    plane:\n"
+			iyaml+="      clip:\n"
+			iyaml+="      - operation: AND\n" 
+			iyaml+="        vertices: [[%s, %s], [%s, %s], [%s, %s], [%s, %s]]\n"%(-fct_w/2., -fct_h/2.,-fct_w/2., fct_h/2., fct_w/2., fct_h/2., fct_w/2., -fct_h/2.)
+			iyaml+="      slices: 4\n\n"	
+
+	
+		else: # curved facets 
+			for i in range(len(bands)):
+				foc=bands[i]				
+				iyaml+="- geometry: &facet_g_band_%s\n"%i
+				iyaml+="  - material: *material_mirror\n"
+				iyaml+="    parabol:\n"
+				iyaml+="      focal: %s\n"%foc
+				iyaml+="      clip:\n"
+				iyaml+="      - operation: AND\n" 
+				iyaml+="        vertices: [[%s, %s], [%s, %s], [%s, %s], [%s, %s]]\n"%(-fct_w/2., -fct_h/2.,-fct_w/2., fct_h/2., fct_w/2., fct_h/2., fct_w/2., -fct_h/2.)
+				iyaml+="      slices: 4\n\n"
+
+
+		for b in range(len(bands)):
+				iyaml+="- template: &facets_t_band_%s\n"%b
+				iyaml+="    name: facets\n"
+				iyaml+="    primary: 0\n"
+				iyaml+="    transform: {translation: [0,0,0], rotation: [0,0,0]}\n"
+				iyaml+="    geometry: *facet_g_s\n"
+				iyaml+="    children:\n"
+
+				foc=bands[b]	
+				data=heliostat_canted_facets(hst_w, hst_h, fct_w, fct_h, fct_gap, n_row, n_col, foc, shape)
+				fct_x=data[:,0].reshape(n_row, n_col)
+				fct_z=data[:,1].reshape(n_row, n_col)
+				rotx=data[:,2].reshape(n_row, n_col)
+				roty=data[:,3].reshape(n_row, n_col)
+				for i in range(n_row):
+					for j in range(n_col):				
+						iyaml+='        - name: facet_%s_r%s_c%s\n'%(b, i,j)
+						iyaml+='          primary: 1\n'
+						iyaml+='          transform: {translation: [%.4f,0,%.4f], rotation: [%s,%s,0]}\n'%(fct_x[i,j], fct_z[i,j], rotx[i,j]-90, roty[i,j])
+						if shape=='flat':
+							iyaml+='          geometry: *facet_g\n'
+						else:
+							iyaml+='          geometry: *facet_g_band_%s\n'%b
+
+
+		# heliostat entities from the template
+		for i in range(num_hst):
+			iyaml+='- template: &hst_t_%s\n'%i
+			iyaml+='    name: hst_%s\n'%i
+			iyaml+='    primary: 0\n'
+			iyaml+='    geometry: *pylon_g\n'
+			iyaml+='    children:\n'     
+			iyaml+='      - name: pivot\n'
+			iyaml+='        transform: { translation: [0,0, 0], rotation: [0,0,0] }\n'
+			iyaml+='        zx_pivot: \n'
+			iyaml+='          spacing: 0\n'
+			iyaml+='          ref_point: [0,0,0]\n'
+			iyaml+='          target: {position: [%s, %s, %s]}\n' % (aim_x[i],aim_y[i],aim_z[i]) 
+			foc=hst_foc[i]
+			idx=np.argmin(abs(foc-bands))
+			iyaml+='        children: [ *facets_t_band_%s ]\n\n'%idx
+
+
+			iyaml+='- entity:\n'
+			iyaml+='    name: H_%s\n'%i
+			iyaml+='    transform: { translation: [%s, %s, %s], rotation: [0, 0, 0] }\n'%(hst_x[i], hst_y[i], hst_z[i])
+			iyaml+='    children: [ *hst_t_%s ]\n'%i
+
+	else: # single facet
+
+		for i in range(len(bands)):
+			name_hst_g = 'hst_g_band_'+str(i)
+			iyaml+='- geometry: &%s\n' % name_hst_g 
+			iyaml+='  - material: *%s\n' % 'material_mirror' 
+			iyaml+='    parabol: \n'
+			iyaml+='      focal: %s\n' % bands[i]
+			iyaml+='      clip: \n'  
+			iyaml+='      - operation: AND \n'
+			iyaml+='        vertices: %s\n' % pts_hst
+			iyaml+='      slices: %d\n\n' % slices 
+		
+		for i in range(num_hst):
+			# CREATE the heliostat templates   
+			name_hst_t = 'hst_t_'+str(i)
+			iyaml+='- template: &%s\n' % name_hst_t 
+			name_hst_n = 'hst_'+ str(i)
+			iyaml+='    name: %s\n' % name_hst_n 
+			iyaml+='    primary: 0\n'   
+			iyaml+='    geometry: *pylon_g\n'
+			iyaml+='    children: \n' 
+			iyaml+='    - name: pivot\n'
+			iyaml+='      zx_pivot: {target: {position: %s}} \n' % ([aim_x[i],aim_y[i],aim_z[i]]) 
+			iyaml+='      children: \n'
+			iyaml+='      - name: reflect_surface\n'
+			iyaml+='        primary: 1\n'
+			iyaml+='        transform: {rotation: [-90,0,0]} \n' 
+			foc=hst_foc[i]
+			idx=np.argmin(abs(foc-bands))
+			name_hst_g = 'hst_g_band_'+str(idx)
+			iyaml+='        geometry: *%s\n\n' % name_hst_g 
+
+
+		for i in range(num_hst):
+			name_e ='H_'+str(i)
+			name_hst_t = 'hst_t_'+str(i)
+			iyaml+='\n- entity:\n'
+			iyaml+='    name: %s\n' % name_e
+			iyaml+='    transform: { translation: %s, rotation: %s }\n' % ([hst_x[i], hst_y[i], hst_z[i]], [0, 0, 0]) 
+			iyaml+='    children: [ *%s ]\n' % name_hst_t 
 
 	# 
 	### Section (6)
@@ -322,14 +430,6 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims,hst_w, hst_h
 	iyaml+='    transform: { translation: %s, rotation: %s }\n' % ([0, -tower_r, tower_h*0.5], [0, 0, 0]) 
 	iyaml+='    geometry: *%s\n' % 'tower_g'    
 	#
-	# heliostat entities from the template
-	for i in range(0,num_hst):
-		name_e ='H_'+str(i)
-		name_hst_t = 'hst_t_'+str(i)
-		iyaml+='\n- entity:\n'
-		iyaml+='    name: %s\n' % name_e
-		iyaml+='    transform: { translation: %s, rotation: %s }\n' % ([hst_x[i], hst_y[i], hst_z[i]], [0, 0, 0]) 
-		iyaml+='    children: [ *%s ]\n' % name_hst_t    
 
 	with open(outfile_yaml,'w') as f:
 		f.write(iyaml)
@@ -337,6 +437,59 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims,hst_w, hst_h
 	with open(outfile_recv,'w') as f:
 		f.write(rcv) 
 
+
+def heliostat_canted_facets(hst_w, hst_h, fct_w, fct_h, gap, n_row, n_col, foc, shape='curved'):
+	"""
+	Ideally on-axis canted (4fy=x^2+z^2)
+
+	Arguments:
+  	* `hst_w` (float): width of the heliostat
+  	* `hst_h` (float): height of the heliostat
+  	* `fct_w` (float): width of a facet
+  	* `fct_h` (float): height of a facet
+  	* `gap` (float): gap between facets (assumes equal gaps in x/y directions)
+  	* `n_row` (int): number of rows for the facets arrangement
+  	* `n_col` (int): number of columns for the facets arrangement
+  	* `foc` (float): focal length 
+  	* `shape` (str): 'flat' or 'curved' facets 
+	"""
+	data=np.array([])
+	for i in range(n_row):
+		for j in range(n_col):
+			z=-hst_h/2.+fct_h/2.+i*(gap+fct_h)
+			x=-hst_w/2.+fct_w/2.+j*(gap+fct_w)
+
+			# the heliostat center is (0, 0, 0)
+			# the focal point is (0, foc, 0)
+			# facet location
+			O=np.r_[x, 0, z] 
+			OH=np.r_[0,1,0] # original hst norm 
+			OX=np.r_[1,0,0]	
+
+			n0=np.r_[-x/2./foc, 1, -z/2./foc] # facet pointing direction
+			n0=n0/np.linalg.norm(n0)
+
+			n1=np.cross(OH, OX)
+			n2=np.cross(n0, OX)	
+
+			rotx=np.arccos(np.dot(n1, n2)/(np.linalg.norm(n1)*np.linalg.norm(n2)))*180./np.pi
+			if z>0:
+				rotx=-rotx			
+
+			v_proj=np.cross(n2, (np.cross(OH, n2)/np.linalg.norm(n2)))/np.linalg.norm(n2)
+			cosy=np.dot(v_proj, n0)/(np.linalg.norm(v_proj)*np.linalg.norm(n0))
+			if 1-cosy<1e-6:
+				roty=0
+			else:
+				roty=np.arccos(cosy)*180./np.pi
+				if x>0:
+					roty=-roty	
+			data=np.append(data, (x, z, rotx, roty))
+	
+	data=data.reshape(int(len(data)/4), 4)				
+
+	return data
+	
 
 def flat_receiver(rec_param, hemisphere='North'):
 	"""
