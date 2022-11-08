@@ -15,7 +15,7 @@ from .cal_sun import *
 from .gen_yaml import gen_yaml, Sun
 from .gen_vtk import *
 from .input import Parameters
-from .output_motab import output_matadata_motab, output_motab
+from .output_motab import output_metadata_motab, output_motab
 from .master import *
 
 

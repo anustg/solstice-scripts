@@ -17,7 +17,7 @@ class TestMaster(unittest.TestCase):
 		DNI = 1000 # W/m2
 		sunshape = 'pillbox'
 		half_angle_deg = 0.2664
-		sun = solsticepy.Sun(dni=DNI, sunshape=sunshape, half_angle_deg=half_angle_deg)
+		sun = solsticepy.Sun(sunshape=sunshape, sunshape_param=half_angle_deg)
 
 		# S3. sun position
 		# e.g. summer solstice, solar noon
@@ -71,7 +71,7 @@ class TestMaster(unittest.TestCase):
 		, hemisphere='North', tower_h=tower_h, tower_r=tower_r,  spectral=False
 		, medium=0, one_heliostat=False)
 
-		self.eta, self.performance_hst=master.run(azimuth, elevation, num_rays, rho_refl,sun.dni, folder=self.casedir+'/test_run', gen_vtk=False, verbose=False)
+		self.eta, self.performance_hst=master.run(azimuth, elevation, num_rays, rho_refl,sun.dni, folder=self.casedir+'/test_run', gen_vtk=True, verbose=True)
 
 		self.table, self.ANNUAL=master.run_annual(nd=5, nh=5, latitude=latitude, num_rays=num_rays, num_hst=len(hst_pos),rho_mirror=rho_refl, dni=DNI, verbose=False)
 
