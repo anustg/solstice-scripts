@@ -140,6 +140,10 @@ class Parameters:
 		self.Nfp=0. # number of flow paths
 		self.Do=0. # tube outer diameter
 		self.fluxlimitpath='' # directory of the files for flux limits
+		self.T_in=290+273.15 # K, receiver inlet temperature
+		self.T_out=565+273.15 # K, receiver outlete temperature
+		self.HTF='salt' # 'salt' or 'sodium'
+		self.rcv_material='Incoloy800H' # 'Haynes230' or 'Incoloy800H' or 'Inconel740H'
 
 	def simulation(self):
 		'''
@@ -234,6 +238,10 @@ class Parameters:
 				['Nfp', self.Nfp, ''],
 				['Do', self.Do, ''],
 				['fluxlimitpath', self.fluxlimitpath, ''],
+				['receiver material', self.rcv_material, ''],
+				['heat transfer fluid', self.HTF, ''],
+				['rcv inlet temperature', self.T_in, 'K'],
+				['rcv outlet temperature', self.T_out, 'K'],
 				['','',''], 			
 				['n_row_oelt', self.n_row_oelt, '-'] , 
 				['n_col_oelt', self.n_col_oelt, '-'] ,
