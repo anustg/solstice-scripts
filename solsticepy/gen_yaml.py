@@ -299,7 +299,7 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims, hst_w, hst_h
       clip: 
       - operation: AND 
         vertices: [[-0.00001, -0.00001], [-0.00001, 0.00001], [0.000015, 0.00001], [0.00001, -0.00001]]
-      slices: 4\n\n"""
+      slices: 1\n\n"""
 	
 		if shape=='flat':
 			iyaml+="- geometry: &facet_g\n"
@@ -308,7 +308,7 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims, hst_w, hst_h
 			iyaml+="      clip:\n"
 			iyaml+="      - operation: AND\n" 
 			iyaml+="        vertices: [[%s, %s], [%s, %s], [%s, %s], [%s, %s]]\n"%(-fct_w/2., -fct_h/2.,-fct_w/2., fct_h/2., fct_w/2., fct_h/2., fct_w/2., -fct_h/2.)
-			iyaml+="      slices: 4\n\n"	
+			iyaml+="      slices: 1\n\n"	
 
 	
 		else: # curved facets 
@@ -321,7 +321,7 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims, hst_w, hst_h
 				iyaml+="      clip:\n"
 				iyaml+="      - operation: AND\n" 
 				iyaml+="        vertices: [[%s, %s], [%s, %s], [%s, %s], [%s, %s]]\n"%(-fct_w/2., -fct_h/2.,-fct_w/2., fct_h/2., fct_w/2., fct_h/2., fct_w/2., -fct_h/2.)
-				iyaml+="      slices: 4\n\n"
+				iyaml+="      slices: 1\n\n"
 
 
 		for b in range(len(bands)):
@@ -543,9 +543,9 @@ def flat_receiver(rec_param, hemisphere='North'):
 	entt+='    name: virtual_target_e\n'
 	entt+='    primary: 0\n'
 	if hemisphere=='North':
-		entt+='    transform: { translation: %s, rotation: %s }\n' % ([x, y-5., z], [-90.-tilt, 0, 0])
+		entt+='    transform: { translation: %s, rotation: %s }\n' % ([x, y+5., z], [-90.-tilt, 0, 0])
 	else:
-		entt+='    transform: { translation: %s, rotation: %s }\n' % ([x, y+5., z], [90.+tilt, 0, 0])
+		entt+='    transform: { translation: %s, rotation: %s }\n' % ([x, y-5., z], [90.+tilt, 0, 0])
 	entt+='    geometry: \n' 
 	entt+='      - material: *%s\n' % 'material_virtual' 
 	entt+='        plane: \n'
@@ -612,7 +612,7 @@ def cylindrical_receiver(rec_param, hemisphere='North'):
 	entt+='    name: virtual_target_e\n'
 	entt+='    primary: 0\n'
 
-	entt+='    transform: { translation: %s, rotation: %s }\n' % ([x, y, z+rec_h/2.+1], [-180., 0, 0])
+	entt+='    transform: { translation: %s, rotation: %s }\n' % ([x, y, z-rec_h/2.-1], [-180., 0, 0])
 
 	entt+='    geometry: \n' 
 	entt+='      - material: *%s\n' % 'material_virtual' 
