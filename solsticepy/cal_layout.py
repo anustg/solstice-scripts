@@ -5,9 +5,10 @@ import matplotlib
 #matplotlib.use("agg")
 import matplotlib.pyplot as plt
 from .cal_sun import *
+from .design_multi_aperture import *
 from .gen_vtk import gen_vtk
 
-def radial_stagger(latitude, num_hst, width, height, hst_z, towerheight, R1, fb, dsep=0., field='polar', num_aperture=0, gamma=0., rec_w=0., rec_z=[], savedir='.', verbose=False, plot=False, plt_aiming=None):
+def radial_stagger(latitude, num_hst, width, height, hst_z, towerheight, R1, fb, dsep=0., field='polar', mac=None, savedir='.', verbose=False, plot=False, plt_aiming=None):
 	'''Generate a radial-stagger heliostat field, ref. Collado and Guallar, 2012, Campo: Generation of regular heliostat field.
 
 	``Arguments``
@@ -21,9 +22,7 @@ def radial_stagger(latitude, num_hst, width, height, hst_z, towerheight, R1, fb,
 	  * fb (float)      : the field layout growing factor, in (0, 1)
 	  * dsep (float)    : separation distance (m)
 	  * field (str)     : 'polar-half' or 'surround-half' or 'polar' or 'surround' field or 'multi-aperture', the 'half' option is for simulation a symmetric field
-	  * num_aperture(int): number of apertures, for a multi-aperture configuration
-	  * gamma (float)   : the anangular range of the multi-aperture configration (deg)	 
-	  * rec_z (list)    : a list of the elevation heights of the apertures 
+	  * mac (instance)  :  an instance of the class MultiApertureConfiguration (see design_multi_aperture.py)
 	  * savedir (str)   : directory of saving the pos_and_aiming.csv
 	  * verbose(bool)   : write results to disk or not
 	  * plot (bool)     : True - plot the layout by Matplotlib
@@ -170,11 +169,11 @@ def radial_stagger(latitude, num_hst, width, height, hst_z, towerheight, R1, fb,
 		rows=rows.flatten()
 
 		if field=='polar':
-			if i<2:
+			if i<4:
 				idx=(azimuth>1.5*np.pi)+(azimuth<0.5*np.pi)
 
 			else:
-				idx=(azimuth>(1.5*np.pi+i*np.pi/40.))+(azimuth<(np.pi/2.-i*np.pi/40.))
+				idx=(azimuth>(1.5*np.pi+i*np.pi/60.))+(azimuth<(np.pi/2.-i*np.pi/60.))
 
 			xx=R[idx]*np.sin(azimuth[idx])
 			yy=R[idx]*np.cos(azimuth[idx])
@@ -204,6 +203,7 @@ def radial_stagger(latitude, num_hst, width, height, hst_z, towerheight, R1, fb,
 	num_hst=int(num_hst)
 
 	if field=='multi-aperture':
+		num_aperture=mac.n
 
 		nt=len(XX)
 		hstpos=np.zeros(nt*3).reshape(nt, 3)
@@ -211,16 +211,18 @@ def radial_stagger(latitude, num_hst, width, height, hst_z, towerheight, R1, fb,
 		hstpos[:, 1]=YY
 		hstpos[:,2]=hst_z
 
+		#MAC=MultiApertureConfiguration(n=num_aperture, gamma=gamma, H_tower=towerheight, H_rcv=rec_w, H_rcv=rec_h)
+
 		ANGLE=np.array([])
 		NORMRCV=np.array([])
-		C=np.array([])
+		C=np.array([]) # center of each aperture
+		APOS=np.array([]) #angular position of each aperture
 
-		APOS=np.array([])
 		for i in range(num_aperture):
-			ang_pos, xc, yc=multi_aperture_pos(rec_w, gamma, num_aperture, i)
-			print(ang_pos, xc, yc)
+			xc, yc, zc=mac.get_cood_pos(i)
+			ang_pos=mac.get_angular_pos(i)
+			print('aperture ', i, 'position', ang_pos, xc, yc, zc, num_aperture)
 
-			zc=rec_z[i]
 			APOS=np.append(APOS, ang_pos)
 
 			c=np.r_[xc, yc, zc]
@@ -259,14 +261,12 @@ def radial_stagger(latitude, num_hst, width, height, hst_z, towerheight, R1, fb,
 		aiming=C[idx_aim]
 		aim_x=aiming[:,0]
 		aim_y=aiming[:,1]	
+		aim_z=aiming[:,2]	
 
 		aim_x=aim_x[:num_hst]
-		aim_y=aim_y[:num_hst]	
+		aim_y=aim_y[:num_hst]
+		aim_z=aim_z[:num_hst]			
 		idx_aim=idx_aim[:num_hst]
-
-		aim_z=np.array([])
-		for i in range(num_hst):
-			aim_z=np.append(aim_z, rec_z[idx_aim[i]])
 
 
 	else:
@@ -299,7 +299,7 @@ def radial_stagger(latitude, num_hst, width, height, hst_z, towerheight, R1, fb,
 	foc=np.sqrt((XX-aim_x)**2+(YY-aim_y)**2+(hstpos[:,2]-aim_z)**2)
 
 	pos_and_aiming=np.append(XX, (YY, hstpos[:,2], foc, aim_x, aim_y, aim_z, idx_aim, AZIMUTH, ZONE, ROW, NHEL, TTROW, np.arange(num_hst)))
-	title=np.array(['x', 'y', 'z', 'foc', 'aim x', 'aim y', 'aim z', 'aim-rec-index','Azimuth pos','Zone', 'Row', 'No.', 'row index', 'No. index',  'm', 'm', 'm', 'm', 'm', 'm', 'm', '-', 'deg','-', '-', '-', '-', '-'])
+	title=np.array(['x', 'y', 'z', 'foc', 'aim x', 'aim y', 'aim z', 'aim-rec-index','Azimuth pos', 'Zone', 'Row (in a zone)', 'No. (in a row)', 'Row index (total)', 'No. index (total)',  'm', 'm', 'm', 'm', 'm', 'm', 'm', '-', 'deg','-', '-', '-', '-', '-'])
 	pos_and_aiming=pos_and_aiming.reshape(14, num_hst)
 	pos_and_aiming=np.append(title, pos_and_aiming.T)
 	pos_and_aiming=pos_and_aiming.reshape(num_hst+2, 14)
@@ -307,7 +307,7 @@ def radial_stagger(latitude, num_hst, width, height, hst_z, towerheight, R1, fb,
 	if verbose:
 		if not os.path.exists(savedir):
 			os.makedirs(savedir)
-		np.savetxt('%s/pos_and_aiming.csv'%savedir, pos_and_aiming, fmt='%s', delimiter=',')
+		np.savetxt('%s/pos_and_aiming_origin_layout.csv'%savedir, pos_and_aiming, fmt='%s', delimiter=',')
 
 	if plot:
 		if not os.path.exists(savedir):
@@ -448,42 +448,6 @@ def aiming_cylinder(r_height,r_diameter, pos_and_aiming, savefolder, c_aiming=0.
 	np.savetxt(csv_new, pos_and_aiming_new, fmt='%s', delimiter=',')
 
 	return hst_info_ranked	
-
-def multi_aperture_pos(rec_w, gamma, n, i):
-	"""
-	This function returens the angular position of each aperture
-	in the multi-aperture configration that has n apertures
-	in the angular range of gamma
-
-	Arguments:
-	rec_w, list, a list of the width of all the apertures
-	gamma, float, angular range (deg) of the multi-aperture configration
-			      which is defined as the angle from the most right to 
-				  the most left aperture
-	n, int, number of apertures
-	i, int, the i-th aperture (starts from 0 for the most right aperture)
-
-	Return:
-	omega_i, float, the angular position of the i-th aperture
-					in the coordinate system, the angular position 
-					starts from +x and increases counter-clockwise
-	"""	
-	if gamma%360.==0:
-		omega_i=360./float(n)*float(i)-90.
-	else:
-		omega_i=90.-gamma/2.+gamma/float(n-1)*float(i)
-
-	W=max(rec_w)*1.2 # 20% space
-	alpha=gamma/float(n-1)*np.pi/180.
-	if np.tan(alpha/2.)<1e-20:
-		r=W/2.
-	else:
-		r=W/2./np.tan(alpha/2.)
-
-	xc=r*np.cos(omega_i*np.pi/180.)
-	yc=r*np.sin(omega_i*np.pi/180.)
-
-	return omega_i, xc, yc
 
 
 if __name__=='__main__':

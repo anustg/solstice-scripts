@@ -1,12 +1,12 @@
 from __future__ import print_function
 import numpy as np
 import matplotlib.pyplot as plt
+import re
 
 #for python 2:
 #from builtins import super
 
 from .data_spectral import SolarSpectrum, MirrorRhoSpectrum
-from .cal_layout import multi_aperture_pos
 import sys
 
 class Sun:
@@ -37,6 +37,7 @@ class Sun:
 				self.csr = csr
 			elif sunshape == "gaussian":
 				self.std_dev = std_dev
+
 	def yaml(self,spectrum = None):
 		"""YAML representation of the sun for solstice-input.
 
@@ -57,7 +58,7 @@ class Sun:
 		return s
 
 
-def gen_yaml(sun, hst_pos, hst_foc, hst_aims,hst_w, hst_h
+def gen_yaml(sun, hst_pos, hst_foc, hst_aims, hst_row_idx, hst_w, hst_h
 		, rho_refl, slope_error, receiver, rec_param, rec_abs
 		, outfile_yaml, outfile_recv
 		, hemisphere='North', tower_h=0.01, tower_r=0.01,  spectral=False
@@ -72,17 +73,20 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims,hst_w, hst_h
 	  * `hst_pos` (nx3 numpy array): heliostat positions (x, y, z) (first of the 'field' parameters)
 	  * `hst_foc` (nx1 numpy array): heliostat focal length
 	  * `hst_aims` (nx3 numpy array): heliostat aiming point (ax, ay, az)
+	  * `hst_row_idx` (nx1 numpy array): row index of each heliostat in the whole field
 	  * `hst_w` (float): heliostat mirror width  (in x direction)
 	  * `hst_h` (float): heliostat mirror height (in y direction)
 	  * `hst_z` (float): heliostat center height (in z direction)
-	  * `rho_refl` (float): reflector reflectivity
+	  * `rho_refl` (float): reflector effective reflectivity
 	  * `slope_error` (float): reflector surface slope error rms, radians
 	  * `tower_h` (float): tower height (m)
 	  * `tower_r` (float): tower radius (a cylindrical shape tower) (m)
+
 	3. the receiver
 	  * `receiver` (str): ``'flat'``, ``'cylinder'``, or ``'stl' or 'multi-aperture'`` (first of the 'receiver' parameters)
 	  * `rec_abs` (float): receiver absorptivity
 	  * `rec_param` (numpy array or str): each element contains the geometrical parameter of the corresponding receiver.
+
 	4. others
 	  * `spectral` (bool): True - simulate the spectral dependent performance (first of the 'other' parameters)
 	  * `medium` (float): if the atmosphere is surrounded by non-participant medium, medium=0; otherwise it is the extinction coefficient in m-1
@@ -235,9 +239,11 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims,hst_w, hst_h
 	elif receiver=='stl':
 		rec_entt, rcv=STL_receiver(rec_param, hemisphere)
 
-	elif receiver=='multi-aperture':
+	elif 'multi-aperture' in receiver:
+		# the cascaded multi-aperture
 		geom, rec_entt, rcv =multi_aperture_receiver(rec_param, hemisphere)
 		iyaml+=geom
+
 	#
 	# Heliostats Geometry
 	#
@@ -250,6 +256,7 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims,hst_w, hst_h
 		aim_z=np.r_[hst_aims[2]]
 		num_hst=1
 		hst_foc=np.r_[hst_foc]
+		num_rows=1
 	else:
 		hst_x=hst_pos[:,0]
 		hst_y=hst_pos[:,1]
@@ -258,16 +265,23 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims,hst_w, hst_h
 		aim_y=hst_aims[:,1]
 		aim_z=hst_aims[:,2]
 		num_hst=len(hst_x)
+		num_rows=int(max(hst_row_idx))+1
 	slices = 4 # slices for the envelop circle
 	pts_hst = [ [-hst_w*0.5, -hst_h*0.5], [-hst_w*0.5, hst_h*0.5], [hst_w*0.5, hst_h*0.5], [hst_w*0.5,-hst_h*0.5] ]
-	# CREATE a reflective facet (mirror)
-	for i in range(0,num_hst):
-		name_hst_g = 'hst_g_'+str(i)
+	
+	# CREATE heliostat geometry
+	for i in range(num_rows):
+		row=int(i)
+		ii=(hst_row_idx==row)
+		focals=hst_foc[ii]
+		focals=focals.astype(float)
+		foc=np.average(focals)
+		name_hst_g = 'hst_g_row'+str(i)
 		iyaml+='- geometry: &%s\n' % name_hst_g 
 		iyaml+='  - material: *%s\n' % 'material_mirror' 
 		#iyaml+='    transform: { translation: %s, rotation: %s }\n' % ([hst_x[i], hst_y[i], hst_z[i]], [0, 0, 0]) )
 		iyaml+='    parabol: \n'
-		iyaml+='      focal: %s\n' % hst_foc[i]
+		iyaml+='      focal: %s\n' % foc
 		iyaml+='      clip: \n'  
 		iyaml+='      - operation: AND \n'
 		iyaml+='        vertices: %s\n' % pts_hst
@@ -289,23 +303,64 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims,hst_w, hst_h
 	# (programming objects gathering geometries or pivot and geometries)
 	#------------------------------
 	# CREATE the heliostat templates
-	for i in range(0,num_hst):    
-		name_hst_t = 'hst_t_'+str(i)
-		iyaml+='- template: &%s\n' % name_hst_t 
-		name_hst_n = 'hst_'+ str(i)
-		iyaml+='    name: %s\n' % name_hst_n 
-		iyaml+='    primary: 0\n'   
-		iyaml+='    geometry: *pylon_g\n'
-		iyaml+='    children: \n' 
-		iyaml+='    - name: pivot\n'
-		iyaml+='      zx_pivot: {target: {position: %s}} \n' % ([aim_x[i],aim_y[i],aim_z[i]]) 
-		iyaml+='      children: \n'
-		iyaml+='      - name: reflect_surface\n'
-		iyaml+='        primary: 1\n'
-		iyaml+='        transform: {rotation: [-90,0,0]} \n'   
-		name_hst_g = 'hst_g_'+str(i)
-		iyaml+='        geometry: *%s\n' % name_hst_g 
+	
+	hst_t_names=[] # name of the template for each heliostat
+	# the heliostat x,y,z positon is saved 
+	# corresponding to the sequence in the list of hst_t_names
 
+	hst_t_idx=[] # index (record the sequence) of heliostats in the yaml file
+	for i in range(num_rows):
+		name_hst_g='hst_g_row'+str(i)	
+		ii=(hst_row_idx==i)	
+		aim_row_i=hst_aims[ii]
+		# find group of heliostats with same aiming points		
+		aim_names=[]
+		for a in aim_row_i:
+			len_a=len(aim_names)
+			if len_a>0:
+				check=0
+				for j in range(len_a):
+					if np.array_equal(a, aim_names[j]):
+						check=1
+				if check==0:
+					aim_names.append(a)						
+			else:
+				aim_names.append(a)
+		
+		for j in range(len(aim_names)):
+			j=int(j)
+			row_aim_x=aim_names[j][0]
+			row_aim_y=aim_names[j][1]
+			row_aim_z=aim_names[j][2]	  	
+				
+			name_hst_t = 'hst_t_row_%s_aim_%s'%(i,j)
+			iyaml+='- template: &%s\n' % name_hst_t 
+			name_hst_n = 'hst_row_%s_aim_%s'%(i,j)
+			iyaml+='    name: %s\n' % name_hst_n 
+			iyaml+='    primary: 0\n'   
+			iyaml+='    geometry: *pylon_g\n'
+			iyaml+='    children: \n' 
+			iyaml+='    - name: pivot\n'
+			iyaml+='      zx_pivot: {target: {position: %s}} \n' % ([row_aim_x,row_aim_y,row_aim_z]) 
+			iyaml+='      children: \n'
+			iyaml+='      - name: reflect_surface\n'
+			iyaml+='        primary: 1\n'
+			iyaml+='        transform: {rotation: [-90,0,0]} \n'   
+			iyaml+='        geometry: *%s\n' % name_hst_g 
+
+		for h in range(num_hst):
+			a=hst_aims[h]
+			r=hst_row_idx[h]
+			if r==i:	
+				for j in range(len(aim_names)):
+					j=int(j)
+					if np.array_equal(a, aim_names[j]):
+						name_hst_t = 'hst_t_row_%s_aim_%s'%(str(int(r)), str(int(j)))
+						hst_t_names.append(name_hst_t)
+						hst_t_idx.append(h)
+											
+						pass
+						
 	# 
 	### Section (6)
 	# set the entities
@@ -319,23 +374,36 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims,hst_w, hst_h
 	iyaml+='\n- entity:\n'
 	iyaml+='    name: tower_e\n'
 	iyaml+='    primary: 0\n' 
-	iyaml+='    transform: { translation: %s, rotation: %s }\n' % ([0, -tower_r, tower_h*0.5], [0, 0, 0]) 
+	if 'multi-aperture' in receiver:
+		iyaml+='    transform: { translation: %s, rotation: %s }\n' % ([0, 0, tower_h*0.5], [0, 0, 0]) 
+	else:
+		if hemisphere=='North':
+			iyaml+='    transform: { translation: %s, rotation: %s }\n' % ([0, -tower_r, tower_h*0.5], [0, 0, 0]) 
+		else:
+			iyaml+='    transform: { translation: %s, rotation: %s }\n' % ([0, tower_r, tower_h*0.5], [0, 0, 0]) 
+
+
 	iyaml+='    geometry: *%s\n' % 'tower_g'    
 	#
 	# heliostat entities from the template
 	for i in range(0,num_hst):
+		idx=hst_t_idx[i]
 		name_e ='H_'+str(i)
-		name_hst_t = 'hst_t_'+str(i)
+		name_hst_t = hst_t_names[i]
 		iyaml+='\n- entity:\n'
 		iyaml+='    name: %s\n' % name_e
-		iyaml+='    transform: { translation: %s, rotation: %s }\n' % ([hst_x[i], hst_y[i], hst_z[i]], [0, 0, 0]) 
+		iyaml+='    transform: { translation: %s, rotation: %s }\n' % ([hst_x[idx], hst_y[idx], hst_z[idx]], [0, 0, 0]) 
 		iyaml+='    children: [ *%s ]\n' % name_hst_t    
+
 
 	with open(outfile_yaml,'w') as f:
 		f.write(iyaml)
 
 	with open(outfile_recv,'w') as f:
 		f.write(rcv) 
+		
+	
+	return hst_t_idx, hst_t_names
 
 
 def flat_receiver(rec_param, hemisphere='North'):
@@ -555,6 +623,7 @@ def multi_aperture_receiver(rec_param, hemisphere='North', plot=False):
 		             if the front surface always facing to the field is desirable
 		         (2) the position of the virtual target
 	"""
+	# mac is the instance of class MultiApertureConfiguration (see design_multi_aperture.py)
 	# rec_w and rec_h is the size of one aperture
 	# rec_grid_w and rec_gird_h is the number of elements of one aperture
 	# rec_z is a list of the elevation height of the center of apertures
@@ -562,20 +631,19 @@ def multi_aperture_receiver(rec_param, hemisphere='North', plot=False):
 	# num_aperture is the number of apertures
 	# gamma is the angular range of the multi-aperture configration 
 
-
-	rec_w=rec_param[0]
-	rec_h=rec_param[1]
+	mac=rec_param[0]
+	rec_tilt=rec_param[1] 
 	rec_grid_w=rec_param[2]
-	rec_grid_h=rec_param[3]
+	rec_grid_h=rec_param[3]	
 
-	rec_z=rec_param[4]
-	rec_tilt=rec_param[5] 
+	rec_w=mac.W_rcv
+	rec_h=mac.H_rcv
+
 	# receiver tilt angle:
 	# 0 is vertical
 	# the standby posiion of a plane in solstice is normal points to the +z axis
 	# rotation anagle, positive is anti-clockwise
-	num_aperture=int(rec_param[6]) 
-	gamma=rec_param[7]  # angular range of the multi-aperture configration (deg)
+	num_aperture=int(mac.n) 
 
 
 	geom=''
@@ -594,9 +662,8 @@ def multi_aperture_receiver(rec_param, hemisphere='North', plot=False):
 		geom+='      slices: %d\n' % rec_grid_w 
 		geom+='\n'
 
-		ang_pos, xc, yc=multi_aperture_pos(rec_w, gamma, num_aperture, i)
-
-		zc=rec_z[i]		
+		xc, yc, zc=mac.get_cood_pos(i)
+		ang_pos=mac.get_angular_pos(i)
 		vir_z+=zc
 
 		# CREATE a receiver entity from "target_g" geometry (primary = 0)
@@ -638,5 +705,92 @@ def multi_aperture_receiver(rec_param, hemisphere='North', plot=False):
 
 
 
-#------------------------------
+def get_helios_from_yaml(fn, line_geo, line_temp, line_ent, show=False):
+	'''
+	This function reads the input.yaml file 
+	and returns the position and aiming point of each heliostat
+
+	Arguments:
+		fn (str): the directory of the yaml file
+		line_geo (int) : the start line number of the heliostat geometry modual
+		line_temp (int): the start line number of the heliostat template modual
+		line_ent (int) : the start line number of the heliostat entity modual
+		show (bool): show a figure plot of the positons and aiming points,  or not
+	Return:
+		A 'pos_and_aim.csv' file that contains the position and aim points of each heliostat
+	'''
+
+	f=open(fn, 'r')
+	content=f.readlines()
+	f.close()
+
+	l=len(content)
+	match_number = re.compile('-?\ *[0-9]+\.?[0-9]*(?:[Ee]\ *-?\ *[0-9]+)?')
+
+	#focals=np.array([])	
+	#for i in range(line_geo, line_temp):
+	#	line=content[i]
+	#	if 'focal' in line:
+	#		foc=[float(s) for s in re.findall(match_number, line)] 
+	#		row=[float(s) for s in re.findall(match_number, content[i-3])] 
+	#		focals=np.append(focals, (foc, row))	
+	#		print('geo', i, foc, row, focals)		
+	#focals=focals.reshape(int(len(focals)/2),2)
+
+	t_names=[]
+	aim_pos=[]
+	for i in range(line_temp, line_ent):
+		line=content[i]
+		if 'template' in line:
+			idx=[int(s) for s in re.findall(match_number, content[i+1])] 
+			name='hst_row_%s_aim_%s'%(idx[0], idx[1])
+			aim=[float(s) for s in re.findall(match_number, content[i+6])] 
+			t_names.append(name)
+			aim_pos.append(aim)
+
+	positions=np.array([])
+	t_names2=[]
+	n=0
+	for i in range(line_ent,l):
+	#for i in range(8169,8190):
+		line=content[i]
+		if 'entity' in line:
+
+			pos=[float(s) for s in re.findall(match_number, content[i+2])] 
+			aim=[int(s) for s in re.findall(match_number, content[i+3])] 
+			name='hst_row_%s_aim_%s'%(aim[0], aim[1])
+			
+			positions=np.append(positions, (pos[0], pos[1], pos[2]))
+			t_names2.append(name)
+			print('line', i)
+			n+=1
+			
+	aim_pos_2=np.array([])		
+	num_hst=n
+	foc_pos=np.array([])
+	print('\nnumber of he',n, num_hst)		
+	for i in range(num_hst):
+		for j in range(len(t_names)):
+			if np.array_equal(t_names2[i], t_names[j]):
+				aim_pos_2=np.append(aim_pos_2, aim_pos[j])
+				#row=[int(s) for s in re.findall(match_number, t_names2[i])][0]
+				#idx=(focals[:,0]==row)
+				#foc_pos=np.append(foc_pos, focals[idx,1]) 
+				
+	aim_pos_2=aim_pos_2.reshape(int(num_hst), 3)
+	positions=positions.reshape(int(num_hst),3)
+	#foc_pos=foc_pos.reshape(int(num_hst),1)
+	pos_and_aim=np.hstack((positions, aim_pos_2))
+	
+	np.savetxt('pos_and_aim.csv', pos_and_aim, fmt='%.4f', delimiter=',')
+	
+	if show:
+		plt.scatter(positions[:,0],positions[:,1], c=aim_pos_2[:,0])
+		plt.show()
+		plt.close()	
+
+
+
+
+
 

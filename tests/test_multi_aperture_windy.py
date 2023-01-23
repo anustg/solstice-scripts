@@ -6,7 +6,7 @@ import unittest
 import solsticepy
 from solsticepy.design_crs import CRS
 from solsticepy.input import Parameters
-from solsticepy.output_motab import output_metadata_motab_multi_aperture, read_motab
+from solsticepy.output_motab import output_metadata_motab_multi_aperture, read_motab, append_oelts
 from solsticepy.design_multi_aperture import MultiApertureConfiguration
 import os
 import numpy as np
@@ -16,7 +16,7 @@ class TestMultiAperture(unittest.TestCase):
 	def setUp(self):
 
 		start=time.time()
-		self.casedir='./test-multi-aperture'
+		self.casedir='./test-multi-aperture-windy'
 		self.tablefile=self.casedir+'/OELT_Solstice.motab'
 		if os.path.exists(self.tablefile):    
 			print('')
@@ -30,7 +30,7 @@ class TestMultiAperture(unittest.TestCase):
 			pm.Q_in_rcv=56e6
 			pm.n_row_oelt=3
 			pm.n_col_oelt=6
-			pm.H_tower=120.
+			pm.H_tower=120.		
 			pm.H_rcv=[12.,12.,12.]
 			pm.W_rcv=[12.,12.,12.]
 			pm.Z_rcv=[pm.H_tower,pm.H_tower,pm.H_tower]
@@ -45,11 +45,13 @@ class TestMultiAperture(unittest.TestCase):
 			pm.helio_rho=0.9
 			pm.helio_soil=1.
 			pm.helio_sf_ratio=1.
-
+			pm.windy_optics =1
+			pm.slope_error_windy = 0.0026
+			pm.slope_error = 0.00153			
 			pm.dependent_par()
 			pm.saveparam(self.casedir)
 
-			crs=CRS(latitude=pm.lat, casedir=self.casedir+'/field_design', nproc=1, verbose=True)   
+			crs=CRS(latitude=pm.lat, casedir=self.casedir, nproc=1, verbose=True)   
 			weafile='../example/demo_TMY3_weather.motab'
 			mac=MultiApertureConfiguration(n=pm.num_aperture, gamma=pm.gamma, H_tower=pm.H_tower, R_tower=pm.R_tower, W_rcv=pm.W_rcv, H_rcv=pm.H_rcv, parallel=False)
 						
@@ -60,13 +62,12 @@ class TestMultiAperture(unittest.TestCase):
 			crs.yaml(sunshape=pm.sunshape,csr=pm.csr,half_angle_deg=pm.half_angle_deg,std_dev=pm.std_dev)
 
 			A_land=crs.field_design_annual(dni_des=900., num_rays=int(1e6), nd=pm.n_row_oelt, nh=pm.n_col_oelt, weafile=weafile, method=1, Q_in_des=pm.Q_in_rcv, n_helios=None, zipfiles=False, gen_vtk=False, plot=False)
-		
 
 			crs.casedir=pm.casedir+'/performance'
 			if not os.path.exists(crs.casedir):
 				os.makedirs(crs.casedir)
 			crs.yaml(sunshape=pm.sunshape, csr=pm.csr, half_angle_deg=pm.half_angle_deg, std_dev=pm.std_dev)
-			self.oelt, A_land=crs.annual_oelt(num_rays=int(pm.n_rays), nd=int(pm.n_row_oelt), nh=int(pm.n_col_oelt))				
+			self.oelt, A_land=crs.annual_oelt(num_rays=int(pm.n_rays), nd=int(pm.n_row_oelt), nh=int(pm.n_col_oelt))	
 
 
 			self.n_helios=crs.n_helios
@@ -97,6 +98,19 @@ class TestMultiAperture(unittest.TestCase):
 							mac        = mac,
 							savedir    = self.tablefile)
 
+
+			# for windy conditions
+			crs.slope=pm.slope_error_windy
+			crs.casedir=self.casedir+'/windy_optics'
+			if not os.path.exists(crs.casedir):
+				os.makedirs(crs.casedir)
+			crs.yaml(sunshape=pm.sunshape, csr=pm.csr, half_angle_deg=pm.half_angle_deg, std_dev=pm.std_dev)
+
+			oelt_windy,A_land=crs.annual_oelt(num_rays=int(pm.n_rays), nd=int(pm.n_row_oelt), nh=int(pm.n_col_oelt), gen_vtk=False)	
+			append_oelts(table=oelt_windy, identifier='windy', motabfile=self.tablefile, mac=mac)
+
+		
+
 		end=time.time()
 		print('total time %.2f'%((end-start)/60.), 'min')
 
@@ -119,7 +133,6 @@ class TestMultiAperture(unittest.TestCase):
 		self.assertTrue(abs(self.eff_des- 0.728)/0.728 < 0.01)
 		self.assertTrue(abs(self.eff_annual-0.666)/0.666 < 0.01)
 		os.system('rm -rf %s'%self.casedir)
-
 
 if __name__ == '__main__':
 	unittest.main()

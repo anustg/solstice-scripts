@@ -26,21 +26,21 @@ def run_prog(name,args,output_file=None,verbose=True):
 		# any error will cause an exception (and we capture the output to a file)
 		res = subprocess.run([prog]+args1,check=True,stdout=subprocess.PIPE)
 		with open(output_file,'w') as f:
-			f.write(res.decode('ascii'))
+			f.write(res.stdout.decode('ascii'))
 	else:
 		# any error will cause an exception...
 		subprocess.run([prog]+args1,check=True)
 
 class Master:
 
-	def __init__(self, casedir='.', nproc=None):
+	def __init__(self, casedir='.', nproc=0):
 		"""Set up the Solstice simulation, i.e. establishing the case folder, calling the Solstice program and post-processing the results
 
 		``Argument``
 		  * casedir (str): the case directory
 	      * nproc   (int): number of processors, e.g. nproc=1 will run in serial mode, 
                                                       nproc=4 will run with 4 processors in parallel
-													  nproc=None will run with any number of processors that are available
+													  nproc=0 will run with any number of processors that are available
 		"""
 		self.casedir=os.path.abspath(casedir)
 		self.nproc=nproc
@@ -67,6 +67,7 @@ class Master:
 		    os.makedirs(folder)
 		    assert os.path.isdir(folder)
 
+		folder=os.path.abspath(folder)
 		return os.path.join(folder,fn)
 
 	def run(self, azimuth, elevation, num_rays, rho_mirror, dni, folder, gen_vtk=False, printresult=False, verbose=False, system='crs'):
@@ -88,12 +89,13 @@ class Master:
 		RECV_IN = self.in_case(self.casedir, 'input-rcv.yaml')
 
 		# main raytrace
-		if self.nproc==None:
+		if self.nproc==0:
 			run_prog("solstice",['-D%s,%s'%(azimuth,elevation),'-v','-n',num_rays,'-R',RECV_IN,'-fo',self.in_case(folder, 'simul'),YAML_IN])
 		else:
 			run_prog("solstice",['-D%s,%s'%(azimuth,elevation),'-v', '-t', self.nproc, '-n',num_rays,'-R',RECV_IN,'-fo',self.in_case(folder, 'simul'),YAML_IN])
 
 		folder=os.path.abspath(folder)
+
 		if gen_vtk and verbose:
 			dirn = os.getcwd()
 			try:
@@ -103,6 +105,7 @@ class Master:
 				run_prog('solppraw',[self.in_case(folder, 'simul')])
 
 				# post processing
+
 				run_prog("solstice",['-D%s,%s'%(azimuth,elevation),'-g','format=obj:split=geometry','-fo',self.in_case(folder, 'geom'),YAML_IN])
 
 				# run a short raytrace to produce some ray paths
@@ -137,7 +140,7 @@ class Master:
 				sys.stderr.write(green("Completed successfully.\n"))
 			return eta, performance_hst
 
-	def run_annual(self, nd, nh, latitude, num_rays, num_hst,rho_mirror,dni, gen_vtk=False,verbose=False):
+	def run_annual(self, nd, nh, latitude, num_rays, num_hst, rho_mirror, hst_aim_idx, num_aperture=1, mac=None, gen_vtk=False,verbose=False, system='crs'):
 
 		"""Run a list of optical simulations to obtain annual performance (lookup table) using Solstice 
 
@@ -148,9 +151,10 @@ class Master:
 		  * latitude (float): the latitude angle of the plan location (deg)
 		  * num_rays (int): number of rays to be cast in the ray-tracing simulation
 		  * num_hst (int): number of heliostats 
+		  * rho_mirror (float): mirror reflectivity
 	      * nproc (int): number of processors, e.g. nproc=1 will run in serial mode, 
                                                       nproc=4 will run with 4 processors in parallel
-											    	  nproc=None will run with any number of processors that are available
+											    	  nproc=0 will run with any number of processors that are available
 
 		  * rho_mirror (float): reflectivity of mirrors, required for results post-processing 
 		  * dni (float): the direct normal irradiance (W/m2), required to obtain performance of individual heliostat
@@ -162,7 +166,8 @@ class Master:
 		  * table (numpy array), the annual optical efficiency lookup table
 		  * ANNUAL (numpy array), the annual output of each heliostat
 		"""
-
+		hst_aim_idx=hst_aim_idx.astype(float)
+		
 		YAML_IN = self.in_case(self.casedir, 'input.yaml')
 		RECV_IN = self.in_case(self.casedir, 'input-rcv.yaml')
 
@@ -171,23 +176,34 @@ class Master:
 		case_list=case_list[1:]
 		SOLSTICE_AZI, SOLSTICE_ELE=sun.convert_convention('solstice', AZI, ZENITH)
 
-		# performance of individual heliostat is recorded
-		# TODO note, DNI is not varied in the simulation, 
-		# i.e. performance is not dni-weighted
-		ANNUAL=np.zeros((num_hst, 9))    
-		run=np.r_[0]
 
+		ANNUAL=np.zeros((num_hst, 9))    
+
+		oelt={}
+		QTOT=np.zeros(np.shape(table))
+		QIN=np.zeros(np.shape(table))
+		self.n_helios_i=[]
+
+		for ap in range(num_aperture):
+			oelt[ap]=np.zeros(np.shape(table))
+			oelt[ap][2, 3:]=table[2, 3:].astype(float)
+			oelt[ap][3:,2]=table[3:,2].astype(float)
+			idx_apt_i=(hst_aim_idx==ap)	
+			nhst=np.sum(idx_apt_i)					
+			self.n_helios_i.append(nhst)
+			
+		run=np.r_[0]
+				
 		for i in range(len(case_list)):     
 			c=int(case_list[i,0].astype(float))
 			if c not in run:
 				azimuth=SOLSTICE_AZI[c-1]
 				elevation=SOLSTICE_ELE[c-1]
-				#if np.sin(elevation*np.pi/180.)>=1.e-5:
-				#	dni=1618.*np.exp(-0.606/(np.sin(elevation*np.pi/180.)**0.491))
-				#else:
-				#	dni=0.
+				if np.sin(elevation*np.pi/180.)>=1.e-5:
+					dni=1618.*np.exp(-0.606/(np.sin(elevation*np.pi/180.)**0.491))
+				else:
+					dni=0.
 
-			   
 				sys.stderr.write("\n"+green('Sun position: %s \n'%c))
 				print('azimuth: %.2f'% azimuth, ', elevation: %.2f'%elevation)
 
@@ -195,37 +211,83 @@ class Master:
 
 				# run solstice
 				if elevation<1.: # 1 degree
-				    efficiency_total=ufloat(0,0)
-				    performance_hst=np.zeros((num_hst, 9))  
+					efficiency_total=ufloat(0,0)
+					performance_hst=np.zeros((num_hst, 9))  
+					performance_hst[:,0]=1. 
+					efficiency_hst=np.zeros(nhst)					
 				else:
-					efficiency_total, performance_hst=self.run(azimuth, elevation, num_rays, rho_mirror, dni, folder=onesunfolder, gen_vtk=gen_vtk, printresult=False, verbose=verbose)
+					efficiency_total, performance_hst=self.run(azimuth, elevation, num_rays, rho_mirror, dni, folder=onesunfolder, gen_vtk=gen_vtk, printresult=False, verbose=verbose, system=system)
 
-					sys.stderr.write(yellow("Total efficiency: {:f}\n".format(efficiency_total)))
+				sys.stderr.write(yellow("Total efficiency: {:f}\n".format(efficiency_total)))
 
 				ANNUAL+=performance_hst
+				run=np.append(run,c)
+				   
 			else:
 				ANNUAL+=performance_hst
 
+			for ap in range(num_aperture):
+				idx_apt_i=(hst_aim_idx==ap)
+				for a in range(len(table[3:])):
+					for b in range(len(table[0,3:])):
+						val=re.findall(r'\d+',    table[a+3,b+3])
+						if val==[]:
+							oelt[ap][a+3,b+3]=0
+						else:
+							if c==float(val[0]):
+								Qtot=performance_hst[idx_apt_i,0]
+								Qin=performance_hst[idx_apt_i,-1]	
+								eff=np.sum(Qin)/np.sum(Qtot)
 
-			for a in range(len(table[3:])):
-				for b in range(len(table[0,3:])):
-				    val=re.findall(r'\d+',    table[a+3,b+3])
-				    if val==[]:
-				        table[a+3,b+3]=0
-				    else:
-				        if c==float(val[0]):
-				            table[a+3,b+3]=efficiency_total.nominal_value
+								oelt[ap][a+3,b+3]=eff
+								QTOT[a+3,b+3]+=np.sum(Qtot)
+								QIN[a+3,b+3]+=np.sum(Qin)
 
-			run=np.append(run,c)   
 
-		annual_title=np.array(['Q_solar','Q_cosine', 'Q_shade', 'Q_hst_abs', 'Q_block', 'Q_atm', 'Q_spil', 'Q_refl', 'Q_rcv_abs']) 
-		ANNUAL=np.vstack((annual_title, ANNUAL))
+
+
 		if verbose:
-			np.savetxt(self.casedir+'/lookup_table.csv', table, fmt='%s', delimiter=',')
-			np.savetxt(self.casedir+'/result-heliostats-annual-performance.csv', ANNUAL, fmt='%s', delimiter=',')
+			annual_title=np.array(['Q_solar','Q_cosine', 'Q_shade', 'Q_hst_abs', 'Q_block', 'Q_atm', 'Q_spil', 'Q_refl', 'Q_rcv_abs']) 
+			annual=np.vstack((annual_title, ANNUAL))
+			np.savetxt(self.casedir+'/result-heliostats-annual-performance.csv', annual, fmt='%s', delimiter=',')
+			sys.stderr.write("\n"+green("Lookup table saved.\n"))
 
-		sys.stderr.write("\n"+green("Lookup table saved.\n"))
 		sys.stderr.write(green("Completed successfully.\n"+"\n"))
-		return table, ANNUAL
+
+		if num_aperture==1:
+			oelt=oelt[0]
+			if verbose:
+				np.savetxt(self.casedir+'/lookup_table.csv', oelt, fmt='%s', delimiter=',')
+
+		else:
+			# oelt of the total field
+			oelt[num_aperture]= np.divide(QIN, QTOT, out=np.zeros(QIN.shape, dtype=float), where=QTOT!=0) 
+			oelt[num_aperture][2, 3:]=table[2, 3:].astype(float)
+			oelt[num_aperture][3:,2]=table[3:,2].astype(float)
+
+			# morning and afternoon wrapping for the side apertures
+			try:
+				if num_aperture==3:
+					if mac.gamma%360.<1e-20:
+						oelt[1][3:,3+int(nh/2):]=oelt[2][3:, 3:3+int(nh/2)][:,::-1]
+						oelt[2][3:,3+int(nh/2):]=oelt[1][3:, 3:3+int(nh/2)][:,::-1]
+		
+					else:
+						oelt[0][3:,3+int(nh/2):]=oelt[2][3:, 3:3+int(nh/2)][:,::-1]
+						oelt[2][3:,3+int(nh/2):]=oelt[0][3:, 3:3+int(nh/2)][:,::-1]
+			except:
+				raise Exception('The number of col (n_col_oelt) must be an even number\nThe value was %s\n'%(nh))
+					
+			if verbose:
+				for ap in range(num_aperture+1):
+					if ap==num_aperture:
+						np.savetxt(self.casedir+'/lookup_table_total.csv', oelt[ap], fmt='%s', delimiter=',')			
+					else:
+						np.savetxt(self.casedir+'/lookup_table_%s.csv'%ap, oelt[ap], fmt='%s', delimiter=',')	
+
+		return oelt, ANNUAL		
+
+
+
 
 

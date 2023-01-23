@@ -12,7 +12,7 @@ import numpy as np
 class TestMaster(unittest.TestCase):
 	def setUp(self):
 
-		self.casedir='./test_master'
+		self.casedir='./test-master'
 
 		DNI = 1000 # W/m2
 		sunshape = 'pillbox'
@@ -35,11 +35,12 @@ class TestMaster(unittest.TestCase):
 		tower_h=80. # tower height
 		tower_r=0.01 # tower radius
 
-		field, Nzones, Nrows_zone=radial_stagger(latitude=latitude, num_hst=1000, width=hst_w, height=hst_h, hst_z=3., towerheight=tower_h, R1=50., fb=0.5, dsep=0., field='polar', savedir=self.casedir, plot=False, verbose=False)
-		hst_pos=field[2:,:3]
-		hst_foc=field[2:,3] 
-		hst_aims=field[2:,4:]
-
+		pos_and_aiming, Nzones, Nrows_zone=radial_stagger(latitude=latitude, num_hst=1000, width=hst_w, height=hst_h, hst_z=3., towerheight=tower_h, R1=50., fb=0.5, dsep=0., field='polar', savedir=self.casedir, plot=False, verbose=False)
+		hst_pos=pos_and_aiming[2:,:3].astype(float)
+		hst_foc=pos_and_aiming[2:,3].astype(float) 
+		hst_aims=pos_and_aiming[2:,4:7].astype(float)
+		hst_aim_idx=pos_and_aiming[2:,7].astype(float)
+		TTRow=pos_and_aiming[2:,12].astype(float) # row index in the total field			
 		#
 		# the receiver
 		# ============
@@ -65,7 +66,7 @@ class TestMaster(unittest.TestCase):
 		outfile_yaml = master.in_case(self.casedir, 'input.yaml')
 		outfile_recv = master.in_case(self.casedir, 'input-rcv.yaml')
 
-		solsticepy.gen_yaml(sun, hst_pos, hst_foc, hst_aims, hst_w, hst_h
+		solsticepy.gen_yaml(sun, hst_pos, hst_foc, hst_aims, TTRow, hst_w, hst_h
 		, rho_refl, slope_error, receiver, rec_param, rec_abs
 		, outfile_yaml=outfile_yaml, outfile_recv=outfile_recv
 		, hemisphere='North', tower_h=tower_h, tower_r=tower_r,  spectral=False
@@ -73,11 +74,11 @@ class TestMaster(unittest.TestCase):
 
 		self.eta, self.performance_hst=master.run(azimuth, elevation, num_rays, rho_refl,sun.dni, folder=self.casedir+'/test_run', gen_vtk=False, verbose=False)
 
-		self.table, self.ANNUAL=master.run_annual(nd=5, nh=5, latitude=latitude, num_rays=num_rays, num_hst=len(hst_pos),rho_mirror=rho_refl, dni=DNI, verbose=False)
+		self.table, self.ANNUAL=master.run_annual(nd=5, nh=5, latitude=latitude, num_rays=num_rays, num_hst=len(hst_pos),rho_mirror=rho_refl, hst_aim_idx=hst_aim_idx,verbose=False)
 
 	def test_touching(self):
-		self.assertEqual(round(self.eta.n, 2), 0.47)
-		#os.system('rm -rf '+self.casedir)
+		self.assertTrue(abs(self.eta.n-0.459)/0.459< 0.01)
+		os.system('rm -rf '+self.casedir)
 
 
 if __name__ == '__main__':
