@@ -79,7 +79,7 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims, hst_w, hst_h
 	  * `rho_refl` (float): reflector reflectivity
 	  * `slope_error` (float): reflector surface slope error rms, radians
 	  * `cant` (bool): True, multi-facets canted heliostats, False, ideally shaped single facet heliostat
-	  * `bands` (nparray or None): a 2D numpy array ((distance, focal length)) that specifies 
+	  * `bands` (nparray or None): a 2D numpy array ((band range, focal length)) that specifies 
 						the distance range and focal length for each canting band, it is <= than this
 						, or None for slant range canting
 	  * `fct_w` (float): facet width (if cant==True) 
@@ -276,30 +276,27 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims, hst_w, hst_h
 	pts_hst = [ [-hst_w*0.5, -hst_h*0.5], [-hst_w*0.5, hst_h*0.5], [hst_w*0.5, hst_h*0.5], [hst_w*0.5,-hst_h*0.5] ]
 
 	# CREATE the pylon "pylon_g" geometry cylindrical shape
-	h_pyl = hst_z[0]*0.8 # pylon height
+	h_pyl = hst_z[0] # pylon height
 	r_pyl = 0.2 # pylon radius
 	slices = 4 # slices for the envelop circle
 	iyaml+='- geometry: &%s\n' % 'pylon_g' 
 	iyaml+='  - material: *%s\n' % 'material_black' 
-	iyaml+='    transform: { translation: %s, rotation: %s }\n' % ([0, 0, -h_pyl*3], [0, 90, 0]) 
-	iyaml+='    cylinder: {height: %7.3f, radius: %7.3f, slices: %d }\n' % (h_pyl,r_pyl,slices) 
+	iyaml+='    transform: { translation: %s, rotation: %s }\n' % ([0, 0, -h_pyl/2.], [0, 0, 0]) 
+	iyaml+='    cylinder: {height: %7.3f, radius: %7.3f, slices: %d }\n' % (h_pyl*0.8,r_pyl,slices) 
 	#   
 
 	if bands.any()==None:
 		dist=(hst_w+hst_h)/2.
 		min_foc=np.min(hst_foc)
-		max_foc=np.max(hst_foc)
-		bands=np.arange(min_foc+dist, max_foc+dist, dist)
+		max_foc=np.max(hst_foc)		
+		if min_foc==max_foc:
+			bands=np.array([[min_foc, min_foc]])
+		else:
+			bands=np.append(np.arange(min_foc+dist, max_foc+dist, dist),np.arange(min_foc+dist, max_foc+dist, dist))
+			bands=bands.reshape(2, int(len(bands)/2))
+			bands=bands.T 
 
 	if cant==True: # multi facets
-		iyaml+="""
-- geometry: &facet_g_s
-  - material: *material_mirror
-    plane:
-      clip: 
-      - operation: AND 
-        vertices: [[-0.00001, -0.00001], [-0.00001, 0.00001], [0.000015, 0.00001], [0.00001, -0.00001]]
-      slices: 1\n\n"""
 	
 		if shape=='flat':
 			iyaml+="- geometry: &facet_g\n"
@@ -313,7 +310,7 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims, hst_w, hst_h
 	
 		else: # curved facets 
 			for i in range(len(bands)):
-				foc=bands[i]				
+				foc=bands[i,1]				
 				iyaml+="- geometry: &facet_g_band_%s\n"%i
 				iyaml+="  - material: *material_mirror\n"
 				iyaml+="    parabol:\n"
@@ -321,18 +318,22 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims, hst_w, hst_h
 				iyaml+="      clip:\n"
 				iyaml+="      - operation: AND\n" 
 				iyaml+="        vertices: [[%s, %s], [%s, %s], [%s, %s], [%s, %s]]\n"%(-fct_w/2., -fct_h/2.,-fct_w/2., fct_h/2., fct_w/2., fct_h/2., fct_w/2., -fct_h/2.)
-				iyaml+="      slices: 1\n\n"
+				iyaml+="      slices: 4\n\n"
 
 
 		for b in range(len(bands)):
-				iyaml+="- template: &facets_t_band_%s\n"%b
+				iyaml+="- template: &hst_t_%s\n"%b
 				iyaml+="    name: facets\n"
-				iyaml+="    primary: 0\n"
 				iyaml+="    transform: {translation: [0,0,0], rotation: [0,0,0]}\n"
-				iyaml+="    geometry: *facet_g_s\n"
+				iyaml+='    zx_pivot: \n'
+				iyaml+='      spacing: 0\n'
+				iyaml+='      ref_point: [0,0,0]\n'
+				iyaml+='      target: {position: [%s, %s, %s]}\n' % (aim_x[i],aim_y[i],aim_z[i]) 
 				iyaml+="    children:\n"
 
-				foc=bands[b]	
+
+				foc=bands[b,1]	
+				print('foc', foc)
 				data=heliostat_canted_facets(hst_w, hst_h, fct_w, fct_h, fct_gap, n_row, n_col, foc, shape)
 				fct_x=data[:,0].reshape(n_row, n_col)
 				fct_z=data[:,1].reshape(n_row, n_col)
@@ -351,26 +352,13 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims, hst_w, hst_h
 
 		# heliostat entities from the template
 		for i in range(num_hst):
-			iyaml+='- template: &hst_t_%s\n'%i
-			iyaml+='    name: hst_%s\n'%i
-			iyaml+='    primary: 0\n'
-			iyaml+='    geometry: *pylon_g\n'
-			iyaml+='    children:\n'     
-			iyaml+='      - name: pivot\n'
-			iyaml+='        transform: { translation: [0,0, 0], rotation: [0,0,0] }\n'
-			iyaml+='        zx_pivot: \n'
-			iyaml+='          spacing: 0\n'
-			iyaml+='          ref_point: [0,0,0]\n'
-			iyaml+='          target: {position: [%s, %s, %s]}\n' % (aim_x[i],aim_y[i],aim_z[i]) 
 			foc=hst_foc[i]
-			idx=np.argmin(abs(foc-bands))
-			iyaml+='        children: [ *facets_t_band_%s ]\n\n'%idx
-
+			idx=np.argmin(abs(foc-bands[:,0]))
 
 			iyaml+='- entity:\n'
 			iyaml+='    name: H_%s\n'%i
 			iyaml+='    transform: { translation: [%s, %s, %s], rotation: [0, 0, 0] }\n'%(hst_x[i], hst_y[i], hst_z[i])
-			iyaml+='    children: [ *hst_t_%s ]\n'%i
+			iyaml+='    children: [ *hst_t_%s ]\n'%idx
 
 	else: # single facet
 
@@ -379,7 +367,7 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims, hst_w, hst_h
 			iyaml+='- geometry: &%s\n' % name_hst_g 
 			iyaml+='  - material: *%s\n' % 'material_mirror' 
 			iyaml+='    parabol: \n'
-			iyaml+='      focal: %s\n' % bands[i]
+			iyaml+='      focal: %s\n' % bands[i,1]
 			iyaml+='      clip: \n'  
 			iyaml+='      - operation: AND \n'
 			iyaml+='        vertices: %s\n' % pts_hst
@@ -401,7 +389,7 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims, hst_w, hst_h
 			iyaml+='        primary: 1\n'
 			iyaml+='        transform: {rotation: [-90,0,0]} \n' 
 			foc=hst_foc[i]
-			idx=np.argmin(abs(foc-bands))
+			idx=np.argmin(abs(foc-bands[:,0]))
 			name_hst_g = 'hst_g_band_'+str(idx)
 			iyaml+='        geometry: *%s\n\n' % name_hst_g 
 
@@ -466,13 +454,41 @@ def heliostat_canted_facets(hst_w, hst_h, fct_w, fct_h, gap, n_row, n_col, foc, 
 			OH=np.r_[0,1,0] # original hst norm 
 			OX=np.r_[1,0,0]	
 
-			n0=np.r_[-x/2./foc, 1, -z/2./foc] # facet pointing direction
+			#n0=np.r_[-x/2./foc, 1, -z/2./foc] # facet pointing direction
+			n0=np.r_[-x,foc,-z]
 			n0=n0/np.linalg.norm(n0)
+			
 
 			n1=np.cross(OH, OX)
 			n2=np.cross(n0, OX)	
 
 			rotx=np.arccos(np.dot(n1, n2)/(np.linalg.norm(n1)*np.linalg.norm(n2)))*180./np.pi
+			if z>0:
+				rotx=-rotx
+
+			v_proj=np.cross(n2, (np.cross(OH, n2)/np.linalg.norm(n2)))/np.linalg.norm(n2)
+			norm=np.linalg.norm(v_proj)*np.linalg.norm(n0)
+
+			if norm<1e-6:
+				cosy=np.dot(n0, np.r_[0,0,1])
+				roty=-np.arccos(cosy)*180./np.pi
+			else:
+				cosy=np.dot(v_proj, n0)/norm
+				if 1-cosy<1e-6 or 1+cosy<1e-6:
+					roty=0
+				else:
+					roty=np.arccos(cosy)*180./np.pi
+
+			if x>0:
+				roty=-roty
+			elif x<0 and z==0:
+				roty=-roty
+						
+			data=np.append(data, (x, z, rotx, roty))
+
+
+			
+			'''
 			if z>0:
 				rotx=-rotx			
 
@@ -485,6 +501,8 @@ def heliostat_canted_facets(hst_w, hst_h, fct_w, fct_h, gap, n_row, n_col, foc, 
 				if x>0:
 					roty=-roty	
 			data=np.append(data, (x, z, rotx, roty))
+			print(x, 0, z, n0[0], n0[1], n0[2])
+			'''
 	
 	data=data.reshape(int(len(data)/4), 4)				
 
