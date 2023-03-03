@@ -25,8 +25,9 @@ def run_prog(name,args,output_file=None,verbose=True):
 	if output_file is not None:
 		# any error will cause an exception (and we capture the output to a file)
 		res = subprocess.run([prog]+args1,check=True,stdout=subprocess.PIPE)
+	
 		with open(output_file,'w') as f:
-			f.write(res.decode('ascii'))
+			f.write(res.stdout.decode('utf-8'))
 	else:
 		# any error will cause an exception...
 		subprocess.run([prog]+args1,check=True)
