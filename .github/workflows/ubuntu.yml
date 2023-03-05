@@ -39,7 +39,7 @@ jobs:
     - name: Install Python dependencies
       run: |
         python3 -m pip install --upgrade pip 
-        python3 -m pip install numpy scipy matplotlib colorama uncertainties pytest flake8
+        python3 -m pip install scons numpy scipy matplotlib colorama uncertainties pytest flake8
         # if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
     - name: Show Python context
