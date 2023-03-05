@@ -83,7 +83,8 @@ jobs:
         
     - name: Test solsticepy
       run: |
-        export PATH=$PATH:/usr/local/bin
+        pwd
+        export PATH=$PATH:/usr/local/bin:postproc
         export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib
         cd tests
         python -m pytest
