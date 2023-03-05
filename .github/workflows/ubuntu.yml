@@ -78,13 +78,12 @@ jobs:
     - name: Install postprocessing programs
       run: |
         cd postproc
-        scons install 
+        scons INSTALL_PREFIX=/usr/local/bin install 
         cd .
         
     - name: Test solsticepy
       run: |
-        pwd
-        export PATH=$PATH:/usr/local/bin:postproc
+        export PATH=$PATH:/usr/local/bin
         export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib
         cd tests
         python -m pytest
