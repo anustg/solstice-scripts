@@ -73,7 +73,13 @@ jobs:
     - name: Install solsticepy
       run: |
         python3 -m pip install .
-
+        
+ 
+    - name: Install postprocessing programs
+      run: |
+        cd postproc
+        scons install 
+        cd .
         
     - name: Test solsticepy
       run: |
