@@ -1,3 +1,5 @@
+import numpy as np
+import re
 
 def gen_vtk(savedir, points, indices, norms, colormap=True, DATA=None):
     '''Generate 3D views of a heliostat field with triangular mesh in the VTK format that can be visualised in ParaView software
@@ -58,6 +60,147 @@ def gen_vtk(savedir, points, indices, norms, colormap=True, DATA=None):
        
     f.close()
 
+
+def read_vtk(vtkfile):
+
+    '''
+
+    '''
+    f=open(vtkfile, 'r')
+    content=f.readlines()
+    f.close()
+
+    l=len(content)
+    i=0
+
+    while i<l:
+        line=content[i]
+        if 'POINTS' in line:
+            v= [int(s) for s in line.split() if s.isdigit()]
+            num_points=v[0]
+            start=i+1
+            j=start
+            end=i+num_points+1
+            points=np.array([])
+            while j<end:
+                line=content[j]
+                v =[float(s) for s in re.findall(r'-?\d+\.?\d*', line)]
+                points=np.append(points, v)
+                j+=1 
+            i+=num_points
+
+        elif 'POLYGONS' in line:
+            v= [int(s) for s in line.split() if s.isdigit()]   
+            num_polygon=v[0]
+            start=i+1
+            j=start
+            end=i+num_polygon+1
+            poly=np.array([])
+            while j<end:
+                line=content[j]
+                v =[float(s) for s in re.findall(r'-?\d+\.?\d*', line)]
+                poly=np.append(poly, v)
+                j+=1 
+            i+=num_polygon 
+        else:
+            i+=1
+    points=points.reshape(num_points, 3)
+    poly=poly.reshape(num_polygon, 4)
+
+    return points, poly
+
+
+def flux_reader(vtkfile, casedir):
+
+	'''
+	vtkfile: str, the directory of the target vtk file
+	'''
+	scinot = re.compile('[+\-]?(?:0|[1-9]\d*)(?:\.\d*)?(?:[eE][+\-]?\d+)')
+	f=open(vtkfile, 'r')
+	content=f.readlines()
+	f.close()
+
+	l=len(content)
+	i=0
+	print("total lines", l)
+	POINTS=np.array([])
+	POLYGONS=np.array([])
+	FLUX_IN=np.array([])
+	FLUX_ABS=np.array([])
+	while i<l:
+		line=content[i]
+		if 'POINTS' in line:
+			v= [int(s) for s in line.split() if s.isdigit()]
+			num_points=v[0]
+			start=i+1
+			j=start
+			end=i+num_points+1
+			while j<end:
+				line=content[j]
+				v =[float(s) for s in re.findall(r'-?\d+\.?\d*', line)]
+				POINTS=np.append(POINTS, v)
+			
+				j+=1
+			#print('num pos', num_points)
+			#print(len(POINTS)/3)
+			#print(POINTS[0], POINTS[1], POINTS[2])
+			POINTS=POINTS.reshape(num_points, 3)
+			i+=num_points
+
+		elif 'POLYGONS' in line:
+			v= [int(s) for s in line.split() if s.isdigit()]   
+			num_polygon=v[0]
+			start=i+1
+			j=start
+			end=i+num_polygon+1
+			while j<end:
+				line=content[j]
+				v =[float(s) for s in re.findall(r'-?\d+\.?\d*', line)]
+	
+				POLYGONS=np.append(POLYGONS, v[1:])
+				j+=1			
+			POLYGONS=POLYGONS.reshape(num_polygon, 3)
+			POLYGONGS=POLYGONS.astype(int)
+			i+=num_polygon 
+
+		elif 'CELL_DATA' in line:
+			v= [int(s) for s in line.split() if s.isdigit()] 
+			num_data=v[0]
+			print('num cell data', num_data)  
+			i+=1
+
+		elif 'Front_faces_Incoming_flux' in line:
+			v = [int(s) for s in line.split() if s.isdigit()]   
+			start=i+2
+			j=start
+			end=i+num_data+2
+			while j<end:
+				line=content[j]
+				v =line.split(' ')# [float(s) for s in re.findall(scinot, line)]
+				FLUX_IN=np.append(FLUX_IN, float(v[0])/1000.) #kW/m2
+				j+=1			
+			i+=num_data+1 
+
+		elif 'Front_faces_Absorbed_flux' in line:
+			v = [int(s) for s in line.split() if s.isdigit()]   
+			start=i+2
+			j=start
+			end=i+num_data+2
+			while j<end:
+				line=content[j]
+				v =line.split(' ')#[float(s) for s in re.findall(r'-?\d+\.?\d*', line)]
+				FLUX_ABS=np.append(FLUX_ABS, float(v[0])/1000.) #kW/m2
+				j+=1			
+			i+=num_data+1 
+
+		else:
+			i+=1
+
+	return POINTS, POLYGONS, FLUX_IN, FLUX_ABS
+
+
+
+    
 
 if __name__=='__main__':
     gen_vtk()
