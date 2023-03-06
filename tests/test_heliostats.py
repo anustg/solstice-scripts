@@ -72,7 +72,7 @@ class TestHeliostats(unittest.TestCase):
         Multi-facets, slant range canting, slant range focusing, single heliostat, 0 slope error
         """
 
-        casedir='./test-heliostats-Task_7a-1'
+        casedir='./test-heliostats-Task_7a'
         if not os.path.exists(casedir):
             os.makedirs(casedir)
 
@@ -136,7 +136,7 @@ class TestHeliostats(unittest.TestCase):
         points, tri, flux, flux_abs=flux_reader(vtkfile, casedir)
         plot_fluxmap(points, tri, flux, casedir, loc_z_rec=self.loc_z, rec_r=self.rec_r, rec_h=self.rec_h, m=self.mesh_h, n=self.mesh_circ)
 
-    @unittest.skip(" ")
+    #@unittest.skip(" ")
     def test_8a(self):
         """ 
         Each single facet of heliostat ID 5473
@@ -174,7 +174,7 @@ class TestHeliostats(unittest.TestCase):
         outfile_yaml = master.in_case(folder=casedir, fn='input.yaml')
         outfile_recv = master.in_case(folder=casedir, fn='input-rcv.yaml')
 
-        SUN = solsticepy.Sun(dni=self.DNI, sunshape=self.sunshape, half_angle_deg=1e-6) 
+        SUN = solsticepy.Sun(dni=self.DNI, sunshape=self.sunshape, half_angle_deg=1e-4) 
         solsticepy.gen_yaml(sun=SUN, 
                             hst_pos=hst_pos, 
                             hst_foc=hst_foc, 
@@ -203,7 +203,7 @@ class TestHeliostats(unittest.TestCase):
                             n_col=self.fct_col, 
                             shape=shape)
 
-        #master.run(self.azimuth, self.elevation, self.num_rays, self.rho_refl, self.DNI, folder=casedir, gen_vtk=True,  printresult=True, verbose=True, system='crs')
+        master.run(self.azimuth, self.elevation, self.num_rays, self.rho_refl, self.DNI, folder=casedir, gen_vtk=True,  printresult=True, verbose=True, system='crs')
         vtkfile=casedir+'/%.0f-%.0f-target_e.vtk'%(self.azimuth, self.elevation)
         points, tri, flux, flux_abs=flux_reader(vtkfile, casedir)
         plot_fluxmap(points, tri, flux, casedir, loc_z_rec=self.loc_z, rec_r=self.rec_r, rec_h=self.rec_h, m=self.mesh_h, n=self.mesh_circ)

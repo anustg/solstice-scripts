@@ -62,8 +62,7 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims, hst_w, hst_h
 		, outfile_yaml, outfile_recv
 		, hemisphere='North', tower_h=0.01, tower_r=0.01,  spectral=False
 		, medium=0, one_heliostat=False
-		, fct_w=0, fct_h=0, fct_gap=0, n_row=0, n_col=0, shape='curved'
-):
+		, fct_w=0, fct_h=0, fct_gap=0, n_row=0, n_col=0, shape='curved'):
 	"""Generate the heliostat field and receiver YAML input files for Solstice ray-tracing simulation.
 
 	1. the sun
@@ -98,7 +97,7 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims, hst_w, hst_h
 	  * `spectral` (bool): True - simulate the spectral dependent performance (first of the 'other' parameters)
 	  * `medium` (float): if the atmosphere is surrounded by non-participant medium, medium=0; otherwise it is the extinction coefficient in m-1
 	  * `one_heliosat` (boolean): if `True`, implements ray tracing from just one heliostat.
-	  	
+
 	Returns: nothing (requested files are created and written)
 
 	Note that the parameters are in groups that relate to the `sun`, the `field` and the `receiver` then `others`. 
@@ -301,7 +300,7 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims, hst_w, hst_h
 			iyaml+="        vertices: [[%s, %s], [%s, %s], [%s, %s], [%s, %s]]\n"%(-fct_w/2., -fct_h/2.,-fct_w/2., fct_h/2., fct_w/2., fct_h/2., fct_w/2., -fct_h/2.)
 			iyaml+="      slices: 1\n\n"	
 
-	
+
 		else: # curved facets 
 			for i in range(len(bands)):
 				foc=bands[i,1]				
@@ -335,7 +334,7 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims, hst_w, hst_h
 
 			for j in range(n_col):
 				for i in range(n_row):			
-					iyaml+='        - name: facet_%s_r%s_c%s\n'%(h, i,j)
+					iyaml+='        - name: facet_%s_c%s_r%s\n'%(h, j, i)
 					iyaml+='          primary: 1\n'
 					iyaml+='          transform: {translation: [%.4f,0,%.4f], rotation: [%s,%s,0]}\n'%(fct_x[i,j], fct_z[i,j], rotx[i,j]-90, roty[i,j])
 					if shape=='flat':
@@ -419,7 +418,6 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims, hst_w, hst_h
 	with open(outfile_recv,'w') as f:
 		f.write(rcv) 
 
-
 def heliostat_canted_facets(hst_w, hst_h, fct_w, fct_h, gap, n_row, n_col, foc, shape='curved'):
 	"""
 	Ideally on-axis canted (4fy=x^2+z^2)
@@ -448,10 +446,7 @@ def heliostat_canted_facets(hst_w, hst_h, fct_w, fct_h, gap, n_row, n_col, foc, 
 			OH=np.r_[0,1,0] # original hst norm 
 			OX=np.r_[1,0,0]	
 
-			#n0=np.r_[-x/2./foc, 1, -z/2./foc] # facet pointing direction
-			n0=np.r_[-x,foc,-z]
-			n0=n0/np.linalg.norm(n0)
-			n0+=np.r_[0,1,0]             
+			n0=np.r_[-x/2./foc, 1, -z/2./foc] # facet pointing direction           
 			n0=n0/np.linalg.norm(n0)			
 
 			n1=np.cross(OH, OX)
@@ -464,12 +459,12 @@ def heliostat_canted_facets(hst_w, hst_h, fct_w, fct_h, gap, n_row, n_col, foc, 
 			v_proj=np.cross(n2, (np.cross(OH, n2)/np.linalg.norm(n2)))/np.linalg.norm(n2)
 			norm=np.linalg.norm(v_proj)*np.linalg.norm(n0)
 
-			if norm<1e-6:
+			if norm<1e-12:
 				cosy=np.dot(n0, np.r_[0,0,1])
 				roty=-np.arccos(cosy)*180./np.pi
 			else:
 				cosy=np.dot(v_proj, n0)/norm
-				if 1-cosy<1e-6 or 1+cosy<1e-6:
+				if 1-abs(cosy)<1e-12:
 					roty=0
 				else:
 					roty=np.arccos(cosy)*180./np.pi
@@ -478,32 +473,16 @@ def heliostat_canted_facets(hst_w, hst_h, fct_w, fct_h, gap, n_row, n_col, foc, 
 				roty=-roty
 			elif x<0 and z==0:
 				roty=-roty
-						
-			data=np.append(data, (x, z, rotx, roty))
-
-
 			
-			'''
-			if z>0:
-				rotx=-rotx			
 
-			v_proj=np.cross(n2, (np.cross(OH, n2)/np.linalg.norm(n2)))/np.linalg.norm(n2)
-			cosy=np.dot(v_proj, n0)/(np.linalg.norm(v_proj)*np.linalg.norm(n0))
-			if 1-cosy<1e-6:
-				roty=0
-			else:
-				roty=np.arccos(cosy)*180./np.pi
-				if x>0:
-					roty=-roty	
 			data=np.append(data, (x, z, rotx, roty))
 
-			'''
 			#print(x, 0, z, n0[0], n0[1], n0[2])
 	
-	data=data.reshape(int(len(data)/4), 4)				
-
-	return data
+	data=data.reshape(int(len(data)/4), 4)		
 	
+	return data
+
 
 def flat_receiver(rec_param, hemisphere='North'):
 	"""
