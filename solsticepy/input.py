@@ -192,7 +192,7 @@ class Parameters:
 	def saveparam(self, savedir):
 		if not os.path.exists(savedir):
 			os.makedirs(savedir)
-    
+
 		param=np.array([
 				['method', self.method, '-'],    
 				['windy optics', bool(self.windy_optics), '-'],   
@@ -223,15 +223,15 @@ class Parameters:
 				['rcv_type', self.rcv_type, '-'],  
 				['num_aperture', self.num_aperture, '-'],
 				['aperture angular range',self.gamma , 'deg'],
-				['H_rcv', self.H_rcv, 'm'],
-				['W_rcv', self.W_rcv, 'm'],   
+				['H_rcv', str(self.H_rcv), 'm'],
+				['W_rcv', str(self.W_rcv), 'm'],   
 				['tilt_rcv', self.tilt_rcv, 'deg'],  
 				['alpha_rcv', self.alpha_rcv, '-'],  
 				['n_H_rcv', self.n_H_rcv, '-'],   
 				['n_W_rcv', self.n_W_rcv, '-'],    
 				['X_rcv', self.X_rcv, 'm'],   
 				['Y_rcv', self.Y_rcv, 'm'],   
-				['Z_rcv', self.Z_rcv, 'm'],   
+				['Z_rcv', str(self.Z_rcv), 'm'],   
 				['','',''], 
 				['receiver thermal pm', self.therm, ''],
 				['Nb',self.Nb, ''],
@@ -244,6 +244,7 @@ class Parameters:
 				['n_rays', self.n_rays, '-'] ,
 				['n_procs', self.n_procs, '-'] 
 				])
+
 		np.savetxt(savedir+'/simulated_parameters.csv', param, delimiter=',', fmt='%s')
     
 
