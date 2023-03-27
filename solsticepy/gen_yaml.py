@@ -290,7 +290,16 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims, hst_w, hst_h
 		bands=bands.T 
 
 	if cant==True: # multi facets
-	
+
+		iyaml+="""
+- geometry: &facet_g_s
+  - material: *material_mirror
+    plane:
+      clip: 
+      - operation: AND 
+        vertices: [[-0.00001, -0.00001], [-0.00001, 0.00001], [0.000015, 0.00001], [0.00001, -0.00001]]
+      slices: 1\n\n"""
+
 		if shape=='flat':
 			iyaml+="- geometry: &facet_g\n"
 			iyaml+="  - material: *material_mirror\n"
@@ -314,18 +323,16 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims, hst_w, hst_h
 				iyaml+="      slices: 4\n\n"
 
 
-		for h in range(num_hst):
-			iyaml+="- template: &hst_t_%s\n"%h
+		for b in range(len(bands)):
+			iyaml+="- template: &facets_t_band_%s\n"%b
 			iyaml+="    name: facets\n"
+			iyaml+="    primary: 0\n"
 			iyaml+="    transform: {translation: [0,0,0], rotation: [0,0,0]}\n"
-			iyaml+='    zx_pivot: \n'
-			iyaml+='      spacing: 0\n'
-			iyaml+='      ref_point: [0,0,0]\n'
-			iyaml+='      target: {position: [%s, %s, %s]}\n' % (aim_x[h],aim_y[h],aim_z[h]) 
+			iyaml+="    geometry: *facet_g_s\n"
 			iyaml+="    children:\n"
 
-			foc=bands[h,1]	
-			print('foc', foc)
+			foc=bands[b,1]		
+			#print('foc', foc)
 			data=heliostat_canted_facets(hst_w, hst_h, fct_w, fct_h, fct_gap, n_row, n_col, foc, shape)
 			fct_x=data[:,0].reshape(n_row, n_col)
 			fct_z=data[:,1].reshape(n_row, n_col)
@@ -334,20 +341,33 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims, hst_w, hst_h
 
 			for j in range(n_col):
 				for i in range(n_row):			
-					iyaml+='        - name: facet_%s_c%s_r%s\n'%(h, j, i)
+					iyaml+='        - name: facet_%s_c%s_r%s\n'%(b, j, i)
 					iyaml+='          primary: 1\n'
 					iyaml+='          transform: {translation: [%.4f,0,%.4f], rotation: [%s,%s,0]}\n'%(fct_x[i,j], fct_z[i,j], rotx[i,j]-90, roty[i,j])
 					if shape=='flat':
 						iyaml+='          geometry: *facet_g\n'
 					else:
-						iyaml+='          geometry: *facet_g_band_%s\n'%h
+						iyaml+='          geometry: *facet_g_band_%s\n'%b
 
 
 		# heliostat entities from the template
 		for i in range(num_hst):
 
-			#foc=hst_foc[i]
-			#idx=np.argmin(abs(foc-bands[:,0]))
+			iyaml+='- template: &hst_t_%s\n'%i
+			iyaml+='    name: hst_%s\n'%i
+			iyaml+='    primary: 0\n'
+			iyaml+='    geometry: *pylon_g\n'
+			iyaml+='    children:\n'     
+			iyaml+='      - name: pivot\n'
+			iyaml+='        transform: { translation: [0,0, 0], rotation: [0,0,0] }\n'
+			iyaml+='        zx_pivot: \n'
+			iyaml+='          spacing: 0\n'
+			iyaml+='          ref_point: [0,0,0]\n'
+			iyaml+='          target: {position: [%s, %s, %s]}\n' % (aim_x[i],aim_y[i],aim_z[i]) 
+			foc=hst_foc[i]
+			idx= np.where(bands[foc<=bands][0]==bands)[0][0]
+			iyaml+='        children: [ *facets_t_band_%s ]\n\n'%idx
+
 			iyaml+='- entity:\n'
 			iyaml+='    name: H_%s\n'%i
 			iyaml+='    transform: { translation: [%s, %s, %s], rotation: [0, 0, 0] }\n'%(hst_x[i], hst_y[i], hst_z[i])
@@ -382,7 +402,7 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims, hst_w, hst_h
 			iyaml+='        primary: 1\n'
 			iyaml+='        transform: {rotation: [-90,0,0]} \n' 
 			foc=hst_foc[i]
-			idx=np.argmin(abs(foc-bands[:,0]))
+			idx= np.where(bands[foc<=bands][0]==bands)[0][0]
 			name_hst_g = 'hst_g_band_'+str(idx)
 			iyaml+='        geometry: *%s\n\n' % name_hst_g 
 
