@@ -285,7 +285,11 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims, hst_w, hst_h
 	#   
 
 	if bands.any()==None:
-		bands=np.append(hst_foc, hst_foc)
+		dist=(hst_w+hst_h)/2.
+		min_foc=np.min(hst_foc)
+		max_foc=np.max(hst_foc)
+		bands=np.arange(min_foc+dist, max_foc+dist, dist)
+		bands=np.append(bands, bands)
 		bands=bands.reshape(2, int(len(bands)/2))
 		bands=bands.T 
 
@@ -365,7 +369,8 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims, hst_w, hst_h
 			iyaml+='          ref_point: [0,0,0]\n'
 			iyaml+='          target: {position: [%s, %s, %s]}\n' % (aim_x[i],aim_y[i],aim_z[i]) 
 			foc=hst_foc[i]
-			idx= np.where(bands[foc<=bands][0]==bands)[0][0]
+			idx=np.argmin(abs(foc-bands[:,0]))
+			#idx= np.where(bands[foc<=bands][0]==bands)[0][0]
 			iyaml+='        children: [ *facets_t_band_%s ]\n\n'%idx
 
 			iyaml+='- entity:\n'
@@ -402,7 +407,8 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims, hst_w, hst_h
 			iyaml+='        primary: 1\n'
 			iyaml+='        transform: {rotation: [-90,0,0]} \n' 
 			foc=hst_foc[i]
-			idx= np.where(bands[foc<=bands][0]==bands)[0][0]
+			idx=np.argmin(abs(foc-bands[:,0]))
+			#idx= np.where(bands[foc<=bands][0]==bands)[0][0]
 			name_hst_g = 'hst_g_band_'+str(idx)
 			iyaml+='        geometry: *%s\n\n' % name_hst_g 
 
