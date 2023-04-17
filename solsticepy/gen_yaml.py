@@ -370,6 +370,8 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims, hst_w, hst_h
 			iyaml+='          target: {position: [%s, %s, %s]}\n' % (aim_x[i],aim_y[i],aim_z[i]) 
 			foc=hst_foc[i]
 			idx=np.argmin(abs(foc-bands[:,0]))
+			if foc-bands[idx, 0]>0:
+				idx+=1
 			#idx= np.where(bands[foc<=bands][0]==bands)[0][0]
 			iyaml+='        children: [ *facets_t_band_%s ]\n\n'%idx
 
@@ -390,7 +392,7 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims, hst_w, hst_h
 			iyaml+='      - operation: AND \n'
 			iyaml+='        vertices: %s\n' % pts_hst
 			iyaml+='      slices: %d\n\n' % slices 
-		
+		summary=np.array(['x','y','z', 'band foc'])
 		for i in range(num_hst):
 			# CREATE the heliostat templates   
 			name_hst_t = 'hst_t_'+str(i)
@@ -408,9 +410,14 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims, hst_w, hst_h
 			iyaml+='        transform: {rotation: [-90,0,0]} \n' 
 			foc=hst_foc[i]
 			idx=np.argmin(abs(foc-bands[:,0]))
+			if foc-bands[idx, 0]>0:
+				idx+=1
 			#idx= np.where(bands[foc<=bands][0]==bands)[0][0]
 			name_hst_g = 'hst_g_band_'+str(idx)
 			iyaml+='        geometry: *%s\n\n' % name_hst_g 
+			summary=np.append(summary, (hst_x[i], hst_y[i], hst_z[i], bands[idx, 1]))
+		summary=summary.reshape(int(len(summary)/4), 4)
+		np.savetxt('heliostat-info-summary.csv', summary, fmt='%s', delimiter=',')
 
 
 		for i in range(num_hst):

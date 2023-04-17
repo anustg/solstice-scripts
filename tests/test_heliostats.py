@@ -32,7 +32,7 @@ class TestHeliostats(unittest.TestCase):
         self.DNI = 1000 # W/m2
         self.sunshape = 'pillbox'
         self.half_angle_deg = 0.2664   
-        self.num_rays=int(20e6)#1000e7
+        self.num_rays=int(100e6)#1000e7
 
         # Heliostat
         self.rho_refl=0.9 # mirror reflectivity
@@ -66,7 +66,7 @@ class TestHeliostats(unittest.TestCase):
         self.rec_param=np.r_[self.rec_r*2., self.rec_h, self.mesh_circ, self.mesh_h, loc_x, loc_y, self.loc_z, tilt]
 
 
-    @unittest.skip(" ")
+    #@unittest.skip(" ")
     def test_1(self):
         """ 
         Whole field
@@ -93,13 +93,13 @@ class TestHeliostats(unittest.TestCase):
         cant=False
         
         time=[12, 8]
-        focuses=['a', 'b']
+        focuses=['b', 'a']
         aims=[1, 2]
         for t in time:
             for f in focuses:
                 for a in aims:
                     casename='solstice_Task_1%s_AimStrat_%s_%s'%(f, a, t)
-                    casedir='./test-heliostats-'+casename
+                    casedir='./'+casename
                     if not os.path.exists(casedir):
                         os.makedirs(casedir)
 
@@ -114,7 +114,7 @@ class TestHeliostats(unittest.TestCase):
 
                     if not os.path.exists(casedir+'/flux_tri.png'):
 
-                        if 'a' in casedir:
+                        if '1a' in casedir:
                             bands=np.array([[None, None]])
                         else:
                             bands=np.array([[502, 516],  # band range (<=), focal length
@@ -144,15 +144,14 @@ class TestHeliostats(unittest.TestCase):
                         hst_aims[:,2]=self.loc_z+offset_z
 
                         # slant range focus
-                        hst_foc=np.sqrt((hst_x-hst_aims[:,0])**2+(hst_y-hst_aims[:,1])**2+(hst_z-hst_aims[:,2])**2)
-
+                        #hst_foc=np.sqrt((hst_x-hst_aims[:,0])**2+(hst_y-hst_aims[:,1])**2+(hst_z-hst_aims[:,2])**2)
+                        hst_foc=np.sqrt((hst_x)**2+(hst_y)**2+(hst_z)**2) # slant range is the heliostat to the bottom of the tower (0,0,0)
 
                         master=Master(casedir=casedir)
                         outfile_yaml = master.in_case(folder=casedir, fn='input.yaml')
                         outfile_recv = master.in_case(folder=casedir, fn='input-rcv.yaml')
 
                         SUN = solsticepy.Sun(dni=self.DNI, sunshape=self.sunshape, half_angle_deg=self.half_angle_deg) 
-                        '''
                         solsticepy.gen_yaml(sun=SUN, 
                                             hst_pos=hst_pos, 
                                             hst_foc=hst_foc, 
@@ -182,11 +181,11 @@ class TestHeliostats(unittest.TestCase):
                                             shape=shape)
                        
                         master.run(azi, ele, self.num_rays, self.rho_refl, self.DNI, folder=casedir, gen_vtk=True,  printresult=True, verbose=True, system='crs')
-                        '''
+                        
                     points, tri, flux, flux_abs=flux_reader(vtkfile, casedir)
                     plot_fluxmap(points, tri, flux, casedir, casename=casename, loc_z_rec=self.loc_z, rec_r=self.rec_r, rec_h=self.rec_h, m=self.mesh_h, n=self.mesh_circ)
 
-    #@unittest.skip(" ")
+    @unittest.skip(" ")
     def test_2(self):
         """ 
         Whole field
@@ -321,7 +320,7 @@ class TestHeliostats(unittest.TestCase):
                             points, tri, flux, flux_abs=flux_reader(vtkfile, casedir)
                             plot_fluxmap(points, tri, flux, casedir, casename=casename, loc_z_rec=self.loc_z, rec_r=self.rec_r, rec_h=self.rec_h, m=self.mesh_h, n=self.mesh_circ)
 
-    #@unittest.skip(" ")
+    @unittest.skip(" ")
     def test_3(self):
         """ 
         Whole field
@@ -378,6 +377,8 @@ class TestHeliostats(unittest.TestCase):
                                     [885, 668],
                                     [1267, 959],
                                     [1650, 1500]])
+                                #TODO facets are curved in different ranges and focal lengthes  
+                                  
 
                             if t==12:
                                 azi=self.azimuth

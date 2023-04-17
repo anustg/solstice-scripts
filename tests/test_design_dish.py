@@ -44,7 +44,7 @@ class TestDesignDish(unittest.TestCase):
 		self.assertEqual(round(eta, 3), 0.757)		
 		#os.system('rm -rf %s'%casedir)
 
-	@unittest.skip("check whether the dish data is shareable")
+	#@unittest.skip("check whether the dish data is shareable")
 	def test_dish_multi_facets(self):
 
 		start=time.time()
@@ -90,7 +90,7 @@ class TestDesignDish(unittest.TestCase):
 		print(len(faces))
 
 		dish=Dish(casedir, nproc=1, verbose=True)
-		dish.yaml(dish_radius, dish_foc, rho_refl, slope_error, rec_r, rec_x, rec_y, rec_z, rec_grid_r, rec_abs, multifacets, vertices, faces, fct_w, fct_h,	dni=dni, sunshape=sunshape, half_angle_deg=half_angle_deg)
+		dish.yaml(dish_radius, dish_foc, rho_refl, slope_error, rec_r, rec_x, rec_y, rec_z, rec_grid_r, rec_abs, multifacets, vertices, faces, fct_w, fct_h, dni=dni, sunshape=sunshape, half_angle_deg=half_angle_deg)
 		eta=dish.get_opt_eff(dni_des, num_rays, zipfiles=False, gen_vtk=True, plot=False)
 
 		end=time.time()
