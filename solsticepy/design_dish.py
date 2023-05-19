@@ -34,7 +34,7 @@ class Dish:
 			os.makedirs(casedir)
 		self.master=Master(casedir, nproc)
 
-	def yaml(self, dish_radius, dish_foc, rho_refl, slope_error, rec_r, rec_x, rec_y, rec_z, rec_grid_r, rec_abs, multifacets=False, vertices=None, faces=None, fct_w=None, fct_h=None, dni=1000, sunshape=None, csr=0.01, half_angle_deg=0.2664, std_dev=0.2):
+	def yaml(self, dish_radius, dish_foc, rho_refl, slope_error, rec_r, rec_x, rec_y, rec_z, rec_grid_r, rec_abs, multifacets=False, vertices=None, faces=None, norms=None, z_offset=None, fct_w=None, fct_h=None, dni=1000, sunshape=None, csr=0.01, half_angle_deg=0.2664, std_dev=0.2):
 		'''
 		Generate YAML files for the Solstice simulation	
 		The vertice of the dish concentrator is (0,0,0)
@@ -53,13 +53,15 @@ class Dish:
 			(11) multifacets: bool, the dish is compose of multi-facets or not
 			(12) vertices  : nx3 array, vertices of the facets if multifacets=True
 			(13) faces     : nx4 array, facet indieces if multifacets=True 
-			(13) fct_w     : float, facet width, if multifacets=True 
-			(13) fct_h     : float, facet height, if multifacets=True 
-			(14) `dni`     : Direct normal irradance (W/m2)
-			(15) `sunshape`: Sunshape: can be None, ``'pillbox'``,``'gaussian'`` or ``'buie'``
-			(16) `half_angle_deg`: sun angular size (in DEGREES, half-angle) (ONLY in case of ``'pillbox'``)
-			(17) `csr`     : circumsolar ratio (ONLY in case of ``'buie'``)
-			(18) `std_dev` : standard deviation of the angular dsn ratio (ONLY in case of ``'gaussian'``
+			(14) norms     : nx3 array or None, normal vectors of the facets, 
+							                    if None then they will be calculated by vertices 
+			(15) fct_w     : float, facet width, if multifacets=True 
+			(16) fct_h     : float, facet height, if multifacets=True 
+			(17) `dni`     : Direct normal irradance (W/m2)
+			(18) `sunshape`: Sunshape: can be None, ``'pillbox'``,``'gaussian'`` or ``'buie'``
+			(19) `half_angle_deg`: sun angular size (in DEGREES, half-angle) (ONLY in case of ``'pillbox'``)
+			(20) `csr`     : circumsolar ratio (ONLY in case of ``'buie'``)
+			(21) `std_dev` : standard deviation of the angular dsn ratio (ONLY in case of ``'gaussian'``
 		'''
 		
 		self.rho_refl=rho_refl
@@ -131,7 +133,7 @@ class Dish:
 		#
 		iyaml+='- template: &self_oriented_dish\n'
 		iyaml+='    name: so_parabol\n'
-		iyaml+='    transform: { translation: [0,0, 0], rotation: [0,0,0] }\n'   
+		iyaml+='    transform: { translation: [0,0, 0], rotation: [-180,0,0] }\n'   
 		iyaml+='    x_pivot:\n'
 		iyaml+='      ref_point: [0,0,0]\n' 
 		iyaml+='      target: { sun: *sun }\n'
@@ -142,11 +144,16 @@ class Dish:
 				f=faces[i]-1
 				ver=vertices[f]
 				O=np.sum(ver, axis=0)/4
-				A=ver[0]
-				B=ver[1]
-				C=ver[2]
-				D=ver[3]
-				n0=np.cross(B-A, C-A)
+				if z_offset is not None:
+					O[2]-=z_offset[i]
+				if norms is None:
+					A=ver[0]
+					B=ver[1]
+					C=ver[2]
+					D=ver[3]
+					n0=np.cross(B-A, C-A)
+				else:
+					n0=norms[i]
 				rotx, roty=get_pos_and_rot(O, n0)	
 
 				iyaml+='      - name: facet_%s\n'%(i)
@@ -169,7 +176,7 @@ class Dish:
 			iyaml+='            slices: %d\n' % 50 
 
 		iyaml+='      - name: receiver_aperture\n'
-		iyaml+='        transform: { translation: [0, 0, %s] }\n'%rec_z
+		iyaml+='        transform: { translation: [0, 0, %s], rotation: [0,0,0] }\n'%rec_z
 		iyaml+='        primary: 0\n'
 		iyaml+='        geometry:\n'
 		iyaml+='        - material: *%s\n' % 'material_target'
@@ -254,14 +261,29 @@ def get_pos_and_rot(O, n0):
 	x=O[0]
 	y=O[1]
 
-	if x>0 and y<0:
-		roty=-roty
-	elif x>0 and y>0:
-		roty=180+roty
-	elif x<0 and y>0:
-		roty=180-roty
-	elif x<0 and y==0:
-		roty=-roty
+	if x>1.e-4:
+		if y<-1.e-4:
+			roty=-roty		
+		elif y>1.e-4:
+			roty=180+roty
+		else:
+			if rotx>90:
+				roty=180+roty
+			else:
+				roty=360-roty
+
+	elif x<-1.e-4: 
+		if y>1.e-4:
+			roty=180-roty
+		elif abs(y)<1.e-4:
+			if rotx>90:
+				roty=180-roty
+
+	else:
+		if rotx>90:
+			if 180-roty<5:
+				roty=180.-roty
+		
 	
 	return rotx, roty
 

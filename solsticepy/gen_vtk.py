@@ -127,6 +127,8 @@ def flux_reader(vtkfile, casedir):
 	POLYGONS=np.array([])
 	FLUX_IN=np.array([])
 	FLUX_ABS=np.array([])
+	FLUX_IN_back=np.array([])
+	FLUX_ABS_back=np.array([])
 	while i<l:
 		line=content[i]
 		if 'POINTS' in line:
@@ -141,8 +143,8 @@ def flux_reader(vtkfile, casedir):
 				POINTS=np.append(POINTS, v)
 			
 				j+=1
-			#print('num pos', num_points)
-			#print(len(POINTS)/3)
+			print('num pos', num_points)
+			print(len(POINTS)/3)
 			#print(POINTS[0], POINTS[1], POINTS[2])
 			POINTS=POINTS.reshape(num_points, 3)
 			i+=num_points
@@ -193,10 +195,34 @@ def flux_reader(vtkfile, casedir):
 				j+=1			
 			i+=num_data+1 
 
+		elif 'Back_faces_Incoming_flux' in line:
+			v = [int(s) for s in line.split() if s.isdigit()]   
+			start=i+2
+			j=start
+			end=i+num_data+2
+			while j<end:
+				line=content[j]
+				v =line.split(' ')#[float(s) for s in re.findall(r'-?\d+\.?\d*', line)]
+				FLUX_IN_back=np.append(FLUX_IN_back, float(v[0])/1000.) #kW/m2
+				j+=1			
+			i+=num_data+1 
+
+		elif 'Back_faces_Absorbed_flux' in line:
+			v = [int(s) for s in line.split() if s.isdigit()]   
+			start=i+2
+			j=start
+			end=i+num_data+2
+			while j<end:
+				line=content[j]
+				v =line.split(' ')#[float(s) for s in re.findall(r'-?\d+\.?\d*', line)]
+				FLUX_ABS_back=np.append(FLUX_ABS_back, float(v[0])/1000.) #kW/m2
+				j+=1			
+			i+=num_data+1 
+
 		else:
 			i+=1
 
-	return POINTS, POLYGONS, FLUX_IN, FLUX_ABS
+	return POINTS, POLYGONS, FLUX_IN, FLUX_ABS, FLUX_IN_back, FLUX_ABS_back
 
 
 

@@ -146,6 +146,126 @@ class Case:
 
 			plt.close()
 		
+def plot_fluxmap_cylinder(points, tri, flux, casedir, casename, loc_z_rec=171.035, rec_r=7.75, rec_h= 25.05609, m=31, n=60):
+
+	X=points[:,0]
+	Y=points[:,1]
+	Z=points[:,2]-loc_z_rec
+
+	THETA=np.array([])
+	for i in range(len(X)):
+		x=X[i]
+		y=Y[i]
+		if x>=0 and y>=0:
+			theta=np.arcsin(x/rec_r)
+		elif x>=0 and y<0:
+			theta=np.pi/2.+np.arcsin(-y/rec_r)
+		elif x<0 and y <0:
+			theta=-np.pi/2.-np.arcsin(-y/rec_r)			
+		elif x<0 and y>=0:
+			theta=np.arcsin(x/rec_r)
+		THETA=np.append(THETA, theta)
+
+	idx=(Y+rec_r>0.01)
+	circ=THETA*rec_r
+
+
+	plt.tripcolor(X, Z, tri[:-2*31], facecolors=flux[:-2*31], cmap='jet') 
+	plt.colorbar()
+	plt.savefig(open(casedir+'/flux_tri.png', 'wb'), bbox_inches='tight')
+	plt.close() 
+
+
+	flux=(flux[::2]+flux[1::2])/2.
+	flux=flux[:-n]
+	width=2.*np.pi*rec_r
+	height=rec_h
+
+	flux=flux.reshape(n,m)
+	flux=flux.T
+	flux=np.fliplr(flux)
+
+	FLUX=np.array([])
+	tri=tri[::2]
+	idx_x=tri[:-n,0].reshape(n, m)
+	idx_y=tri[:-n,1].reshape(n, m)
+	idx_x=np.fliplr(idx_x.T)
+	idx_y=np.fliplr(idx_y.T)
+
+
+	for i in range(n):
+		q=flux[:,i]
+		ix=int(idx_x[0,i])
+		iy=int(idx_y[0,i])
+		x=points[ix,0]
+		y=points[iy,1]
+		if x>=0 and y>=0:
+			FLUX=np.append(FLUX, q)
+
+	for i in range(n):
+		q=flux[:,i]
+		ix=int(idx_x[0,i])
+		iy=int(idx_y[0,i])
+		x=points[ix,0]
+		y=points[iy,1]
+		if x>=0 and y<0:
+			FLUX=np.append(FLUX, q)
+
+	for i in range(n):
+		q=flux[:,i]
+		ix=int(idx_x[0,i])
+		iy=int(idx_y[0,i])
+		x=points[ix,0]
+		y=points[iy,1]
+		if x<0 and y<0:
+			FLUX=np.append(FLUX, q)
+
+	for i in range(n):
+		q=flux[:,i]
+		ix=int(idx_x[0,i])
+		iy=int(idx_y[0,i])
+		x=points[ix,0]
+		y=points[iy,1]
+		if x<0 and y>=0:
+			FLUX=np.append(FLUX, q)
+	FLUX=FLUX.reshape(n, m)
+	FLUX=FLUX.T
+	
+
+	xx=np.linspace(-width/2., width/2., n+1)
+	yy=np.linspace(-height/2., height/2., m+1)
+
+	plt.pcolormesh(xx, yy, FLUX, cmap='jet')#, vmax=2400, vmin=0)
+	plt.colorbar()
+	plt.xlim([-width/2., width/2.])
+	plt.ylim([-height/2.,height/2.])
+	plt.gca().set_aspect('equal', adjustable='box')
+	plt.savefig(open(casedir+'/flux_rect_%sx%s.png'%(m,n), 'wb'), bbox_inches='tight')
+	#plt.show()
+	plt.close()
+
+	dx=float(width/n)
+	dy=float(height/m)
+	X=np.linspace(-width/2.+dx/2., width/2.-dx/2., n)
+	Y=np.linspace(-height/2.+dy/2., height/2.-dy/2., m)
+	XX,YY=np.meshgrid(X,Y)
+	np.savetxt(casedir+'/%s_fluxmap.csv'%(casename), FLUX, fmt='%.6f', delimiter=',')
+	np.savetxt(casedir+'/%s_xx.csv'%(casename), XX, fmt='%.2f', delimiter=',')
+	np.savetxt(casedir+'/%s_yy.csv'%(casename), YY, fmt='%.2f', delimiter=',')
+
+
+def plot_fluxmap_flat(points, tri, flux, casedir,  m=None, n=None):
+
+	X=points[:,0]
+	Y=points[:,1]
+	Z=points[:,2]
+
+	print(len(X), len(tri), len(flux))
+	plt.tripcolor(X, Y, tri, facecolors=flux, cmap='jet') 
+	plt.colorbar()
+	plt.savefig(open(casedir+'/flux_tri.png', 'wb'), bbox_inches='tight')
+	plt.close() 
+
 
 
 if __name__=='__main__':
