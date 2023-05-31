@@ -34,7 +34,7 @@ class Dish:
 			os.makedirs(casedir)
 		self.master=Master(casedir, nproc)
 
-	def yaml(self, dish_radius, dish_foc, rho_refl, slope_error, rec_r, rec_x, rec_y, rec_z, rec_grid_r, rec_abs, multifacets=False, vertices=None, faces=None, norms=None, z_offset=None, fct_w=None, fct_h=None, dni=1000, sunshape=None, csr=0.01, half_angle_deg=0.2664, std_dev=0.2):
+	def yaml(self, dish_radius, dish_foc, rho_refl, slope_error, rec_r, rec_x, rec_y, rec_z, rec_grid_r, rec_abs, multifacets=False, vertices=None, faces=None, norms=None, z_offset=None, fct_w=None, fct_h=None, dni=1000, sunshape=None, csr=0.01, half_angle_deg=0.2664, std_dev=0.2, offaxis=0):
 		'''
 		Generate YAML files for the Solstice simulation	
 		The vertice of the dish concentrator is (0,0,0)
@@ -62,6 +62,7 @@ class Dish:
 			(19) `half_angle_deg`: sun angular size (in DEGREES, half-angle) (ONLY in case of ``'pillbox'``)
 			(20) `csr`     : circumsolar ratio (ONLY in case of ``'buie'``)
 			(21) `std_dev` : standard deviation of the angular dsn ratio (ONLY in case of ``'gaussian'``
+			(22) `offaxis` : float, off-axis tracking (deg)
 		'''
 		
 		self.rho_refl=rho_refl
@@ -131,12 +132,20 @@ class Dish:
 		#
 		#    Template
 		#
+		if offaxis==0:
+			pointing='sun: *sun'
+		else:
+			px=rec_z*np.tan(offaxis*np.pi/180.)*2**0.5
+			py=px
+			pz=rec_z
+			pointing='position: [%s, %s, %s]'%(px, py, pz)
+	
 		iyaml+='- template: &self_oriented_dish\n'
 		iyaml+='    name: so_parabol\n'
 		iyaml+='    transform: { translation: [0,0, 0], rotation: [-180,0,0] }\n'   
 		iyaml+='    x_pivot:\n'
 		iyaml+='      ref_point: [0,0,0]\n' 
-		iyaml+='      target: { sun: *sun }\n'
+		iyaml+='      target: { %s }\n'%pointing
 		iyaml+='    children:\n'
 
 		if multifacets:
