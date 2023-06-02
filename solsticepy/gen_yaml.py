@@ -255,12 +255,12 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims, hst_w, hst_h
 	# Heliostats Geometry
 	#
 	if one_heliostat:
-		hst_x=np.r_[hst_pos[0]]
-		hst_y=np.r_[hst_pos[1]]
-		hst_z=np.r_[hst_pos[2]]
-		aim_x=np.r_[hst_aims[0]] 
-		aim_y=np.r_[hst_aims[1]]
-		aim_z=np.r_[hst_aims[2]]
+		hst_x=np.r_[hst_pos[0, 0]]
+		hst_y=np.r_[hst_pos[0, 1]]
+		hst_z=np.r_[hst_pos[0, 2]]
+		aim_x=np.r_[hst_aims[0, 0]] 
+		aim_y=np.r_[hst_aims[0 ,1]]
+		aim_z=np.r_[hst_aims[0, 2]]
 		num_hst=1
 		hst_foc=np.r_[hst_foc]
 	else:
@@ -285,13 +285,18 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims, hst_w, hst_h
 	#   
 
 	if bands.any()==None:
-		dist=(hst_w+hst_h)/2.
-		min_foc=np.min(hst_foc)
-		max_foc=np.max(hst_foc)
-		bands=np.arange(min_foc+dist, max_foc+dist, dist)
-		bands=np.append(bands, bands)
-		bands=bands.reshape(2, int(len(bands)/2))
-		bands=bands.T 
+		if one_heliostat:
+			bands=np.array([hst_foc, hst_foc])
+			bands=bands.reshape(1,2)
+		else:
+			dist=(hst_w+hst_h)/2.
+			min_foc=np.min(hst_foc)
+			max_foc=np.max(hst_foc)
+			bands=np.arange(min_foc+dist, max_foc+dist, dist)
+			bands=np.append(bands, bands)
+			bands=bands.reshape(2, int(len(bands)/2))
+			bands=bands.T 
+
 
 	if cant==True: # multi facets
 
@@ -307,7 +312,6 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims, hst_w, hst_h
 		if shape=='flat':
 			iyaml+="- geometry: &facet_g\n"
 			iyaml+="  - material: *material_mirror\n"
-			iyaml+="    plane:\n"
 			iyaml+="      clip:\n"
 			iyaml+="      - operation: AND\n" 
 			iyaml+="        vertices: [[%s, %s], [%s, %s], [%s, %s], [%s, %s]]\n"%(-fct_w/2., -fct_h/2.,-fct_w/2., fct_h/2., fct_w/2., fct_h/2., fct_w/2., -fct_h/2.)
@@ -409,9 +413,12 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims, hst_w, hst_h
 			iyaml+='        primary: 1\n'
 			iyaml+='        transform: {rotation: [-90,0,0]} \n' 
 			foc=hst_foc[i]
-			idx=np.argmin(abs(foc-bands[:,0]))
-			if foc-bands[idx, 0]>0:
-				idx+=1
+			if one_heliostat:
+				idx=0
+			else:
+				idx=np.argmin(abs(foc-bands[:,0]))
+				if foc-bands[idx, 0]>0:
+					idx+=1
 			#idx= np.where(bands[foc<=bands][0]==bands)[0][0]
 			name_hst_g = 'hst_g_band_'+str(idx)
 			iyaml+='        geometry: *%s\n\n' % name_hst_g 

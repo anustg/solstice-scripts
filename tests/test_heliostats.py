@@ -61,12 +61,12 @@ class TestHeliostats(unittest.TestCase):
         tilt=0.  # deg
         loc_x=0. # m
         loc_y=0. # m
-        self.loc_z=171.035 # m
+        self.loc_z=180.33 #171.035 # m
         self.rec_abs=1.
         self.rec_param=np.r_[self.rec_r*2., self.rec_h, self.mesh_circ, self.mesh_h, loc_x, loc_y, self.loc_z, tilt]
 
 
-    #@unittest.skip(" ")
+    @unittest.skip(" ")
     def test_1(self):
         """ 
         Whole field
@@ -182,7 +182,7 @@ class TestHeliostats(unittest.TestCase):
                        
                         master.run(azi, ele, self.num_rays, self.rho_refl, self.DNI, folder=casedir, gen_vtk=True,  printresult=True, verbose=True, system='crs')
                         
-                    points, tri, flux, flux_abs=flux_reader(vtkfile, casedir)
+                    points, tri, flux, flux_abs, flux_back, flux_abs_back=flux_reader(vtkfile, casedir)
                     plot_fluxmap(points, tri, flux, casedir, casename=casename, loc_z_rec=self.loc_z, rec_r=self.rec_r, rec_h=self.rec_h, m=self.mesh_h, n=self.mesh_circ)
 
     @unittest.skip(" ")
@@ -213,7 +213,7 @@ class TestHeliostats(unittest.TestCase):
         
         time=[12, 8]
         focuses=['a', 'b']
-        aims=[1, 2]
+        aims=[2]#, 2]
         for a in aims:
             for t in time:
                 for f in focuses:
@@ -227,10 +227,11 @@ class TestHeliostats(unittest.TestCase):
 
                     num=len(layout)
                     m=500
-
+                    casename_0='solstice_Task_2%s_AimStrat_%s_%s'%(f, a, t)
+                    casedir_0='./'+casename_0
                     for i in range(int(num/m)+1):
                         casename='solstice_Task_2%s_AimStrat_%s_%s-%s'%(f, a, t, i)
-                        casedir='./test-heliostats-'+casename
+                        casedir=casedir_0+'/%s'%casename
                         if not os.path.exists(casedir):
                             os.makedirs(casedir)
 
@@ -317,8 +318,37 @@ class TestHeliostats(unittest.TestCase):
                                                 shape=shape)
                            
                             master.run(azi, ele, self.num_rays, self.rho_refl, self.DNI, folder=casedir, gen_vtk=True,  printresult=True, verbose=True, system='crs')
-                            points, tri, flux, flux_abs=flux_reader(vtkfile, casedir)
+                            points, tri, flux, flux_abs, flux_back, flux_abs_back=flux_reader(vtkfile, casedir)
                             plot_fluxmap(points, tri, flux, casedir, casename=casename, loc_z_rec=self.loc_z, rec_r=self.rec_r, rec_h=self.rec_h, m=self.mesh_h, n=self.mesh_circ)
+
+
+                    width=2.*np.pi*self.rec_r
+                    height=self.rec_h
+                    FLUX=np.zeros((31,60))
+                    for i in range(int(num/m)+1):
+                        casename='solstice_Task_2%s_AimStrat_%s_%s-%s'%(f, a, t, i)
+                        casedir='./'+casename
+
+                        flux=np.loadtxt(casedir_0+'/%s/%s_fluxmap.csv'%(casedir, casename), delimiter=',')
+                        FLUX+=flux
+                        XX=np.loadtxt(casedir_0+'/%s/%s_xx.csv'%(casedir, casename), delimiter=',')
+                        YY=np.loadtxt(casedir_0+'/%s/%s_yy.csv'%(casedir, casename), delimiter=',')
+                    
+          
+                    np.savetxt(casedir_0+'/solstice_Task_2%s_AimStrat_%s_%s_fluxmap.csv'%(f, a, t), FLUX, fmt='%.6f', delimiter=',')
+                    np.savetxt(casedir_0+'/solstice_Task_2%s_AimStrat_%s_%s_xx.csv'%(f, a, t), XX, fmt='%.2f', delimiter=',')
+                    np.savetxt(casedir_0+'/solstice_Task_2%s_AimStrat_%s_%s_yy.csv'%(f, a, t), YY, fmt='%.2f', delimiter=',')	                    
+                    
+                    plt.pcolormesh(XX[0], YY[:,0], FLUX, cmap='jet')#, vmax=2400, vmin=0)
+                    plt.colorbar()
+                    plt.xlim([-width/2., width/2.])
+                    plt.ylim([-height/2.,height/2.])
+                    plt.gca().set_aspect('equal', adjustable='box')
+                    plt.savefig(open(casedir_0+'/solstice_Task_2%s_AimStrat_%s_%s_flux_map.png'%(f, a, t), 'wb'), bbox_inches='tight')
+                    #plt.show()
+                    plt.close()
+                                    
+              
 
     @unittest.skip(" ")
     def test_3(self):
@@ -447,7 +477,7 @@ class TestHeliostats(unittest.TestCase):
                                                 shape=shape)
                            
                             master.run(azi, ele, self.num_rays, self.rho_refl, self.DNI, folder=casedir, gen_vtk=True,  printresult=True, verbose=True, system='crs')
-                            points, tri, flux, flux_abs=flux_reader(vtkfile, casedir)
+                            points, tri, flux, flux_abs, flux_back, flux_abs_back=flux_reader(vtkfile, casedir)
                             plot_fluxmap(points, tri, flux, casedir, casename=casename, loc_z_rec=self.loc_z, rec_r=self.rec_r, rec_h=self.rec_h, m=self.mesh_h, n=self.mesh_circ)
 
     @unittest.skip(" ")
@@ -518,7 +548,7 @@ class TestHeliostats(unittest.TestCase):
         '''
         master.run(self.azimuth, self.elevation, self.num_rays*50, self.rho_refl, self.DNI, folder=casedir, gen_vtk=True,  printresult=True, verbose=True, system='crs')
         vtkfile=casedir+'/%.0f-%.0f-target_e.vtk'%(self.azimuth, self.elevation)
-        points, tri, flux, flux_abs=flux_reader(vtkfile, casedir)
+        points, tri, flux, flux_abs, flux_back, flux_abs_back=flux_reader(vtkfile, casedir)
         plot_fluxmap(points, tri, flux, casedir, loc_z_rec=self.loc_z, rec_r=self.rec_r, rec_h=self.rec_h, m=self.mesh_h, n=self.mesh_circ)
 
     @unittest.skip(" ")
@@ -589,13 +619,13 @@ class TestHeliostats(unittest.TestCase):
 
         master.run(self.azimuth, self.elevation, self.num_rays, self.rho_refl, self.DNI, folder=casedir, gen_vtk=True,  printresult=True, verbose=True, system='crs')
         vtkfile=casedir+'/%.0f-%.0f-target_e.vtk'%(self.azimuth, self.elevation)
-        points, tri, flux, flux_abs=flux_reader(vtkfile, casedir)
+        points, tri, flux, flux_abs, flux_back, flux_abs_back=flux_reader(vtkfile, casedir)
         plot_fluxmap(points, tri, flux, casedir, loc_z_rec=self.loc_z, rec_r=self.rec_r, rec_h=self.rec_h, m=self.mesh_h, n=self.mesh_circ)
 
     @unittest.skip(" ")
     def test_7c(self):
         """ 
-        Heliostat ID 5473
+        Heliostat ID 5473, noon
         Single facet, perfect focusing, 0 slope error, with surrounding heliostats for blcoking and shading
         """
 
@@ -658,8 +688,82 @@ class TestHeliostats(unittest.TestCase):
 
         master.run(self.azimuth, self.elevation, self.num_rays*50, self.rho_refl, self.DNI, folder=casedir, gen_vtk=True,  printresult=True, verbose=True, system='crs')
         vtkfile=casedir+'/%.0f-%.0f-target_e.vtk'%(self.azimuth, self.elevation)
-        points, tri, flux, flux_abs=flux_reader(vtkfile, casedir)
+        points, tri, flux, flux_abs, flux_back, flux_abs_back=flux_reader(vtkfile, casedir)
         plot_fluxmap(points, tri, flux, casedir, loc_z_rec=self.loc_z, rec_r=self.rec_r, rec_h=self.rec_h, m=self.mesh_h, n=self.mesh_circ)
+
+    #@unittest.skip(" ")
+    def test_7d(self):
+        """ 
+        Heliostat ID 5473, 8am
+        single facet, slant range canting, slant range focusing, single heliostat, 0 slope error
+        """
+
+        casedir='./test-heliostats-Task_7d'
+        if not os.path.exists(casedir):
+            os.makedirs(casedir)
+
+        hst_x=np.r_[46.51]
+        hst_y=np.r_[-1580.01]
+        shape='curved'#, 'curved' #'flat'
+        cant=False
+
+        hst_z=np.ones(len(hst_x))*self.H_pedestal
+        hst_pos=np.append(hst_x, (hst_y, hst_z))
+        hst_pos=hst_pos.reshape(3, len(hst_x))
+        hst_pos=hst_pos.T
+
+        # aim at the receiver center
+        hst_azimuth=np.arccos(hst_y/np.sqrt(hst_x**2+hst_y**2))
+        hst_azimuth[hst_x>0]=np.pi*2.-hst_azimuth[hst_x>0]
+        hst_aims=np.zeros((len(hst_x),3))
+        hst_aims[:,0]=-self.rec_r*np.sin(hst_azimuth)
+        hst_aims[:,1]=self.rec_r*np.cos(hst_azimuth)
+        hst_aims[:,2]=self.loc_z
+
+        # slant range focus
+        hst_foc=np.sqrt((hst_x-hst_aims[:,0])**2+(hst_y-hst_aims[:,1])**2+(hst_z-hst_aims[:,2])**2)
+        bands=np.array([[None, None]]) 
+
+        master=Master(casedir=casedir)
+        outfile_yaml = master.in_case(folder=casedir, fn='input.yaml')
+        outfile_recv = master.in_case(folder=casedir, fn='input-rcv.yaml')
+
+        SUN = solsticepy.Sun(dni=self.DNI, sunshape=self.sunshape, half_angle_deg=self.half_angle_deg) 
+        solsticepy.gen_yaml(sun=SUN, 
+                            hst_pos=hst_pos, 
+                            hst_foc=hst_foc, 
+                            hst_aims=hst_aims, 
+                            hst_w=self.hst_w, 
+                            hst_h=self.hst_h,
+	                        rho_refl=self.rho_refl, 
+                            slope_error=1e-9, 
+                            cant=cant, 
+                            bands=bands, 
+                            receiver=self.receiver, 
+                            rec_param=self.rec_param, 
+                            rec_abs=self.rec_abs,
+	                        outfile_yaml=outfile_yaml, 
+                            outfile_recv=outfile_recv,
+	                        hemisphere=self.hemisphere, 
+                            tower_h=self.tower_h, 
+                            tower_r=self.tower_r,  
+                            spectral=False,
+	                        medium=0, 
+                            one_heliostat=True, 
+                            fct_w=self.fct_w, 
+                            fct_h=self.fct_h, 
+                            fct_gap=self.gap, 
+                            n_row=self.fct_row, 
+                            n_col=self.fct_col, 
+                            shape=shape)
+
+        azi=14.7333
+        ele=26.4378
+        casename='solstice_Task_7d'
+        #master.run(azi, ele, self.num_rays, self.rho_refl, self.DNI, folder=casedir, gen_vtk=True,  printresult=True, verbose=True, system='crs')
+        vtkfile=casedir+'/%.4f-%.4f-target_e.vtk'%(azi, ele)
+        points, tri, flux, flux_abs, flux_back, flux_abs_back=flux_reader(vtkfile, casedir)
+        plot_fluxmap(points, tri, flux, casedir, casename, loc_z_rec=self.loc_z, rec_r=self.rec_r, rec_h=self.rec_h, m=self.mesh_h, n=self.mesh_circ)
 
     @unittest.skip(" ")
     def test_8a(self):
@@ -731,7 +835,7 @@ class TestHeliostats(unittest.TestCase):
 
         master.run(self.azimuth, self.elevation, self.num_rays, self.rho_refl, self.DNI, folder=casedir, gen_vtk=True,  printresult=True, verbose=True, system='crs')
         vtkfile=casedir+'/%.0f-%.0f-target_e.vtk'%(self.azimuth, self.elevation)
-        points, tri, flux, flux_abs=flux_reader(vtkfile, casedir)
+        points, tri, flux, flux_abs, flux_back, flux_abs_back=flux_reader(vtkfile, casedir)
         plot_fluxmap(points, tri, flux, casedir, loc_z_rec=self.loc_z, rec_r=self.rec_r, rec_h=self.rec_h, m=self.mesh_h, n=self.mesh_circ)
 
     '''   
