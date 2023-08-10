@@ -552,7 +552,7 @@ class TestHeliostats(unittest.TestCase):
         plot_fluxmap(points, tri, flux, casedir, loc_z_rec=self.loc_z, rec_r=self.rec_r, rec_h=self.rec_h, m=self.mesh_h, n=self.mesh_circ)
 
 
-    #@unittest.skip(" ")
+    @unittest.skip(" ")
     def test_4d(self):
         """ 
         Heliostat ID 8993
@@ -635,6 +635,99 @@ class TestHeliostats(unittest.TestCase):
             print('\n***********')
             plot_fluxmap(points, tri, flux, casedir, casename, loc_z_rec=self.loc_z, rec_r=self.rec_r, rec_h=self.rec_h, m=self.mesh_h, n=self.mesh_circ)
             print('***********\n\n')
+
+    def test_4efgh(self):
+        """ 
+        Heliostat ID 8993
+        Single facet, flat mirror, single heliostat, no blocking and shading, no slope error, no sunshape
+        """
+        time=[12, 8]
+        labels=['e', 'f', 'g', 'h']
+        
+        aim_offsets_AZI=np.r_[1./self.rec_r, -1./self.rec_r, 0., 0.]
+        aim_offsets_Z=np.r_[0., 0., 1., -1.]
+
+        for i in range(4):
+            label=labels[i]
+            aimoff_azi=aim_offsets_AZI[i]
+            aimoff_Z=aim_offsets_Z[i]
+
+            for t in time:
+                if t==12:
+                    azi=self.azimuth
+                    ele=self.elevation
+                elif t==8:
+                    azi=14.7333
+                    ele=26.4378
+
+                casedir='./results/solstice_Task_4%s_time%.0f'%(label, t)
+                if not os.path.exists(casedir):
+                    os.makedirs(casedir)
+
+                shape='flat'#, 'curved' #'flat'
+                cant=False
+                case_id=8993
+                hst_x=np.r_[582.49]
+                hst_y=np.r_[-490.35]
+
+                hst_z=np.ones(len(hst_x))*self.H_pedestal
+                hst_pos=np.append(hst_x, (hst_y, hst_z))
+                hst_pos=hst_pos.reshape(3, len(hst_x))
+                hst_pos=hst_pos.T
+
+                # aim at the receiver center
+                hst_azimuth=np.arccos(hst_y/np.sqrt(hst_x**2+hst_y**2))
+                hst_azimuth[hst_x>0]=np.pi*2.-hst_azimuth[hst_x>0]
+                hst_aims=np.zeros((len(hst_x),3))
+                hst_aims[:,0]=-self.rec_r*np.sin(hst_azimuth+aimoff_azi)
+                hst_aims[:,1]=self.rec_r*np.cos(hst_azimuth+aimoff_azi)
+                hst_aims[:,2]=self.loc_z+aimoff_Z
+
+                # slant range focus
+                hst_foc=None #np.sqrt((hst_x-hst_aims[:,0])**2+(hst_y-hst_aims[:,1])**2+(hst_z-hst_aims[:,2])**2)
+                bands=np.array([[None, None]]) 
+
+                master=Master(casedir=casedir)
+                outfile_yaml = master.in_case(folder=casedir, fn='input.yaml')
+                outfile_recv = master.in_case(folder=casedir, fn='input-rcv.yaml')
+
+                SUN = solsticepy.Sun(dni=self.DNI, sunshape=self.sunshape, half_angle_deg=1e-4)#self.half_angle_deg) 
+              
+                solsticepy.gen_yaml(sun=SUN, 
+                                    hst_pos=hst_pos, 
+                                    hst_foc=hst_foc, 
+                                    hst_aims=hst_aims, 
+                                    hst_w=self.hst_w, 
+                                    hst_h=self.hst_h,
+	                                rho_refl=self.rho_refl, 
+                                    slope_error=0., 
+                                    cant=cant, 
+                                    bands=bands, 
+                                    receiver=self.receiver, 
+                                    rec_param=self.rec_param, 
+                                    rec_abs=self.rec_abs,
+	                                outfile_yaml=outfile_yaml, 
+                                    outfile_recv=outfile_recv,
+	                                hemisphere=self.hemisphere, 
+                                    tower_h=self.tower_h, 
+                                    tower_r=self.tower_r,  
+                                    spectral=False,
+	                                medium=0, 
+                                    one_heliostat=True, 
+                                    fct_w=self.fct_w, 
+                                    fct_h=self.fct_h, 
+                                    fct_gap=self.gap, 
+                                    n_row=self.fct_row, 
+                                    n_col=self.fct_col, 
+                                    shape=shape)
+                
+                master.run(azi, ele, int(self.num_rays/10), self.rho_refl, self.DNI, folder=casedir, gen_vtk=True,  printresult=True, verbose=True, system='crs')
+                casename='solstice_Task_4%s_time%.0f'%(label, t)
+                vtkfile=casedir+'/%s-%s-target_e.vtk'%(azi, ele)
+                points, tri, flux, flux_abs, flux_back, flux_abs_back=flux_reader(vtkfile, casedir)
+                print('\n***********')
+                plot_fluxmap(points, tri, flux, casedir, casename, loc_z_rec=self.loc_z, rec_r=self.rec_r, rec_h=self.rec_h, m=self.mesh_h, n=self.mesh_circ)
+                print('***********\n\n')
 
 
 
