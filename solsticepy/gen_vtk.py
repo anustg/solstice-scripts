@@ -110,7 +110,7 @@ def read_vtk(vtkfile):
     return points, poly
 
 
-def flux_reader(vtkfile, casedir):
+def flux_reader(vtkfile, casedir, check=False):
 
 	'''
 	vtkfile: str, the directory of the target vtk file
@@ -221,6 +221,39 @@ def flux_reader(vtkfile, casedir):
 
 		else:
 			i+=1
+
+	if check:
+		import matplotlib.pyplot as plt
+		from mpl_toolkits.mplot3d import Axes3D
+		from mpl_toolkits.mplot3d.art3d import Poly3DCollection, Line3DCollection
+		from matplotlib import cm	
+		import matplotlib as mpl	
+		import pylab as pl	
+
+		X=POINTS[:,0]
+		Y=POINTS[:,1]
+		Z=POINTS[:,2]
+
+		flux=np.arange(len(POLYGONS))
+		tri=POLYGONS.astype(int)
+		fig = pl.figure()  
+		ax = fig.add_subplot(111, projection = '3d')
+
+		norm=mpl.colors.Normalize(vmin = np.min(flux), vmax =  np.max(flux))
+		m = plt.cm.ScalarMappable(norm=norm, cmap='jet')
+		m.set_array([])
+		fcolors=m.to_rgba(flux)
+
+		verts=POINTS[:, :3][tri]
+
+		# the whole geomentry
+		ax.plot_trisurf(X, Y, Z, triangles=tri, color=(0,0,0,0),linewidths=0.1, edgecolors='white')       
+		# the visible part     
+		ax.add_collection3d(Poly3DCollection(verts, 
+		facecolors=fcolors, linewidths=0., edgecolors='r'))
+		cbar=plt.colorbar(m)          
+		plt.show()  
+
 
 	return POINTS, POLYGONS, FLUX_IN, FLUX_ABS, FLUX_IN_back, FLUX_ABS_back
 
