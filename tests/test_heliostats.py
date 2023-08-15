@@ -642,12 +642,13 @@ class TestHeliostats(unittest.TestCase):
         Single facet, flat mirror, single heliostat, no blocking and shading, no slope error, no sunshape
         """
         time=[12, 8]
-        labels=['e', 'f', 'g', 'h']
+        labels=['e', 'f', 'g', 'h', 'i']
+        shapes=['curved', 'curved', 'curved', 'curved', 'flat']
         
-        aim_offsets_AZI=np.r_[1./self.rec_r, -1./self.rec_r, 0., 0.]
-        aim_offsets_Z=np.r_[0., 0., 1., -1.]
+        aim_offsets_AZI=np.r_[1./self.rec_r, -1./self.rec_r, 0., 0., 0.]
+        aim_offsets_Z=np.r_[0., 0., 1., -1., 0.]
 
-        for i in range(4):
+        for i in range(5):
             label=labels[i]
             aimoff_azi=aim_offsets_AZI[i]
             aimoff_Z=aim_offsets_Z[i]
@@ -664,11 +665,11 @@ class TestHeliostats(unittest.TestCase):
                 if not os.path.exists(casedir):
                     os.makedirs(casedir)
 
-                shape='flat'#, 'curved' #'flat'
+                shape=shapes[i] #'curved'#, 'curved' #'flat'
                 cant=False
                 case_id=8993
-                hst_x=np.r_[582.49]
-                hst_y=np.r_[-490.35]
+                hst_x=np.r_[582.489]
+                hst_y=np.r_[-490.346]
 
                 hst_z=np.ones(len(hst_x))*self.H_pedestal
                 hst_pos=np.append(hst_x, (hst_y, hst_z))
@@ -682,10 +683,17 @@ class TestHeliostats(unittest.TestCase):
                 hst_aims[:,0]=-self.rec_r*np.sin(hst_azimuth+aimoff_azi)
                 hst_aims[:,1]=self.rec_r*np.cos(hst_azimuth+aimoff_azi)
                 hst_aims[:,2]=self.loc_z+aimoff_Z
+                #print(hst_aims[:,0], hst_aims[:,1],hst_aims[:,2])    
 
+
+                sx=-self.rec_r*np.sin(hst_azimuth)
+                sy=self.rec_r*np.cos(hst_azimuth)
+                sz=self.loc_z
                 # slant range focus
-                hst_foc=None #np.sqrt((hst_x-hst_aims[:,0])**2+(hst_y-hst_aims[:,1])**2+(hst_z-hst_aims[:,2])**2)
+                hst_foc=np.sqrt((hst_x-sx)**2+(hst_y-sy)**2+(hst_z-sz)**2)   #np.sqrt((hst_x-hst_aims[:,0])**2+(hst_y-hst_aims[:,1])**2+(hst_z-hst_aims[:,2])**2) # None #
                 bands=np.array([[None, None]]) 
+                #print(hst_foc)
+
 
                 master=Master(casedir=casedir)
                 outfile_yaml = master.in_case(folder=casedir, fn='input.yaml')
