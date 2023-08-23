@@ -653,6 +653,13 @@ class TestHeliostats(unittest.TestCase):
             aimoff_azi=aim_offsets_AZI[i]
             aimoff_Z=aim_offsets_Z[i]
 
+            if label=='i':
+                fct_w=self.hst_w
+                fct_h=self.hst_h
+            else:
+                fct_w=self.fct_w
+                fct_h=self.fct_h                
+
             for t in time:
                 if t==12:
                     azi=self.azimuth
@@ -722,15 +729,15 @@ class TestHeliostats(unittest.TestCase):
                                     spectral=False,
 	                                medium=0, 
                                     one_heliostat=True, 
-                                    fct_w=self.fct_w, 
-                                    fct_h=self.fct_h, 
+                                    fct_w=fct_w, 
+                                    fct_h=fct_h, 
                                     fct_gap=self.gap, 
                                     n_row=self.fct_row, 
                                     n_col=self.fct_col, 
                                     shape=shape)
                 
                 master.run(azi, ele, int(self.num_rays/10), self.rho_refl, self.DNI, folder=casedir, gen_vtk=True,  printresult=True, verbose=True, system='crs')
-                casename='solstice_Task_4%s_time%.0f'%(label, t)
+                casename='solstice_Task_4%s_AimStrat_1_%.0f'%(label, t)
                 vtkfile=casedir+'/%s-%s-target_e.vtk'%(azi, ele)
                 points, tri, flux, flux_abs, flux_back, flux_abs_back=flux_reader(vtkfile, casedir)
                 print('\n***********')
