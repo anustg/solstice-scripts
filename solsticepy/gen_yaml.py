@@ -453,7 +453,7 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims, hst_w, hst_h
 				iyaml+='        primary: 1\n'
 				iyaml+='        transform: {rotation: [-90,0,0]} \n' 
 				foc=hst_foc[i]
-				if one_heliostat:
+				if len(bands)==1:
 					idx=0
 				else:
 					idx=np.argmin(abs(foc-bands[:,0]))

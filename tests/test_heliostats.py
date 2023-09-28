@@ -186,7 +186,7 @@ class TestHeliostats(unittest.TestCase):
                     points, tri, flux, flux_abs, flux_back, flux_abs_back=flux_reader(vtkfile, casedir)
                     plot_fluxmap(points, tri, flux, casedir, casename=casename, loc_z_rec=self.loc_z, rec_r=self.rec_r, rec_h=self.rec_h, m=self.mesh_h, n=self.mesh_circ)
 
-    #@unittest.skip(" ")
+    @unittest.skip(" ")
     def test_2(self):
         """ 
         Whole field
@@ -1042,6 +1042,112 @@ class TestHeliostats(unittest.TestCase):
         points, tri, flux, flux_abs, flux_back, flux_abs_back=flux_reader(vtkfile, casedir)
         plot_fluxmap(points, tri, flux, casedir, loc_z_rec=self.loc_z, rec_r=self.rec_r, rec_h=self.rec_h, m=self.mesh_h, n=self.mesh_circ)
 
+    #@unittest.skip(" ")
+    def test_8(self):
+        """ 
+        single curved facet heliostat, focused by band
+        a) 10417
+        b) 10882
+        solar noon
+        central aiming
+
+        solstice_Task_8a_AimStrat_1_12_fluxmap
+        solstice_Task_8b_AimStrat_1_12_fluxmap
+
+        """
+        
+        shape='curved'#, 'curved' #'flat'
+        cant=False
+        
+        time=12
+        ID=[10417, 10882]
+        labels=['a', 'b']
+
+        layout=np.loadtxt('./data/heliostats_pos_ID.csv', delimiter=',', skiprows=1)
+        offset_z=0 # aiming offset
+        layout_id=layout[:,0]
+
+        for i in range(2):
+            hst_id=ID[i]
+            label=labels[i]        
+
+            casename='solstice_Task_8%s_AimStrat_1_12'%(label)
+            casedir='./'+casename
+            if not os.path.exists(casedir):
+                os.makedirs(casedir)
+
+            azi=self.azimuth
+            ele=self.elevation
+            vtkfile=casedir+'/%.0f-%.0f-target_e.vtk'%(azi, ele)
+
+
+            if not os.path.exists(casedir+'/flux_tri.png'):
+
+                bands=np.array([[502, 516],  # band range (<=), focal length
+                        [885, 668],
+                        [1267, 959],
+                        [1650, 1500]])
+
+                for j in range(len(layout_id)):
+                    if hst_id==layout_id[j]:
+                        print('heliostat', hst_id)
+                        hst_x=np.r_[layout[j, 1]]
+                        hst_y=np.r_[layout[j, 2]]
+                        print(hst_x, hst_y)
+  
+                hst_z=np.ones(len(hst_x))*self.H_pedestal
+                hst_pos=np.append(hst_x, (hst_y, hst_z))
+                hst_pos=hst_pos.reshape(3, len(hst_x))
+                hst_pos=hst_pos.T
+
+                # aim at the receiver center
+                hst_azimuth=np.arccos(hst_y/np.sqrt(hst_x**2+hst_y**2))
+                hst_azimuth[hst_x>0]=np.pi*2.-hst_azimuth[hst_x>0]
+                hst_aims=np.zeros((len(hst_x),3))
+                hst_aims[:,0]=-self.rec_r*np.sin(hst_azimuth)
+                hst_aims[:,1]=self.rec_r*np.cos(hst_azimuth)
+                hst_aims[:,2]=self.loc_z+offset_z
+
+                # slant range focus
+                hst_foc=np.sqrt((hst_x)**2+(hst_y)**2+(hst_z-self.loc_z)**2) #slant range is the centre point of the receiver cylinder
+
+                master=Master(casedir=casedir)
+                outfile_yaml = master.in_case(folder=casedir, fn='input.yaml')
+                outfile_recv = master.in_case(folder=casedir, fn='input-rcv.yaml')
+
+                SUN = solsticepy.Sun(dni=self.DNI, sunshape=self.sunshape, half_angle_deg=self.half_angle_deg) 
+                solsticepy.gen_yaml(sun=SUN, 
+                                    hst_pos=hst_pos, 
+                                    hst_foc=hst_foc, 
+                                    hst_aims=hst_aims, 
+                                    hst_w=self.hst_w, 
+                                    hst_h=self.hst_h,
+                                    rho_refl=self.rho_refl, 
+                                    slope_error=self.slope_error, 
+                                    cant=cant, 
+                                    bands=bands, 
+                                    receiver=self.receiver, 
+                                    rec_param=self.rec_param, 
+                                    rec_abs=self.rec_abs,
+                                    outfile_yaml=outfile_yaml, 
+                                    outfile_recv=outfile_recv,
+                                    hemisphere=self.hemisphere, 
+                                    tower_h=self.tower_h, 
+                                    tower_r=self.tower_r,  
+                                    spectral=False,
+                                    medium=0, 
+                                    one_heliostat=True, 
+                                    fct_w=self.fct_w, 
+                                    fct_h=self.fct_h, 
+                                    fct_gap=self.gap, 
+                                    n_row=self.fct_row, 
+                                    n_col=self.fct_col, 
+                                    shape=shape)
+               
+                master.run(azi, ele, self.num_rays, self.rho_refl, self.DNI, folder=casedir, gen_vtk=True,  printresult=True, verbose=True, system='crs')
+                
+            points, tri, flux, flux_abs, flux_back, flux_abs_back=flux_reader(vtkfile, casedir)
+            plot_fluxmap(points, tri, flux, casedir, casename=casename, loc_z_rec=self.loc_z, rec_r=self.rec_r, rec_h=self.rec_h, m=self.mesh_h, n=self.mesh_circ)
     '''   
     def test_corners(self):
         datadir='/media/yewang/Data/Work/Research/Topics/yewang/NREL-raytracing/5473 details'
