@@ -66,7 +66,7 @@ class TestHeliostats(unittest.TestCase):
         self.rec_param=np.r_[self.rec_r*2., self.rec_h, self.mesh_circ, self.mesh_h, loc_x, loc_y, self.loc_z, tilt]
 
 
-    @unittest.skip(" ")
+    #@unittest.skip(" ")
     def test_1(self):
         """ 
         Whole field
@@ -112,16 +112,8 @@ class TestHeliostats(unittest.TestCase):
                         ele=26.4378
                         vtkfile=casedir+'/%s-%s-target_e.vtk'%(azi, ele)
 
+                        
                     if not os.path.exists(casedir+'/flux_tri.png'):
-
-                        if '1a' in casedir:
-                            bands=np.array([[None, None]])
-                        else:
-                            bands=np.array([[502, 516],  # band range (<=), focal length
-                                [885, 668],
-                                [1267, 959],
-                                [1650, 1500]])
-
                         layout=np.loadtxt('./data/heliostats_pos_ID.csv', delimiter=',', skiprows=1)
                         if a==1:
                             offset_z=0
@@ -143,10 +135,16 @@ class TestHeliostats(unittest.TestCase):
                         hst_aims[:,1]=self.rec_r*np.cos(hst_azimuth)
                         hst_aims[:,2]=self.loc_z+offset_z
 
-                        # slant range focus
-                        #hst_foc=np.sqrt((hst_x-hst_aims[:,0])**2+(hst_y-hst_aims[:,1])**2+(hst_z-hst_aims[:,2])**2)
-                        #hst_foc=np.sqrt((hst_x)**2+(hst_y)**2+(hst_z)**2) # slant range is the heliostat to the bottom of the tower (0,0,0)
-                        hst_foc=np.sqrt((hst_x)**2+(hst_y)**2+(hst_z-self.loc_z)**2) #slant range is the centre point of the receiver cylinder
+                        if f=='a':
+                            bands=np.array([[None, None]])
+                            hst_foc=np.sqrt((hst_x)**2+(hst_y)**2+(hst_z-self.loc_z)**2) #slant range is the centre point of the receiver cylinder
+                        else:
+                            bands=np.array([[502, 516],  # band range (<=), focal length
+                                [885, 668],
+                                [1267, 959],
+                                [1650, 1500]])
+                            hst_foc=np.sqrt((hst_x)**2+(hst_y)**2+(hst_z)**2) # slant range is the heliostat to the bottom of the tower (0,0,0)
+    
 
                         master=Master(casedir=casedir)
                         outfile_yaml = master.in_case(folder=casedir, fn='input.yaml')
@@ -186,7 +184,7 @@ class TestHeliostats(unittest.TestCase):
                     points, tri, flux, flux_abs, flux_back, flux_abs_back=flux_reader(vtkfile, casedir)
                     plot_fluxmap(points, tri, flux, casedir, casename=casename, loc_z_rec=self.loc_z, rec_r=self.rec_r, rec_h=self.rec_h, m=self.mesh_h, n=self.mesh_circ)
 
-    @unittest.skip(" ")
+    #@unittest.skip(" ")
     def test_2(self):
         """ 
         Whole field
@@ -214,7 +212,7 @@ class TestHeliostats(unittest.TestCase):
         
         time=[12, 8]
         focuses=['a', 'b']
-        aims=[1]#, 2]
+        aims=[1, 2]
         for a in aims:
             for t in time:
                 for f in focuses:
@@ -238,23 +236,6 @@ class TestHeliostats(unittest.TestCase):
 
                         if not os.path.exists(casedir+'/flux_tri.png'):
 
-                            if 'a' in casedir:
-                                bands=np.array([[None, None]])
-                            else:
-                                bands=np.array([[502, 516],  # band range (<=), focal length
-                                    [885, 668],
-                                    [1267, 959],
-                                    [1650, 1500]])
-
-                            if t==12:
-                                azi=self.azimuth
-                                ele=self.elevation
-                                vtkfile=casedir+'/%.0f-%.0f-target_e.vtk'%(azi, ele)
-                            elif t==8:
-                                azi=14.7333
-                                ele=26.4378
-                                vtkfile=casedir+'/%s-%s-target_e.vtk'%(azi, ele)
-
                             if i<=int(num/m)-1:                                         
                                 hst_x=layout[i*m:(i+1)*m,1]
                                 hst_y=layout[i*m:(i+1)*m,2]
@@ -271,6 +252,26 @@ class TestHeliostats(unittest.TestCase):
                             hst_pos=hst_pos.reshape(3, len(hst_x))
                             hst_pos=hst_pos.T
 
+                            if f=='a':
+                                bands=np.array([[None, None]])
+                                hst_foc=np.sqrt((hst_x)**2+(hst_y)**2+(hst_z-self.loc_z)**2) #slant range is the centre point of the receiver cylinder
+                            else:
+                                bands=np.array([[502, 516],  # band range (<=), focal length
+                                    [885, 668],
+                                    [1267, 959],
+                                    [1650, 1500]])
+                                hst_foc=np.sqrt((hst_x)**2+(hst_y)**2+(hst_z)**2) # slant range is the heliostat to the bottom of the tower (0,0,0)
+
+                            if t==12:
+                                azi=self.azimuth
+                                ele=self.elevation
+                                vtkfile=casedir+'/%.0f-%.0f-target_e.vtk'%(azi, ele)
+                            elif t==8:
+                                azi=14.7333
+                                ele=26.4378
+                                vtkfile=casedir+'/%s-%s-target_e.vtk'%(azi, ele)
+
+ 
                             # aim at the receiver center
                             hst_azimuth=np.arccos(hst_y/np.sqrt(hst_x**2+hst_y**2))
                             hst_azimuth[hst_x>0]=np.pi*2.-hst_azimuth[hst_x>0]
@@ -280,9 +281,6 @@ class TestHeliostats(unittest.TestCase):
                             hst_aims[:,1]=self.rec_r*np.cos(hst_azimuth)
                             hst_aims[:,2]=self.loc_z+offset_z
 
-                            # slant range focus
-                            #hst_foc=np.sqrt((hst_x-hst_aims[:,0])**2+(hst_y-hst_aims[:,1])**2+(hst_z-hst_aims[:,2])**2)
-                            hst_foc=np.sqrt((hst_x)**2+(hst_y)**2+(hst_z-self.loc_z)**2) #slant range is the centre point of the receiver cylinder
 
                             master=Master(casedir=casedir)
                             outfile_yaml = master.in_case(folder=casedir, fn='input.yaml')
@@ -1042,7 +1040,7 @@ class TestHeliostats(unittest.TestCase):
         points, tri, flux, flux_abs, flux_back, flux_abs_back=flux_reader(vtkfile, casedir)
         plot_fluxmap(points, tri, flux, casedir, loc_z_rec=self.loc_z, rec_r=self.rec_r, rec_h=self.rec_h, m=self.mesh_h, n=self.mesh_circ)
 
-    #@unittest.skip(" ")
+    @unittest.skip(" ")
     def test_8(self):
         """ 
         single curved facet heliostat, focused by band
@@ -1060,7 +1058,7 @@ class TestHeliostats(unittest.TestCase):
         cant=False
         
         time=12
-        ID=[10417, 10882]
+        ID=[10417, 10282]
         labels=['a', 'b']
 
         layout=np.loadtxt('./data/heliostats_pos_ID.csv', delimiter=',', skiprows=1)
@@ -1109,7 +1107,8 @@ class TestHeliostats(unittest.TestCase):
                 hst_aims[:,2]=self.loc_z+offset_z
 
                 # slant range focus
-                hst_foc=np.sqrt((hst_x)**2+(hst_y)**2+(hst_z-self.loc_z)**2) #slant range is the centre point of the receiver cylinder
+                hst_foc=np.sqrt((hst_x)**2+(hst_y)**2+(hst_z)**2) # slant range is the heliostat to the bottom of the tower (0,0,0) 
+                #np.sqrt((hst_x)**2+(hst_y)**2+(hst_z-self.loc_z)**2) #slant range is the centre point of the receiver cylinder
 
                 master=Master(casedir=casedir)
                 outfile_yaml = master.in_case(folder=casedir, fn='input.yaml')
