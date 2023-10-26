@@ -66,7 +66,7 @@ class TestHeliostats(unittest.TestCase):
         self.rec_param=np.r_[self.rec_r*2., self.rec_h, self.mesh_circ, self.mesh_h, loc_x, loc_y, self.loc_z, tilt]
 
 
-    #@unittest.skip(" ")
+    @unittest.skip(" ")
     def test_1(self):
         """ 
         Whole field
@@ -240,12 +240,12 @@ class TestHeliostats(unittest.TestCase):
                                 hst_x=layout[i*m:(i+1)*m,1]
                                 hst_y=layout[i*m:(i+1)*m,2]
                                 if a==2:
-                                    offset_z=offset_z[i*m:(i+1)*m]
+                                    offset_z=layout[i*m:(i+1)*m, 4]
                             else:
                                 hst_x=layout[i*m:,1]
                                 hst_y=layout[i*m:,2]
                                 if a==2:
-                                    offset_z=offset_z[i*m:]
+                                    offset_z=layout[i*m:,4]
                             print(len(hst_x), i)
                             hst_z=np.ones(len(hst_x))*self.H_pedestal
                             hst_pos=np.append(hst_x, (hst_y, hst_z))
@@ -356,7 +356,7 @@ class TestHeliostats(unittest.TestCase):
                                     
               
 
-    @unittest.skip(" ")
+    #@unittest.skip(" ")
     def test_3(self):
         """ 
         Whole field
@@ -384,10 +384,11 @@ class TestHeliostats(unittest.TestCase):
         
         time=[12, 8]
         focuses=['a', 'b']
-        aims=[1, 2]
-        for t in time:
-            for f in focuses:
-                for a in aims:
+        aims=[1,2]
+        for a in aims:
+            for t in time:
+                for f in focuses:
+
 
                     layout=np.loadtxt('./data/heliostats_pos_ID.csv', delimiter=',', skiprows=1)
                     if a==1:
@@ -397,24 +398,41 @@ class TestHeliostats(unittest.TestCase):
 
                     num=len(layout)
                     m=500
-
-                    for i in range(int(num/m)):
-                        casename='solstice_Task_2%s_AimStrat_%s_%s-%s'%(f, a, t, i)
-                        casedir='./test-heliostats-'+casename
+                    casename_0='solstice_Task_3%s_AimStrat_%s_%s'%(f, a, t)
+                    casedir_0='./'+casename_0
+                    for i in range(int(num/m)+1):
+                        casename='solstice_Task_3%s_AimStrat_%s_%s-%s'%(f, a, t, i)
+                        casedir=casedir_0+'/%s'%casename
                         if not os.path.exists(casedir):
                             os.makedirs(casedir)
 
                         if not os.path.exists(casedir+'/flux_tri.png'):
 
-                            if 'a' in casedir:
+                            if i<=int(num/m)-1:                                         
+                                hst_x=layout[i*m:(i+1)*m,1]
+                                hst_y=layout[i*m:(i+1)*m,2]
+                                if a==2:
+                                    offset_z=layout[i*m:(i+1)*m, 4]
+                            else:
+                                hst_x=layout[i*m:,1]
+                                hst_y=layout[i*m:,2]
+                                if a==2:
+                                    offset_z=layout[i*m:,4]
+                            print(len(hst_x), i)
+                            hst_z=np.ones(len(hst_x))*self.H_pedestal
+                            hst_pos=np.append(hst_x, (hst_y, hst_z))
+                            hst_pos=hst_pos.reshape(3, len(hst_x))
+                            hst_pos=hst_pos.T
+
+                            if f=='a':
                                 bands=np.array([[None, None]])
+                                hst_foc=np.sqrt((hst_x)**2+(hst_y)**2+(hst_z-self.loc_z)**2) #slant range is the centre point of the receiver cylinder
                             else:
                                 bands=np.array([[502, 516],  # band range (<=), focal length
                                     [885, 668],
                                     [1267, 959],
                                     [1650, 1500]])
-                                #TODO facets are curved in different ranges and focal lengthes  
-                                  
+                                hst_foc=np.sqrt((hst_x)**2+(hst_y)**2+(hst_z)**2) # slant range is the heliostat to the bottom of the tower (0,0,0)
 
                             if t==12:
                                 azi=self.azimuth
@@ -425,27 +443,15 @@ class TestHeliostats(unittest.TestCase):
                                 ele=26.4378
                                 vtkfile=casedir+'/%s-%s-target_e.vtk'%(azi, ele)
 
-                            if i<int(num/m)-1:                                         
-                                hst_x=layout[i*m:(i+1)*m,1]
-                                hst_y=layout[i*m:(i+1)*m,2]
-                            else:
-                                hst_x=layout[i*m:,1]
-                                hst_y=layout[i*m:,2]
-                            hst_z=np.ones(len(hst_x))*self.H_pedestal
-                            hst_pos=np.append(hst_x, (hst_y, hst_z))
-                            hst_pos=hst_pos.reshape(3, len(hst_x))
-                            hst_pos=hst_pos.T
-
+ 
                             # aim at the receiver center
                             hst_azimuth=np.arccos(hst_y/np.sqrt(hst_x**2+hst_y**2))
                             hst_azimuth[hst_x>0]=np.pi*2.-hst_azimuth[hst_x>0]
                             hst_aims=np.zeros((len(hst_x),3))
+                
                             hst_aims[:,0]=-self.rec_r*np.sin(hst_azimuth)
                             hst_aims[:,1]=self.rec_r*np.cos(hst_azimuth)
                             hst_aims[:,2]=self.loc_z+offset_z
-
-                            # slant range focus
-                            hst_foc=np.sqrt((hst_x-hst_aims[:,0])**2+(hst_y-hst_aims[:,1])**2+(hst_z-hst_aims[:,2])**2)
 
 
                             master=Master(casedir=casedir)
@@ -453,7 +459,7 @@ class TestHeliostats(unittest.TestCase):
                             outfile_recv = master.in_case(folder=casedir, fn='input-rcv.yaml')
 
                             SUN = solsticepy.Sun(dni=self.DNI, sunshape=self.sunshape, half_angle_deg=self.half_angle_deg) 
-                          
+                                                           
                             solsticepy.gen_yaml(sun=SUN, 
                                                 hst_pos=hst_pos, 
                                                 hst_foc=hst_foc, 
@@ -485,6 +491,40 @@ class TestHeliostats(unittest.TestCase):
                             master.run(azi, ele, self.num_rays, self.rho_refl, self.DNI, folder=casedir, gen_vtk=True,  printresult=True, verbose=True, system='crs')
                             points, tri, flux, flux_abs, flux_back, flux_abs_back=flux_reader(vtkfile, casedir)
                             plot_fluxmap(points, tri, flux, casedir, casename=casename, loc_z_rec=self.loc_z, rec_r=self.rec_r, rec_h=self.rec_h, m=self.mesh_h, n=self.mesh_circ)
+                            
+
+                    width=2.*np.pi*self.rec_r
+                    height=self.rec_h
+                    FLUX=np.zeros((31,60))
+                    RESULTS=np.zeros(10)
+                    for i in range(int(num/m)+1):
+                        casename='solstice_Task_3%s_AimStrat_%s_%s-%s'%(f, a, t, i)
+                        casedir='/'+casename
+
+                        flux=np.loadtxt(casedir_0+'%s/%s_fluxmap.csv'%(casedir, casename), delimiter=',')
+                        FLUX+=flux
+                        XX=np.loadtxt(casedir_0+'%s/%s_xx.csv'%(casedir, casename), delimiter=',')
+                        YY=np.loadtxt(casedir_0+'%s/%s_yy.csv'%(casedir, casename), delimiter=',')
+                    
+                        data=np.loadtxt(casedir_0+'%s/result-formatted.csv'%(casedir), delimiter=',', dtype=str)
+                        res=data[1:,1].astype(float)
+                        RESULTS+=res
+
+                    data[1:,1]=RESULTS          
+                    np.savetxt(casedir_0+'/solstice_Task_3%s_AimStrat_%s_%s_results.csv'%(f, a, t), data[:,:2], fmt='%s', delimiter=',')	  
+
+                    np.savetxt(casedir_0+'/solstice_Task_3%s_AimStrat_%s_%s_fluxmap.csv'%(f, a, t), FLUX, fmt='%.6f', delimiter=',')
+                    np.savetxt(casedir_0+'/solstice_Task_3%s_AimStrat_%s_%s_xx.csv'%(f, a, t), XX, fmt='%.2f', delimiter=',')
+                    np.savetxt(casedir_0+'/solstice_Task_3%s_AimStrat_%s_%s_yy.csv'%(f, a, t), YY, fmt='%.2f', delimiter=',')	                    
+                    
+                    plt.pcolormesh(XX[0], YY[:,0], FLUX, cmap='jet')#, vmax=2400, vmin=0)
+                    plt.colorbar()
+                    plt.xlim([-width/2., width/2.])
+                    plt.ylim([-height/2.,height/2.])
+                    plt.gca().set_aspect('equal', adjustable='box')
+                    plt.savefig(open(casedir_0+'/solstice_Task_3%s_AimStrat_%s_%s_flux_map.png'%(f, a, t), 'wb'), bbox_inches='tight')
+                    #plt.show()
+                    plt.close()
 
     @unittest.skip(" ")
     def test_4c(self):
