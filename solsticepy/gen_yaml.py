@@ -452,22 +452,18 @@ def flat_receiver(rec_param, hemisphere='North'):
 	entt+='    geometry: *%s\n' % 'target_g'
 
 	# CREATE a virtual target entity from "target_g" geometry (primary = 0)
-	pts = [ [-rec_w*10., -rec_h*10.], [-rec_w*10., rec_h*10.], [rec_w*10., rec_h*10.], [rec_w*10.,-rec_h*10.] ]
-	slices = 4
+	# CREATE a virtual target entity from "target_g" geometry (primary = 0)
+	slices = 16
+	radius=rec_h
 	entt+='\n- entity:\n'
 	entt+='    name: virtual_target_e\n'
 	entt+='    primary: 0\n'
-	if hemisphere=='North':
-		entt+='    transform: { translation: %s, rotation: %s }\n' % ([x, y-5., z], [-90.-tilt, 0, 0])
-	else:
-		entt+='    transform: { translation: %s, rotation: %s }\n' % ([x, y+5., z], [90.+tilt, 0, 0])
+	entt+='    transform: { translation: %s}\n' % ([x, y, z])
 	entt+='    geometry: \n' 
 	entt+='      - material: *%s\n' % 'material_virtual' 
-	entt+='        plane: \n'
-	entt+='          clip: \n'    
-	entt+='          - operation: AND \n'
-	entt+='            vertices: %s\n' % pts
-	entt+='          slices: %d\n' % slices  
+	entt+='        sphere: \n'
+	entt+='          radius: %s\n' % radius   
+	entt+='          slices: %d\n' % slices 
 
 	rcv=''
 	rcv+='- name: target_e \n' 
@@ -519,22 +515,18 @@ def cylindrical_receiver(rec_param, hemisphere='North'):
 
 	entt+='    geometry: *%s\n' % 'target_g'
 
+
 	# CREATE a virtual target entity from "target_g" geometry (primary = 0)
-	Vsize=100.
-	pts = [ [-rec_h*Vsize, -rec_h*Vsize], [-rec_h*Vsize, rec_h*Vsize], [rec_h*Vsize, rec_h*Vsize], [rec_h*Vsize,-rec_h*Vsize] ]
-	slices = 4
+	slices = 16
+	radius=rec_h
 	entt+='\n- entity:\n'
 	entt+='    name: virtual_target_e\n'
 	entt+='    primary: 0\n'
-
-	entt+='    transform: { translation: %s, rotation: %s }\n' % ([x, y, z+rec_h/2.+1], [-180., 0, 0])
-
+	entt+='    transform: { translation: %s}\n' % ([x, y, z])
 	entt+='    geometry: \n' 
 	entt+='      - material: *%s\n' % 'material_virtual' 
-	entt+='        plane: \n'
-	entt+='          clip: \n'    
-	entt+='          - operation: AND \n'
-	entt+='            vertices: %s\n' % pts
+	entt+='        sphere: \n'
+	entt+='          radius: %s\n' % radius   
 	entt+='          slices: %d\n' % slices  
 
 	rcv=''
