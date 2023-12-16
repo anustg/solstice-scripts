@@ -882,6 +882,39 @@ def process_raw_results_dish(rawfile, savedir,rho_mirror,dni,verbose=False):
 
 
 	return efficiency_total
+
+def find_centroid(xx, yy, weights):
+	
+	sw=np.sum(weights)
+	x_sum=np.sum(xx*weights)
+	y_sum=np.sum(yy*weights)
+	
+	centroid_x=x_sum/sw
+	centroid_y=y_sum/sw
+
+	return centroid_x, centroid_y
+
+def get_percentage_capture(r, nb, q, Qt):
+	'''
+	r (float): radius of the receiver
+	nb (int): number of bins
+	q (float): flux in radius (kW/m2)
+	Qt (float): total energy (kW)
+
+	Return:
+	Fq (float): percentage of energy (%)
+	'''	
+
+	rbin=np.linspace(0, r, nb+1)
+	Area=np.pi*(rbin[1:]**2-rbin[:-1]**2)
+	#dr=rbin[1]-rbin[0]
+	#R=np.arange(dr/2., 1.+dr/2., dr)
+
+	Fq=np.cumsum(q*Area)/Qt*100.
+	Fq=np.append(0., Fq)
+	
+	return rbin, Fq
+
 		
 
 if __name__=='__main__':

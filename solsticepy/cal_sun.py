@@ -30,7 +30,7 @@ class SunPosition:
 			Two hours after sunrise
 
 			>>> daytime, sunrise=sun.solarhour(delta, latitude)
-			>>> omega=sunrise+15.*2. # solar noon
+			>>> omega=sunrise+15.*2. # solar hour
 			>>> theta=sun.zenith(latitude, delta, omega)
 			>>> phi=sun.azimuth(latitude, theta, delta, omega)
 			>>> print(theta)

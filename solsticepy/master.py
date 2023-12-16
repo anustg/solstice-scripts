@@ -183,10 +183,10 @@ class Master:
 			if c not in run:
 				azimuth=SOLSTICE_AZI[c-1]
 				elevation=SOLSTICE_ELE[c-1]
-				#if np.sin(elevation*np.pi/180.)>=1.e-5:
-				#	dni=1618.*np.exp(-0.606/(np.sin(elevation*np.pi/180.)**0.491))
-				#else:
-				#	dni=0.
+				if np.sin(elevation*np.pi/180.)>=1.e-5:
+					dni=1618.*np.exp(-0.606/(np.sin(elevation*np.pi/180.)**0.491))
+				else:
+					dni=0.
 
 			   
 				sys.stderr.write("\n"+green('Sun position: %s \n'%c))

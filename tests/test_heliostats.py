@@ -3,7 +3,6 @@
 from __future__ import division
 import unittest
 
-import solsticepy
 from solsticepy.design_crs import CRS
 import solsticepy
 from solsticepy.master import Master
