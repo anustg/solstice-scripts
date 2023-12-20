@@ -86,7 +86,7 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims, hst_w, hst_h
 	  * `fct_gap` (float): facet gaps (if cant==True)  
 	  * `n_row` (int): number of rows for the facet arrangement (if cant==True)  
 	  * `n_col` (int): number of cols for the facet arrangement (if cant==True)  
-	  * `shape` (str): "curved" or "flat" shaped heliostats/facets  
+	  * `shape` (str): "parabol" or "flat" or "parabolic-cylinder"shaped heliostats/facets  
 	  * `tower_h` (float): tower height (m)
 	  * `tower_r` (float): tower radius (a cylindrical shape tower) (m)
 	3. the receiver
@@ -319,7 +319,20 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims, hst_w, hst_h
 			iyaml+="      slices: 1\n\n"	
 
 
-		else: # curved facets 
+
+		elif shape=='parabolic-cylinder': # curved facets 
+			for i in range(len(bands)):
+				foc=bands[i,1]				
+				iyaml+="- geometry: &facet_g_band_%s\n"%i
+				iyaml+="  - material: *material_mirror\n"
+				iyaml+="    parabolic-cylinder:\n"
+				iyaml+="      focal: %s\n"%foc
+				iyaml+="      clip:\n"
+				iyaml+="      - operation: AND\n" 
+				iyaml+="        vertices: [[%s, %s], [%s, %s], [%s, %s], [%s, %s]]\n"%(-fct_w/2., -fct_h/2.,-fct_w/2., fct_h/2., fct_w/2., fct_h/2., fct_w/2., -fct_h/2.)
+				iyaml+="      slices: 4\n\n"
+				
+		else: # parabol curved facets 
 			for i in range(len(bands)):
 				foc=bands[i,1]				
 				iyaml+="- geometry: &facet_g_band_%s\n"%i
@@ -330,6 +343,7 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims, hst_w, hst_h
 				iyaml+="      - operation: AND\n" 
 				iyaml+="        vertices: [[%s, %s], [%s, %s], [%s, %s], [%s, %s]]\n"%(-fct_w/2., -fct_h/2.,-fct_w/2., fct_h/2., fct_w/2., fct_h/2., fct_w/2., -fct_h/2.)
 				iyaml+="      slices: 4\n\n"
+				
 
 
 		for b in range(len(bands)):
