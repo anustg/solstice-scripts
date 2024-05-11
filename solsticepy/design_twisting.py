@@ -204,10 +204,10 @@ class CRS:
 		idx=idx1+idx2
 		self.foc_ref=self.hst_foc[idx]
 		closest_indices = np.array([np.argmin(np.abs(self.foc_ref - f)) for f in self.hst_foc])
+		closest_indices=closest_indices.astype(int)
 		helio_spil=performance_hst[:,6]
 		self.helio_spil_ref=helio_spil[idx]		
 
-		
 
 		AZI, ZENITH,table,case_list=self.sun.annual_angles(self.latitude, casefolder=self.casedir,nd=nd, nh=nh, verbose=self.verb)
 		case_list=case_list[1:]

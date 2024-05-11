@@ -293,9 +293,12 @@ class Master:
 
 
 def twisting_eff(closest_indices, helio_spil_ref, performance_hst):
+	closest_indices=closest_indices.astype(int)
+
 	hst_spil=performance_hst[:,6]
 	hst_abs=performance_hst[:,-1]
-	hst_abs_update=np.max(hst_abs, hst_abs + hst_spil- helio_spil_ref[closest_indices])		
+	hst_spil_update=helio_spil_ref[closest_indices]
+	hst_abs_update=np.maximum(hst_abs, hst_abs + hst_spil-hst_spil_update)		
 	hst_tot=performance_hst[:,0]
 	efficiency_total=np.sum(hst_abs_update)/np.sum(hst_tot)
 	
