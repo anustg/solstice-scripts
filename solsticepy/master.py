@@ -70,7 +70,7 @@ class Master:
 		folder=os.path.abspath(folder)
 		return os.path.join(folder,fn)
 
-	def run(self, azimuth, elevation, num_rays, rho_mirror, dni, folder, gen_vtk=False, printresult=False, verbose=False, system='crs'):
+	def run(self, azimuth, elevation, num_rays, rho_mirror, dni, folder, gen_vtk=False, printresult=False, verbose=False, system='crs', twisting=None):
 
 		"""Run an optical simulation (one sun position) using Solstice 
 
@@ -133,14 +133,18 @@ class Master:
 			if system=='multi-aperture':
 				eta, performance_hst=process_raw_results_multi_aperture(self.in_case(folder, 'simul'), folder,rho_mirror, dni, verbose=verbose)
 			else:
-				eta, performance_hst=process_raw_results(self.in_case(folder, 'simul'), folder,rho_mirror, dni, verbose=verbose)
-
+				if isinstance(twisting, list):
+					eta, performance_hst=process_raw_results(self.in_case(folder, 'simul'), folder,rho_mirror, dni, verbose=verbose)
+					eta, performance_hst=twisting_eff(closest_indices=twisting[0], helio_spil_ref=twisting[1], performance_hst=performance_hst)
+				else:
+					eta, performance_hst=process_raw_results(self.in_case(folder, 'simul'), folder,rho_mirror, dni, verbose=verbose)
+					
 			if printresult:
 				sys.stderr.write('\n' + yellow("Total efficiency: {:f}\n".format(eta)))
 				sys.stderr.write(green("Completed successfully.\n"))
 			return eta, performance_hst
 
-	def run_annual(self, nd, nh, latitude, num_rays, num_hst, rho_mirror, hst_aim_idx, num_aperture=1, mac=None, gen_vtk=False,verbose=False, system='crs'):
+	def run_annual(self, nd, nh, latitude, num_rays, num_hst, rho_mirror, hst_aim_idx, num_aperture=1, mac=None, gen_vtk=False,verbose=False, system='crs', twisting=None):
 
 		"""Run a list of optical simulations to obtain annual performance (lookup table) using Solstice 
 
@@ -216,7 +220,7 @@ class Master:
 					performance_hst[:,0]=1. 
 					efficiency_hst=np.zeros(nhst)					
 				else:
-					efficiency_total, performance_hst=self.run(azimuth, elevation, num_rays, rho_mirror, dni, folder=onesunfolder, gen_vtk=gen_vtk, printresult=False, verbose=verbose, system=system)
+					efficiency_total, performance_hst=self.run(azimuth, elevation, num_rays, rho_mirror, dni, folder=onesunfolder, gen_vtk=gen_vtk, printresult=False, verbose=verbose, system=system, twisting=twisting)
 
 				sys.stderr.write(yellow("Total efficiency: {:f}\n".format(efficiency_total)))
 
@@ -288,6 +292,15 @@ class Master:
 		return oelt, ANNUAL		
 
 
-
+def twisting_eff(closest_indices, helio_spil_ref, performance_hst):
+	hst_spil=performance_hst[:,6]
+	hst_abs=performance_hst[:,-1]
+	hst_abs_update=np.max(hst_abs, hst_abs + hst_spil- helio_spil_ref[closest_indices])		
+	hst_tot=performance_hst[:,0]
+	efficiency_total=np.sum(hst_abs_update)/np.sum(hst_tot)
+	
+	performance_hst[:,-1]=hst_abs_update
+	
+	return efficiency_total, performance_hst	
 
 

@@ -188,8 +188,8 @@ def process_raw_results(rawfile, savedir,rho_mirror,dni,verbose=False):
 	Qfield_abs=(Qtotal-Qcos-Qshade)*(1.-float(rho_mirror))
 	Qattn=ufloat(atmospheric_loss, atmospheric_err)
 	Qabs=ufloat(absorbed, absorbed_err)
-	Qspil=ufloat(vir_income,vir_income_err)-Qabs
 	Qrefl=ufloat(rec_front_income,rec_front_income_err)+ufloat(rec_back_income,rec_back_income_err)-Qabs
+	Qspil=ufloat(vir_income,vir_income_err)-Qabs-Qrefl	
 	Qblock=Qtotal-Qcos-Qshade-Qfield_abs-Qspil-Qabs-Qrefl-Qattn
 
 	organised=np.array([
@@ -272,8 +272,9 @@ def process_raw_results(rawfile, savedir,rho_mirror,dni,verbose=False):
 
 		hst_atm=float(heliostats[i,10])
 		hst_rec_abs=float(heliostats[i,8])
-		hst_spil=float(heliostats[i,11])-hst_rec_abs
 		hst_rec_refl=float(heliostats[i,5])-float(heliostats[i,8])
+		hst_spil=float(heliostats[i,11])-hst_rec_abs-hst_rec_refl
+
 		hst_block=hst_tot-hst_cos-hst_shad-hst_abs-hst_atm-hst_spil-hst_rec_abs-hst_rec_refl
 
 		heliostats[i,19]=hst_tot
@@ -480,8 +481,9 @@ def process_raw_results_multi_aperture(rawfile, savedir,rho_mirror,dni,verbose=F
 	Qfield_abs=(Qtotal-Qcos-Qshade)*(1.-float(rho_mirror))
 	Qattn=ufloat(atmospheric_loss, atmospheric_err)
 	Qabs=ufloat(absorbed, absorbed_err)
-	Qspil=ufloat(vir_income,vir_income_err)-Qabs
 	Qrefl=ufloat(sum(rec_front_income),sum(rec_front_income_err))+ufloat(sum(rec_back_income),sum(rec_back_income_err))-Qabs
+	Qspil=ufloat(vir_income,vir_income_err)-Qabs-Qrefl
+
 	Qblock=Qtotal-Qcos-Qshade-Qfield_abs-Qspil-Qabs-Qrefl-Qattn
 
 	organised=np.array([
@@ -564,8 +566,9 @@ def process_raw_results_multi_aperture(rawfile, savedir,rho_mirror,dni,verbose=F
 
 		hst_atm=float(heliostats[i,10])
 		hst_rec_abs=float(heliostats[i,8])
-		hst_spil=float(heliostats[i,11])-hst_rec_abs
-		hst_rec_refl=float(heliostats[i,5])-float(heliostats[i,8])
+		hst_rec_refl=float(heliostats[i,5])-float(heliostats[i,8])		
+		hst_spil=float(heliostats[i,11])-hst_rec_abs-hst_rec_refl
+
 		hst_block=hst_tot-hst_cos-hst_shad-hst_abs-hst_atm-hst_spil-hst_rec_abs-hst_rec_refl
 
 		heliostats[i,19]=hst_tot
