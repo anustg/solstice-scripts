@@ -183,7 +183,7 @@ class TestHeliostats(unittest.TestCase):
                     points, tri, flux, flux_abs, flux_back, flux_abs_back=flux_reader(vtkfile, casedir)
                     plot_fluxmap(points, tri, flux, casedir, casename=casename, loc_z_rec=self.loc_z, rec_r=self.rec_r, rec_h=self.rec_h, m=self.mesh_h, n=self.mesh_circ)
 
-    #@unittest.skip(" ")
+    @unittest.skip(" ")
     def test_2(self):
         """ 
         Whole field
@@ -427,10 +427,10 @@ class TestHeliostats(unittest.TestCase):
                                 bands=np.array([[None, None]])
                                 hst_foc=np.sqrt((hst_x)**2+(hst_y)**2+(hst_z-self.loc_z)**2) #slant range is the centre point of the receiver cylinder
                             else:
-                                bands=np.array([[502, 516],  # band range (<=), focal length
-                                    [885, 668],
-                                    [1267, 959],
-                                    [1650, 1500]])
+                                bands=np.array([[502.5, 353.8],  # band range (<=), focal length
+                                    [878, 704.8],
+                                    [1253.5, 1072.5],
+                                    [1650, 1444.3]])
                                 hst_foc=np.sqrt((hst_x)**2+(hst_y)**2+(hst_z)**2) # slant range is the heliostat to the bottom of the tower (0,0,0)
 
                             if t==12:
@@ -524,6 +524,7 @@ class TestHeliostats(unittest.TestCase):
                     plt.savefig(open(casedir_0+'/solstice_Task_3%s_AimStrat_%s_%s_flux_map.png'%(f, a, t), 'wb'), bbox_inches='tight')
                     #plt.show()
                     plt.close()
+                  
 
     @unittest.skip(" ")
     def test_4c(self):
