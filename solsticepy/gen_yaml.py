@@ -78,7 +78,7 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims, hst_w, hst_h
 	  * `rho_refl` (float): reflector reflectivity
 	  * `slope_error` (float): reflector surface slope error rms, radians
 	  * `cant` (bool): True, multi-facets canted heliostats, False, ideally shaped single facet heliostat
-	  * `bands` (nparray or None): a 2D numpy array ((band range, focal length)) that specifies 
+	  * `bands` (nparray or None): a 3D numpy array ((band range, focal length of cant, focal length of facets)) that specifies 
 						the distance range and focal length for each canting band, it is <= than this
 						, or None for slant range canting
 	  * `fct_w` (float): facet width (if cant==True) 
@@ -286,15 +286,15 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims, hst_w, hst_h
 
 	if bands.any()==None:
 		if one_heliostat:
-			bands=np.array([hst_foc, hst_foc])
-			bands=bands.reshape(1,2)
+			bands=np.array([hst_foc, hst_foc, hst_foc])
+			bands=bands.reshape(1,3)
 		else:
 			dist=(hst_w+hst_h)/2.
 			min_foc=np.min(hst_foc)
 			max_foc=np.max(hst_foc)
 			bands=np.arange(min_foc+dist, max_foc+dist, dist)
-			bands=np.append(bands, bands)
-			bands=bands.reshape(2, int(len(bands)/2))
+			bands=np.append(bands, (bands, bands))
+			bands=bands.reshape(3, int(len(bands)/3))
 			bands=bands.T 
 
 
@@ -322,7 +322,7 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims, hst_w, hst_h
 
 		elif shape=='parabolic-cylinder': # curved facets 
 			for i in range(len(bands)):
-				foc=bands[i,1]				
+				foc=bands[i,2]				
 				iyaml+="- geometry: &facet_g_band_%s\n"%i
 				iyaml+="  - material: *material_mirror\n"
 				iyaml+="    parabolic-cylinder:\n"
@@ -334,7 +334,7 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims, hst_w, hst_h
 				
 		else: # parabol curved facets 
 			for i in range(len(bands)):
-				foc=bands[i,1]				
+				foc=bands[i,2]				
 				iyaml+="- geometry: &facet_g_band_%s\n"%i
 				iyaml+="  - material: *material_mirror\n"
 				iyaml+="    parabol:\n"

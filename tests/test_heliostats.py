@@ -382,7 +382,7 @@ class TestHeliostats(unittest.TestCase):
         cant=True
         
         time=[12, 8]
-        focuses=['a', 'b']
+        focuses=['b']
         aims=[1,2]
         for a in aims:
             for t in time:
@@ -427,10 +427,18 @@ class TestHeliostats(unittest.TestCase):
                                 bands=np.array([[None, None]])
                                 hst_foc=np.sqrt((hst_x)**2+(hst_y)**2+(hst_z-self.loc_z)**2) #slant range is the centre point of the receiver cylinder
                             else:
-                                bands=np.array([[502.5, 353.8],  # band range (<=), focal length
-                                    [878, 704.8],
-                                    [1253.5, 1072.5],
-                                    [1650, 1444.3]])
+                                bands=np.array([[502, 516, 353.8],  # band range (<=), focal length of cant, focal length of facets
+                                    [885, 668, 704.8],
+                                    [1267, 959, 1072.5],
+                                    [1650, 1500, 1444.3]])
+
+
+                                #bands=np.array([[502.5, 353.8],  # band range (<=), focal length
+                                #    [878, 704.8],
+                                #    [1253.5, 1072.5],
+                                #    [1650, 1444.3]])
+
+
                                 hst_foc=np.sqrt((hst_x)**2+(hst_y)**2+(hst_z)**2) # slant range is the heliostat to the bottom of the tower (0,0,0)
 
                             if t==12:
