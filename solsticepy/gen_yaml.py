@@ -86,7 +86,7 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims, hst_w, hst_h
 	  * `fct_gap` (float): facet gaps (if cant==True)  
 	  * `n_row` (int): number of rows for the facet arrangement (if cant==True)  
 	  * `n_col` (int): number of cols for the facet arrangement (if cant==True)  
-	  * `shape` (str): "parabol" or "flat" or "parabolic-cylinder"shaped heliostats/facets  
+	  * `shape` (str): "paraboloid" or "flat" or "parabolic-cylinder" or 'sphere' shaped heliostats/facets  
 	  * `tower_h` (float): tower height (m)
 	  * `tower_r` (float): tower radius (a cylindrical shape tower) (m)
 	3. the receiver
@@ -293,7 +293,7 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims, hst_w, hst_h
 			min_foc=np.min(hst_foc)
 			max_foc=np.max(hst_foc)
 			bands=np.arange(min_foc+dist, max_foc+dist, dist)
-			bands=np.append(bands, (bands, bands))
+			bands=np.append(bands, (bands, bands)) # 1) band range, 2) canting focus, 3) facet focus
 			bands=bands.reshape(3, int(len(bands)/3))
 			bands=bands.T 
 
@@ -354,7 +354,7 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims, hst_w, hst_h
 			iyaml+="    geometry: *facet_g_s\n"
 			iyaml+="    children:\n"
 
-			foc=bands[b,1]		
+			foc=bands[b,1] # canting focus
 			#print('foc', foc)
 			data=heliostat_canted_facets(hst_w, hst_h, fct_w, fct_h, fct_gap, n_row, n_col, foc, shape)
 			fct_x=data[:,0].reshape(n_row, n_col)
@@ -406,7 +406,7 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims, hst_w, hst_h
 			iyaml+='    plane: \n'
 			iyaml+="      clip:\n"
 			iyaml+="      - operation: AND\n" 
-			iyaml+="        vertices: [[%s, %s], [%s, %s], [%s, %s], [%s, %s]]\n"%(-fct_w/2., -fct_h/2.,-fct_w/2., fct_h/2., fct_w/2., fct_h/2., fct_w/2., -fct_h/2.)
+			iyaml+="        vertices: %s \n"% pts_hst
 			iyaml+="      slices: 1\n\n"
 
 
@@ -437,19 +437,31 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims, hst_w, hst_h
 				iyaml+='    name: %s\n' % name_e
 				iyaml+='    transform: { translation: %s, rotation: %s }\n' % ([hst_x[i], hst_y[i], hst_z[i]], [0, 0, 0]) 
 				iyaml+='    children: [ *%s ]\n' % name_hst_t 	
-
+	
 		else:
-
+			
 			for i in range(len(bands)):
-				name_hst_g = 'hst_g_band_'+str(i)
-				iyaml+='- geometry: &%s\n' % name_hst_g 
-				iyaml+='  - material: *%s\n' % 'material_mirror' 
-				iyaml+='    parabol: \n'
-				iyaml+='      focal: %s\n' % bands[i,1]
-				iyaml+='      clip: \n'  
-				iyaml+='      - operation: AND \n'
-				iyaml+='        vertices: %s\n' % pts_hst
-				iyaml+='      slices: %d\n\n' % slices 
+					foc=bands[i,1]
+					name_hst_g = 'hst_g_band_'+str(i)
+					iyaml+='- geometry: &%s\n' % name_hst_g 
+					iyaml+='  - material: *%s\n' % 'material_mirror' 
+
+					if  shape=='parabolic-cylinder':
+						iyaml+="    parabolic-cylinder:\n"
+						iyaml+='      focal: %s\n' % foc
+					elif shape=='sphere':
+						iyaml+="    hemisphere:\n"
+						iyaml+="      radius: %s\n"%foc
+					else:# shape=='paraboloid':
+						iyaml+='    parabol: \n'
+						iyaml+='      focal: %s\n' % foc
+
+					iyaml+='      clip: \n'  
+					iyaml+='      - operation: AND \n'
+					iyaml+='        vertices: %s\n' % pts_hst
+					iyaml+='      slices: %d\n\n' % slices 
+
+
 			summary=np.array(['x','y','z', 'band foc'])
 			for i in range(num_hst):
 				# CREATE the heliostat templates   
@@ -595,6 +607,10 @@ def flat_receiver(rec_param, hemisphere='North'):
 	y=rec_param[5]
 	z=rec_param[6]
 	tilt=rec_param[7]
+	if len(rec_param)>8:
+		tilt_z=rec_param[8]
+	else:
+		tilt_z=0
 	# receiver tilt angle:
 	# 0 is vertical
 	# the standby posiion of a plane in solstice is normal points to the +z axis
@@ -604,7 +620,7 @@ def flat_receiver(rec_param, hemisphere='North'):
 	pts=[ [-rec_w*0.5, -rec_h*0.5], [-rec_w*0.5, rec_h*0.5], [rec_w*0.5, rec_h*0.5], [rec_w*0.5,-rec_h*0.5] ]
 
 	geom+='- geometry: &%s\n' % 'target_g'
-	geom+='  - material: *%s\n' % 'material_target'
+	geom+='  - material: *%s\n' % 'material_virtual'
 	geom+='    plane: \n'
 	geom+='      clip: \n' 
 	geom+='      - operation: AND \n'
@@ -618,28 +634,23 @@ def flat_receiver(rec_param, hemisphere='North'):
 	entt+='    name: target_e\n'
 	entt+='    primary: 0\n'
 	if hemisphere=='North':
-		entt+='    transform: { translation: %s, rotation: %s }\n' % ([x, y, z], [-90.-tilt, 0, 0]) 
+		entt+='    transform: { translation: %s, rotation: %s }\n' % ([x, y, z], [-90.-tilt, 0, tilt_z]) 
 	else:
-		entt+='    transform: { translation: %s, rotation: %s }\n' % ([x, y, z], [90.+tilt, 0, 0]) 
+		entt+='    transform: { translation: %s, rotation: %s }\n' % ([x, y, z], [90.+tilt, 0, -tilt_z]) 
 	entt+='    geometry: *%s\n' % 'target_g'
 
+
 	# CREATE a virtual target entity from "target_g" geometry (primary = 0)
-	pts = [ [-rec_w*10., -rec_h*10.], [-rec_w*10., rec_h*10.], [rec_w*10., rec_h*10.], [rec_w*10.,-rec_h*10.] ]
-	slices = 4
+	radius=np.sqrt(rec_w**2+rec_h**2)/2.*1.5
 	entt+='\n- entity:\n'
 	entt+='    name: virtual_target_e\n'
 	entt+='    primary: 0\n'
-	if hemisphere=='North':
-		entt+='    transform: { translation: %s, rotation: %s }\n' % ([x, y+5., z], [-90.-tilt, 0, 0])
-	else:
-		entt+='    transform: { translation: %s, rotation: %s }\n' % ([x, y-5., z], [90.+tilt, 0, 0])
+	entt+='    transform: { translation: %s}\n' % ([x, y, z])
 	entt+='    geometry: \n' 
 	entt+='      - material: *%s\n' % 'material_virtual' 
-	entt+='        plane: \n'
-	entt+='          clip: \n'    
-	entt+='          - operation: AND \n'
-	entt+='            vertices: %s\n' % pts
-	entt+='          slices: %d\n' % slices  
+	entt+='        sphere: \n'
+	entt+='          radius: %s\n' % radius   
+	entt+='          slices: %d\n' % 20  
 
 	rcv=''
 	rcv+='- name: target_e \n' 
