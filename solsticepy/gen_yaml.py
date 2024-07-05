@@ -331,6 +331,19 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims, hst_w, hst_h
 				iyaml+="      - operation: AND\n" 
 				iyaml+="        vertices: [[%s, %s], [%s, %s], [%s, %s], [%s, %s]]\n"%(-fct_w/2., -fct_h/2.,-fct_w/2., fct_h/2., fct_w/2., fct_h/2., fct_w/2., -fct_h/2.)
 				iyaml+="      slices: 4\n\n"
+
+		elif shape=='sphere': # parabol curved facets 
+			for i in range(len(bands)):
+				foc=bands[i,2]				
+				iyaml+="- geometry: &facet_g_band_%s\n"%i
+				iyaml+="  - material: *material_mirror\n"
+				iyaml+="    hemisphere:\n"
+				iyaml+="      radius: %s\n"%foc
+				iyaml+="      clip:\n"
+				iyaml+="      - operation: AND\n" 
+				iyaml+="        vertices: [[%s, %s], [%s, %s], [%s, %s], [%s, %s]]\n"%(-fct_w/2., -fct_h/2.,-fct_w/2., fct_h/2., fct_w/2., fct_h/2., fct_w/2., -fct_h/2.)
+				iyaml+="      slices: 4\n\n"
+
 				
 		else: # parabol curved facets 
 			for i in range(len(bands)):
