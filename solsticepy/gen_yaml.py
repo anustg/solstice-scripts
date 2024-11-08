@@ -338,7 +338,7 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims, hst_w, hst_h
 				iyaml+="- geometry: &facet_g_band_%s\n"%i
 				iyaml+="  - material: *material_mirror\n"
 				iyaml+="    hemisphere:\n"
-				iyaml+="      radius: %s\n"%foc
+				iyaml+="      radius: %s\n"%(foc*2.)
 				iyaml+="      clip:\n"
 				iyaml+="      - operation: AND\n" 
 				iyaml+="        vertices: [[%s, %s], [%s, %s], [%s, %s], [%s, %s]]\n"%(-fct_w/2., -fct_h/2.,-fct_w/2., fct_h/2., fct_w/2., fct_h/2., fct_w/2., -fct_h/2.)
@@ -464,7 +464,7 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims, hst_w, hst_h
 						iyaml+='      focal: %s\n' % foc
 					elif shape=='sphere':
 						iyaml+="    hemisphere:\n"
-						iyaml+="      radius: %s\n"%foc
+						iyaml+="      radius: %s\n"%(foc*2.)
 					else:# shape=='paraboloid':
 						iyaml+='    parabol: \n'
 						iyaml+='      focal: %s\n' % foc
