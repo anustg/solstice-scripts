@@ -298,7 +298,7 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims,hst_w, hst_h
 		iyaml+='    geometry: *pylon_g\n'
 		iyaml+='    children: \n' 
 		iyaml+='    - name: pivot\n'
-		iyaml+='      zx_pivot: {target: {position: %s}} \n' % ([aim_x[i],aim_y[i],aim_z[i]]) 
+		iyaml+='      zx_pivot: {target: {position: %s}} \n' % ([float(aim_x[i]),float(aim_y[i]),float(aim_z[i])]) 
 		iyaml+='      children: \n'
 		iyaml+='      - name: reflect_surface\n'
 		iyaml+='        primary: 1\n'
@@ -328,7 +328,7 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims,hst_w, hst_h
 		name_hst_t = 'hst_t_'+str(i)
 		iyaml+='\n- entity:\n'
 		iyaml+='    name: %s\n' % name_e
-		iyaml+='    transform: { translation: %s, rotation: %s }\n' % ([hst_x[i], hst_y[i], hst_z[i]], [0, 0, 0]) 
+		iyaml+='    transform: { translation: %s, rotation: %s }\n' % ([float(hst_x[i]), float(hst_y[i]), float(hst_z[i])], [0, 0, 0]) 
 		iyaml+='    children: [ *%s ]\n' % name_hst_t    
 
 	with open(outfile_yaml,'w') as f:
@@ -348,13 +348,13 @@ def flat_receiver(rec_param, hemisphere='North'):
 		             if the front surface always facing to the field is desirable
 		         (2) the position of the virtual target
 	"""
-	rec_w=rec_param[0]
-	rec_h=rec_param[1]
-	slices=rec_param[2] # it assumes equal number of slices in x and y directions
-	x=rec_param[4]
-	y=rec_param[5]
-	z=rec_param[6]
-	tilt=rec_param[7]
+	rec_w=float(rec_param[0])
+	rec_h=float(rec_param[1])
+	slices=int(rec_param[2]) # it assumes equal number of slices in x and y directions
+	x=float(rec_param[4])
+	y=float(rec_param[5])
+	z=float(rec_param[6])
+	tilt=float(rec_param[7])
 	# receiver tilt angle:
 	# 0 is vertical
 	# the standby posiion of a plane in solstice is normal points to the +z axis
@@ -423,13 +423,13 @@ def cylindrical_receiver(rec_param, hemisphere='North'):
 		             if the front surface always facing to the field is desirable
 		         (2) the position of the virtual target
 	'''
-	rec_r=rec_param[0]/2.
-	rec_h=rec_param[1]
-	slices=rec_param[2] # number of elements in the circumferetial direction
-	stacks=rec_param[3] # number of elements in the vertical direction
-	x=rec_param[4]
-	y=rec_param[5]
-	z=rec_param[6]
+	rec_r=float(rec_param[0]/2.)
+	rec_h=float(rec_param[1])
+	slices=int(rec_param[2]) # number of elements in the circumferetial direction
+	stacks=int(rec_param[3]) # number of elements in the vertical direction
+	x=float(rec_param[4])
+	y=float(rec_param[5])
+	z=float(rec_param[6])
 
 	geom=''
 	geom+='- geometry: &%s\n' % 'target_g'
@@ -492,13 +492,13 @@ def STL_receiver(rec_param, hemisphere='North'):
 		         (2) the position of the virtual target
 	'''
 
-	rec_w=rec_param[0].astype(float) # for creating the virtual target
-	rec_h=rec_param[1].astype(float)
+	rec_w=float(rec_param[0]) # for creating the virtual target
+	rec_h=float(rec_param[1])
 	stlfile=rec_param[2] # directory of the stl file
-	x=rec_param[3].astype(float)
-	y=rec_param[4].astype(float)
-	z=rec_param[5].astype(float)
-	tilt=rec_param[6].astype(float) # need to figure out the initial mesh orientation
+	x=float(rec_param[3])
+	y=float(rec_param[4])
+	z=float(rec_param[5])
+	tilt=float(rec_param[6]) # need to figure out the initial mesh orientation
 
 	# CREATE a receiver entity from a STL file 
 	entt=''
@@ -565,11 +565,11 @@ def multi_aperture_receiver(rec_param, hemisphere='North', plot=False):
 
 	rec_w=rec_param[0]
 	rec_h=rec_param[1]
-	rec_grid_w=rec_param[2]
-	rec_grid_h=rec_param[3]
+	rec_grid_w=int(rec_param[2])
+	rec_grid_h=int(rec_param[3])
 
 	rec_z=rec_param[4]
-	rec_tilt=rec_param[5] 
+	rec_tilt=rec_param[5]
 	# receiver tilt angle:
 	# 0 is vertical
 	# the standby posiion of a plane in solstice is normal points to the +z axis
