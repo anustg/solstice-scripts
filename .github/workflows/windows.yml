@@ -45,15 +45,17 @@ jobs:
         python3 -m pip install uncertainties colorama pytest
 
 
+    - name: Install solsticepy
+      run: |
+        python3 -m pip install .
+
+
     - name: Install Solstice
       run: |
         wget https://github.com/anustg/solstice-scripts/releases/download/v0.9.0-3/solstice-0.9.0.exe
         cmd /C "start solstice-0.9.0.exe /S"
         python3 -c "import solsticepy;print(solsticepy.find_prog('solstice'))"
 
-    - name: Install solsticepy
-      run: |
-        python3 -m pip install .
 
     - name: Test solsticepy
       run: |
