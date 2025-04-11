@@ -9,6 +9,9 @@ from .data_spectral import SolarSpectrum, MirrorRhoSpectrum
 from .cal_layout import multi_aperture_pos
 import sys
 
+def yamltransform(pos,rot):
+    return "transform: { translation: [%e,%e,%e], rotation: [%e,%e,%e] }" % (*pos,*rot)
+
 class Sun:
 	"""Sun parameters for solstice-input
 
@@ -117,9 +120,9 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims,hst_w, hst_h
 		# CREATE the spectrum for the sun
 		iyaml+='- spectrum: &solar_spectrum  \n'
 		for i in range(0,len(I_sun)-1):
-		    iyaml+='  - {wavelength: %s, data: %s }\n' % (I_sun[i][0],I_sun[i][1])  
+		    iyaml+='  - {wavelength: %e, data: %e }\n' % (I_sun[i][0],I_sun[i][1])  
 		i = len(I_sun)-1
-		iyaml+='  - {wavelength: %s, data: %s }\n' % (I_sun[i][0],I_sun[i][1]) 
+		iyaml+='  - {wavelength: %e, data: %e }\n' % (I_sun[i][0],I_sun[i][1]) 
 		iyaml+='\n'
 
 		# CREATE the spectrum for the reflectivity (mirror)
@@ -178,10 +181,10 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims,hst_w, hst_h
 	# CREATE a specular material
 	r_f= rho_refl # front
 	r_b = 0.      # and back reflectivity
-	iyaml+='- material: &%s\n' % 'material_mirror'
+	iyaml+='- material: &material_mirror\n'
 	iyaml+='   front:\n'
 	if spectral:
-		iyaml+='     mirror: {reflectivity: *%s, slope_error: %15.8e }\n' % ('ref_mirror', slope_error ) 
+		iyaml+='     mirror: {reflectivity: *ref_mirror, slope_error: %15.8e }\n' % (slope_error ) 
 	else:
 		iyaml+='     mirror: {reflectivity: %6.4f, slope_error: %15.8e }\n' % (r_f, slope_error) 
 
@@ -192,7 +195,7 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims,hst_w, hst_h
 	# CREATE a material for the target
 	r_f = 1.-rec_abs # front
 	r_b = 1.-rec_abs # and back reflectivity
-	iyaml+='- material: &%s\n' % 'material_target'
+	iyaml+='- material: &material_target\n'
 	iyaml+='   front:\n'
 	iyaml+='     matte: {reflectivity: %6.4f }\n' % r_f    
 	iyaml+='   back:\n'
@@ -200,7 +203,7 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims,hst_w, hst_h
 	iyaml+='\n'
 	#
 	# CREATE a virtual material for the calculation of spillage
-	iyaml+='- material: &%s\n' % 'material_virtual'
+	iyaml+='- material: &material_virtual\n'
 	iyaml+='   virtual:\n'
 	iyaml+='\n'
 
@@ -216,8 +219,8 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims,hst_w, hst_h
 	# (cylindrical shape)
 	#
 	slices = 10 # slices for the envelop circle
-	iyaml+='- geometry: &%s\n' % 'tower_g' 
-	iyaml+='  - material: *%s\n' % 'material_black' 
+	iyaml+='- geometry: &tower_g\n' 
+	iyaml+='  - material: *material_black\n' 
 	#iyaml+='    transform: { translation: %s, rotation: %s }\n' % ([0, 0, h_tow*0.5], [0, 90, 0]) 
 	iyaml+='    cylinder: {height: %7.3f, radius: %7.3f, slices: %d }\n' % (tower_h, tower_r, slices) 
 	iyaml+='\n'
@@ -264,7 +267,7 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims,hst_w, hst_h
 	for i in range(0,num_hst):
 		name_hst_g = 'hst_g_'+str(i)
 		iyaml+='- geometry: &%s\n' % name_hst_g 
-		iyaml+='  - material: *%s\n' % 'material_mirror' 
+		iyaml+='  - material: *material_mirror\n' 
 		#iyaml+='    transform: { translation: %s, rotation: %s }\n' % ([hst_x[i], hst_y[i], hst_z[i]], [0, 0, 0]) )
 		iyaml+='    parabol: \n'
 		iyaml+='      focal: %s\n' % hst_foc[i]
@@ -277,9 +280,9 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims,hst_w, hst_h
 	h_pyl = 0.001 # pylon height
 	r_pyl = 0.2 # pylon radius
 	slices = 4 # slices for the envelop circle
-	iyaml+='- geometry: &%s\n' % 'pylon_g' 
-	iyaml+='  - material: *%s\n' % 'material_black' 
-	iyaml+='    transform: { translation: %s, rotation: %s }\n' % ([0, 0, -h_pyl*3], [0, 90, 0]) 
+	iyaml+='- geometry: &pylon_g\n'
+	iyaml+='  - material: *material_black\n' 
+	iyaml+='    transform: { translation: [0,0,%e], rotation: [0,90,0] }\n' % (-h_pyl*3) 
 	iyaml+='    cylinder: {height: %7.3f, radius: %7.3f, slices: %d }\n' % (h_pyl,r_pyl,slices) 
 	#   
 
@@ -298,7 +301,7 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims,hst_w, hst_h
 		iyaml+='    geometry: *pylon_g\n'
 		iyaml+='    children: \n' 
 		iyaml+='    - name: pivot\n'
-		iyaml+='      zx_pivot: {target: {position: %s}} \n' % ([aim_x[i],aim_y[i],aim_z[i]]) 
+		iyaml += '      zx_pivot: {target: {position: [%.6f, %.6f, %.6f]}}\n' % (aim_x[i], aim_y[i], aim_z[i])
 		iyaml+='      children: \n'
 		iyaml+='      - name: reflect_surface\n'
 		iyaml+='        primary: 1\n'
@@ -319,7 +322,7 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims,hst_w, hst_h
 	iyaml+='\n- entity:\n'
 	iyaml+='    name: tower_e\n'
 	iyaml+='    primary: 0\n' 
-	iyaml+='    transform: { translation: %s, rotation: %s }\n' % ([0, -tower_r, tower_h*0.5], [0, 0, 0]) 
+	iyaml+='    transform: { translation: [0,%e,%e], rotation: [0,0,0] }\n' % (-tower_r, tower_h*0.5)
 	iyaml+='    geometry: *%s\n' % 'tower_g'    
 	#
 	# heliostat entities from the template
@@ -328,7 +331,7 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims,hst_w, hst_h
 		name_hst_t = 'hst_t_'+str(i)
 		iyaml+='\n- entity:\n'
 		iyaml+='    name: %s\n' % name_e
-		iyaml+='    transform: { translation: %s, rotation: %s }\n' % ([hst_x[i], hst_y[i], hst_z[i]], [0, 0, 0]) 
+		iyaml+='    transform: { translation: [%e,%e,%e], rotation: [0,0,0] }\n' % ([hst_x[i], hst_y[i], hst_z[i]]) 
 		iyaml+='    children: [ *%s ]\n' % name_hst_t    
 
 	with open(outfile_yaml,'w') as f:
@@ -363,12 +366,12 @@ def flat_receiver(rec_param, hemisphere='North'):
 	geom=''
 	pts=[ [-rec_w*0.5, -rec_h*0.5], [-rec_w*0.5, rec_h*0.5], [rec_w*0.5, rec_h*0.5], [rec_w*0.5,-rec_h*0.5] ]
 
-	geom+='- geometry: &%s\n' % 'target_g'
-	geom+='  - material: *%s\n' % 'material_target'
+	geom+='- geometry: &target_g\n'
+	geom+='  - material: *material_target\n'
 	geom+='    plane: \n'
 	geom+='      clip: \n' 
 	geom+='      - operation: AND \n'
-	geom+='        vertices: %s\n' % pts
+	geom+='        vertices: %d\n' % pts
 	geom+='      slices: %d\n' % slices 
 	geom+='\n'
 
@@ -636,7 +639,7 @@ def multi_aperture_receiver(rec_param, hemisphere='North', plot=False):
 
 	return geom, entt, rcv
 
-
-
 #------------------------------
+if __name__=="__main__":
+	print(yamltransform([1,2,3],[4,5,6]))
 
