@@ -25,8 +25,8 @@ class Sun:
 
 		`dni`: Direct normal irradance (W/m2)
 		`sunshape`: Sunshape: can be None, ``'pillbox'``,``'gaussian'`` or ``'buie'``
-		`half_angle_deg`: sun angular size (in DEGREES, half-angle) (ONLY in case of ``'pillbox'``)
 		`csr`: circumsolar ratio (ONLY in case of ``'buie'``)
+		`half_angle_deg`: sun angular size (in DEGREES, half-angle) (ONLY in case of ``'pillbox'``)
 		`std_dev`: standard deviation of the angular dsn ratio (ONLY in case of ``'gaussian'``)
 		"""
 		self.dni = dni
@@ -157,7 +157,7 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims,hst_w, hst_h
 	iyaml += "- sun: %s\n" % (sun.yaml(spectrum),)
 
 	if medium>1e-99:
-		iyaml+='- atmosphere: {extinction: %s}\n'%medium 
+		iyaml+='- atmosphere: {extinction: %e}\n'%medium 
 		iyaml+='\n'
 
 		   
@@ -169,27 +169,22 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims,hst_w, hst_h
 	#------------------------------
 	#
 	# CREATE an occultant material
-	r_f = 0. # front
-	r_b = 0. # and back reflectivity
-	iyaml+='- material: &%s\n' % 'material_black'
+	iyaml+='- material: &material_black\n'
 	iyaml+='   front:\n'
-	iyaml+='     matte: {reflectivity: %6.4f }\n' % r_f    
+	iyaml+='     matte: {reflectivity: 0.}\n' # front    
 	iyaml+='   back:\n'
-	iyaml+='     matte: {reflectivity: %6.4f }\n' % r_b
+	iyaml+='     matte: {reflectivity: 0. }\n' # and back reflectivity
 	iyaml+='\n'
 	#
 	# CREATE a specular material
-	r_f= rho_refl # front
-	r_b = 0.      # and back reflectivity
 	iyaml+='- material: &material_mirror\n'
 	iyaml+='   front:\n'
 	if spectral:
 		iyaml+='     mirror: {reflectivity: *ref_mirror, slope_error: %15.8e }\n' % (slope_error ) 
 	else:
-		iyaml+='     mirror: {reflectivity: %6.4f, slope_error: %15.8e }\n' % (r_f, slope_error) 
-
+		iyaml+='     mirror: {reflectivity: %6.4f, slope_error: %15.8e }\n' % (rho_refl, slope_error) 
 	iyaml+='   back:\n'
-	iyaml+='     matte: {reflectivity: %6.4f }\n' % r_b 
+	iyaml+='     matte: {reflectivity: 0. }\n'
 	iyaml+='\n'
 	#
 	# CREATE a material for the target
@@ -282,7 +277,7 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims,hst_w, hst_h
 	slices = 4 # slices for the envelop circle
 	iyaml+='- geometry: &pylon_g\n'
 	iyaml+='  - material: *material_black\n' 
-	iyaml+='    transform: { translation: [0,0,%e], rotation: [0,90,0] }\n' % (-h_pyl*3) 
+	iyaml+='    '+yamltransform(pos=[0,0,-h_pyl*3],rot=[0,90,0]) + '\n'
 	iyaml+='    cylinder: {height: %7.3f, radius: %7.3f, slices: %d }\n' % (h_pyl,r_pyl,slices) 
 	#   
 
@@ -322,7 +317,7 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims,hst_w, hst_h
 	iyaml+='\n- entity:\n'
 	iyaml+='    name: tower_e\n'
 	iyaml+='    primary: 0\n' 
-	iyaml+='    transform: { translation: [0,%e,%e], rotation: [0,0,0] }\n' % (-tower_r, tower_h*0.5)
+	iyaml+='    ' + yamltransform(pos=[0,-tower_r, tower_h*0.5],rot=[0,0,0]) + '\n'
 	iyaml+='    geometry: *%s\n' % 'tower_g'    
 	#
 	# heliostat entities from the template
@@ -331,7 +326,7 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims,hst_w, hst_h
 		name_hst_t = 'hst_t_'+str(i)
 		iyaml+='\n- entity:\n'
 		iyaml+='    name: %s\n' % name_e
-		iyaml+='    transform: { translation: [%e,%e,%e], rotation: [0,0,0] }\n' % ([hst_x[i], hst_y[i], hst_z[i]]) 
+		iyaml+='    ' + yamltransform(pos=[hst_x[i], hst_y[i], hst_z[i]],rot=[0,0,0]) + '\n'
 		iyaml+='    children: [ *%s ]\n' % name_hst_t    
 
 	with open(outfile_yaml,'w') as f:
@@ -371,7 +366,7 @@ def flat_receiver(rec_param, hemisphere='North'):
 	geom+='    plane: \n'
 	geom+='      clip: \n' 
 	geom+='      - operation: AND \n'
-	geom+='        vertices: %d\n' % pts
+	geom+='        vertices: %s\n' % pts
 	geom+='      slices: %d\n' % slices 
 	geom+='\n'
 
@@ -381,9 +376,9 @@ def flat_receiver(rec_param, hemisphere='North'):
 	entt+='    name: target_e\n'
 	entt+='    primary: 0\n'
 	if hemisphere=='North':
-		entt+='    transform: { translation: %s, rotation: %s }\n' % ([x, y, z], [-90.-tilt, 0, 0]) 
+		entt+='    ' + yamltransform(pos=[x, y , z],rot=[-90.-tilt, 0, 0]) + '\n'
 	else:
-		entt+='    transform: { translation: %s, rotation: %s }\n' % ([x, y, z], [90.+tilt, 0, 0]) 
+		entt+='    ' + yamltransform(pos=[x, y , z],rot=[90.+tilt, 0, 0]) + '\n'
 	entt+='    geometry: *%s\n' % 'target_g'
 
 	# CREATE a virtual target entity from "target_g" geometry (primary = 0)
@@ -393,9 +388,9 @@ def flat_receiver(rec_param, hemisphere='North'):
 	entt+='    name: virtual_target_e\n'
 	entt+='    primary: 0\n'
 	if hemisphere=='North':
-		entt+='    transform: { translation: %s, rotation: %s }\n' % ([x, y-5., z], [-90.-tilt, 0, 0])
+		entt+='    ' + yamltransform(pos=[x, y-5, z],rot=[-90.-tilt, 0, 0]) + '\n'
 	else:
-		entt+='    transform: { translation: %s, rotation: %s }\n' % ([x, y+5., z], [90.+tilt, 0, 0])
+		entt+='    ' + yamltransform(pos=[x, y+5 , z],rot=[90.+tilt, 0, 0]) + '\n'
 	entt+='    geometry: \n' 
 	entt+='      - material: *%s\n' % 'material_virtual' 
 	entt+='        plane: \n'
@@ -449,9 +444,7 @@ def cylindrical_receiver(rec_param, hemisphere='North'):
 	entt+='\n- entity:\n'
 	entt+='    name: target_e\n'
 	entt+='    primary: 0\n'
-
-	entt+='    transform: { translation: %s, rotation: %s }\n' % ([x, y, z], [0., 0., 0.]) 
-
+	entt+='    ' + yamltransform(pos=[x, y , z],rot=[0, 0, 0]) + '\n'
 	entt+='    geometry: *%s\n' % 'target_g'
 
 	# CREATE a virtual target entity from "target_g" geometry (primary = 0)
@@ -461,9 +454,7 @@ def cylindrical_receiver(rec_param, hemisphere='North'):
 	entt+='\n- entity:\n'
 	entt+='    name: virtual_target_e\n'
 	entt+='    primary: 0\n'
-
-	entt+='    transform: { translation: %s, rotation: %s }\n' % ([x, y, z+rec_h/2.+1], [-180., 0, 0])
-
+	entt+='    ' + yamltransform(pos=[x, y, z+rec_h/2.+1],rot=[-180., 0, 0]) + '\n'
 	entt+='    geometry: \n' 
 	entt+='      - material: *%s\n' % 'material_virtual' 
 	entt+='        plane: \n'
@@ -509,14 +500,13 @@ def STL_receiver(rec_param, hemisphere='North'):
 	entt+='    name: STL_receiver_e\n'
 	entt+='    primary: 0\n'
 	if hemisphere=='North':
-
-		entt+='    transform: { translation: %s, rotation: %s }\n' % ([x, y, z], [-90.-tilt, 0, 0]) 
+		entt+='    ' + yamltransform(pos=[x, y, z],rot=[-90.-tilt, 0, 0]) + '\n'
 	else:
 		# if it is the mesh model of the bladed receiver at CSIRO
-		entt+='    transform: { translation: %s, rotation: %s }\n' % ([x, y, z], [180.+tilt, 0, 0]) 
+		entt+='    ' + yamltransform(pos=[x, y, z],rot=[180.+tilt, 0, 0]) + '\n'
 	entt+='    geometry:\n'
 	entt+='    - material: *material_target\n'
-	entt+='      transform: {translation: [0, 0, 0], rotation: [0, 0, 0]}\n'
+	entt+='    ' + yamltransform(pos=[0,0,0],rot=[0, 0, 0]) + '\n'
 	entt+="      stl : {path: %s }  \n"%(stlfile)
 
 
@@ -527,9 +517,9 @@ def STL_receiver(rec_param, hemisphere='North'):
 	entt+='    name: virtual_target_e\n'
 	entt+='    primary: 0\n'
 	if hemisphere=='North':
-		entt+='    transform: { translation: %s, rotation: %s }\n' % ([x, y-5., z], [-90.-tilt, 0, 0])
+		entt+='    ' + yamltransform(pos=[x, y-5., z],rot=[-90.-tilt, 0, 0]) + '\n'
 	else:
-		entt+='    transform: { translation: %s, rotation: %s }\n' % ([x, y+5., z], [90.+tilt, 0, 0])
+		entt+='    ' + yamltransform(pos=[x, y+5., z],rot=[90.+tilt, 0, 0]) + '\n'
 	entt+='    geometry: \n' 
 	entt+='      - material: *%s\n' % 'material_virtual' 
 	entt+='        plane: \n'
@@ -608,9 +598,9 @@ def multi_aperture_receiver(rec_param, hemisphere='North', plot=False):
 		entt+='    name: target_e_%.0f\n'%(i)
 		entt+='    primary: 0\n'
 		if hemisphere=='North':
-			entt+='    transform: { translation: %s, rotation: %s }\n' % ([xc, yc, zc], [-90.-rec_tilt, 90.-ang_pos,0]) 
+			entt+='    ' + yamltransform(pos=[xc, yc, zc],rot=[-90.-rec_tilt, 90.-ang_pos,0]) + '\n'
 		else:
-			entt+='    transform: { translation: %s, rotation: %s }\n' % ([-xc, -yc, zc], [90.+rec_tilt, 90.-ang_pos,0]) 
+			entt+='    ' + yamltransform(pos=[-xc, -yc, zc],rot=[90.+rec_tilt, 90.-ang_pos,0]) + '\n'
 		entt+='    geometry: *%s\n' % 'target_g_%.0f\n'%(i)
 
 	vir_z/=float(num_aperture)
@@ -639,7 +629,4 @@ def multi_aperture_receiver(rec_param, hemisphere='North', plot=False):
 
 	return geom, entt, rcv
 
-#------------------------------
-if __name__=="__main__":
-	print(yamltransform([1,2,3],[4,5,6]))
 
