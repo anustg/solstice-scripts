@@ -22,7 +22,7 @@ jobs:
         include:
           - os: ubuntu-20.04
             python-version: 3.8
-          - os: ubuntu-latest
+          - os: ubuntu-22.04
             python-version: 3.11
 
     env:
