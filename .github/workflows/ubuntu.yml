@@ -18,12 +18,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-20.04, ubuntu-18.04]
+        os: [ubuntu-20.04, ubuntu-latest]
         include:
           - os: ubuntu-20.04
             python-version: 3.8
-          - os: ubuntu-18.04
-            python-version: 3.6
+          - os: ubuntu-latest
+            python-version: 3.12
 
     env:
       PYTEST_ADDOPTS: --color=yes
