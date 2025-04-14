@@ -257,7 +257,7 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims,hst_w, hst_h
 		aim_z=hst_aims[:,2]
 		num_hst=len(hst_x)
 	slices = 4 # slices for the envelop circle
-	pts_hst = [ [-hst_w*0.5, -hst_h*0.5], [-hst_w*0.5, hst_h*0.5], [hst_w*0.5, hst_h*0.5], [hst_w*0.5,-hst_h*0.5] ]
+	
 	# CREATE a reflective facet (mirror)
 	for i in range(0,num_hst):
 		name_hst_g = 'hst_g_'+str(i)
@@ -268,7 +268,7 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims,hst_w, hst_h
 		iyaml+='      focal: %s\n' % hst_foc[i]
 		iyaml+='      clip: \n'  
 		iyaml+='      - operation: AND \n'
-		iyaml+='        vertices: %s\n' % pts_hst
+		iyaml+='        vertices: [ [%e, %e], [%e, %e], [%e, %e], [%e, %e] ]\n' % (-hst_w*0.5, -hst_h*0.5, -hst_w*0.5, hst_h*0.5, hst_w*0.5, hst_h*0.5, hst_w*0.5,-hst_h*0.5)
 		iyaml+='      slices: %d\n' % slices  
 
 	# CREATE the pylon "pylon_g" geometry cylindrical shape
@@ -359,14 +359,13 @@ def flat_receiver(rec_param, hemisphere='North'):
 	# rotation anagle, positive is anti-clockwise
 
 	geom=''
-	pts=[ [-rec_w*0.5, -rec_h*0.5], [-rec_w*0.5, rec_h*0.5], [rec_w*0.5, rec_h*0.5], [rec_w*0.5,-rec_h*0.5] ]
 
 	geom+='- geometry: &target_g\n'
 	geom+='  - material: *material_target\n'
 	geom+='    plane: \n'
 	geom+='      clip: \n' 
 	geom+='      - operation: AND \n'
-	geom+='        vertices: %s\n' % pts
+	geom+='        vertices: [ [%e, %e], [%e, %e], [%e, %e], [%e, %e] ] \n' % (-rec_w*0.5, -rec_h*0.5, -rec_w*0.5, rec_h*0.5, rec_w*0.5, rec_h*0.5, rec_w*0.5,-rec_h*0.5)
 	geom+='      slices: %d\n' % slices 
 	geom+='\n'
 
@@ -382,7 +381,7 @@ def flat_receiver(rec_param, hemisphere='North'):
 	entt+='    geometry: *%s\n' % 'target_g'
 
 	# CREATE a virtual target entity from "target_g" geometry (primary = 0)
-	pts = [ [-rec_w*10., -rec_h*10.], [-rec_w*10., rec_h*10.], [rec_w*10., rec_h*10.], [rec_w*10.,-rec_h*10.] ]
+	 
 	slices = 4
 	entt+='\n- entity:\n'
 	entt+='    name: virtual_target_e\n'
@@ -396,7 +395,7 @@ def flat_receiver(rec_param, hemisphere='North'):
 	entt+='        plane: \n'
 	entt+='          clip: \n'    
 	entt+='          - operation: AND \n'
-	entt+='            vertices: %s\n' % pts
+	entt+='            vertices: [ [%e, %e], [%e, %e], [%e, %e], [%e, %e] ] \n' % (-rec_w*10., -rec_h*10., -rec_w*10., rec_h*10., rec_w*10., rec_h*10., rec_w*10.,-rec_h*10.)
 	entt+='          slices: %d\n' % slices  
 
 	rcv=''
@@ -449,7 +448,7 @@ def cylindrical_receiver(rec_param, hemisphere='North'):
 
 	# CREATE a virtual target entity from "target_g" geometry (primary = 0)
 	Vsize=100.
-	pts = [ [-rec_h*Vsize, -rec_h*Vsize], [-rec_h*Vsize, rec_h*Vsize], [rec_h*Vsize, rec_h*Vsize], [rec_h*Vsize,-rec_h*Vsize] ]
+
 	slices = 4
 	entt+='\n- entity:\n'
 	entt+='    name: virtual_target_e\n'
@@ -460,7 +459,7 @@ def cylindrical_receiver(rec_param, hemisphere='North'):
 	entt+='        plane: \n'
 	entt+='          clip: \n'    
 	entt+='          - operation: AND \n'
-	entt+='            vertices: %s\n' % pts
+	entt+='            vertices: [ [%e, %e], [%e, %e], [%e, %e], [%e, %e] ]\n' % (-rec_h*Vsize, -rec_h*Vsize, -rec_h*Vsize, rec_h*Vsize, rec_h*Vsize, rec_h*Vsize, rec_h*Vsize,-rec_h*Vsize)
 	entt+='          slices: %d\n' % slices  
 
 	rcv=''
@@ -511,7 +510,7 @@ def STL_receiver(rec_param, hemisphere='North'):
 
 
 	# CREATE a virtual target entity from "target_g" geometry (primary = 0)
-	pts = [ [-rec_w*10., -rec_h*10.], [-rec_w*10., rec_h*10.], [rec_w*10., rec_h*10.], [rec_w*10.,-rec_h*10.] ]
+
 	slices = 4
 	entt+='\n- entity:\n'
 	entt+='    name: virtual_target_e\n'
@@ -525,7 +524,7 @@ def STL_receiver(rec_param, hemisphere='North'):
 	entt+='        plane: \n'
 	entt+='          clip: \n'    
 	entt+='          - operation: AND \n'
-	entt+='            vertices: %s\n' % pts
+	entt+='            vertices: [ [%e, %e], [%e, %e], [%e, %e], [%e, %e] ] \n' % (-rec_w*10., -rec_h*10., -rec_w*10., rec_h*10., rec_w*10., rec_h*10., rec_w*10.,-rec_h*10.)
 	entt+='          slices: %d\n' % slices  
 
 	rcv=''
@@ -576,14 +575,13 @@ def multi_aperture_receiver(rec_param, hemisphere='North', plot=False):
 	vir_z=0.
 	for i in range(num_aperture):
 
-		pts=[ [-rec_w[i]*0.5, -rec_h[i]*0.5], [-rec_w[i]*0.5, rec_h[i]*0.5], [rec_w[i]*0.5, rec_h[i]*0.5], [rec_w[i]*0.5,-rec_h[i]*0.5] ]
-
 		geom+='- geometry: &%s\n' % 'target_g_%.0f\n'%(i)
 		geom+='  - material: *%s\n' % 'material_target'
 		geom+='    plane: \n'
 		geom+='      clip: \n' 
 		geom+='      - operation: AND \n'
-		geom+='        vertices: %s\n' % pts
+		geom+='        vertices: [ [%e, %e], [%e, %e], [%e, %e], [%e, %e] ]\n' % (-rec_w[i]*0.5, -rec_h[i]*0.5, -rec_w[i]*0.5, rec_h[i]*0.5, rec_w[i]*0.5, rec_h[i]*0.5, rec_w[i]*0.5,-rec_h[i]*0.5)
+		geom+='        vertices: [ [%e, %e], [%e, %e], [%e, %e], [%e, %e] ]\n' % (-rec_w[i]*0.5, -rec_h[i]*0.5, -rec_w[i]*0.5, rec_h[i]*0.5, rec_w[i]*0.5, rec_h[i]*0.5, rec_w[i]*0.5,-rec_h[i]*0.5)
 		geom+='      slices: %d\n' % rec_grid_w 
 		geom+='\n'
 
