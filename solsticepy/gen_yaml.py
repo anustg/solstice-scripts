@@ -9,6 +9,9 @@ from .data_spectral import SolarSpectrum, MirrorRhoSpectrum
 from .cal_layout import multi_aperture_pos
 import sys
 
+def yamltransform(pos,rot):
+    return "transform: { translation: [%e,%e,%e], rotation: [%e,%e,%e] }" % (*pos,*rot)
+
 class Sun:
 	"""Sun parameters for solstice-input
 
@@ -22,8 +25,8 @@ class Sun:
 
 		`dni`: Direct normal irradance (W/m2)
 		`sunshape`: Sunshape: can be None, ``'pillbox'``,``'gaussian'`` or ``'buie'``
-		`half_angle_deg`: sun angular size (in DEGREES, half-angle) (ONLY in case of ``'pillbox'``)
 		`csr`: circumsolar ratio (ONLY in case of ``'buie'``)
+		`half_angle_deg`: sun angular size (in DEGREES, half-angle) (ONLY in case of ``'pillbox'``)
 		`std_dev`: standard deviation of the angular dsn ratio (ONLY in case of ``'gaussian'``)
 		"""
 		self.dni = dni
@@ -117,9 +120,9 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims,hst_w, hst_h
 		# CREATE the spectrum for the sun
 		iyaml+='- spectrum: &solar_spectrum  \n'
 		for i in range(0,len(I_sun)-1):
-		    iyaml+='  - {wavelength: %s, data: %s }\n' % (I_sun[i][0],I_sun[i][1])  
+		    iyaml+='  - {wavelength: %e, data: %e }\n' % (I_sun[i][0],I_sun[i][1])  
 		i = len(I_sun)-1
-		iyaml+='  - {wavelength: %s, data: %s }\n' % (I_sun[i][0],I_sun[i][1]) 
+		iyaml+='  - {wavelength: %e, data: %e }\n' % (I_sun[i][0],I_sun[i][1]) 
 		iyaml+='\n'
 
 		# CREATE the spectrum for the reflectivity (mirror)
@@ -154,7 +157,7 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims,hst_w, hst_h
 	iyaml += "- sun: %s\n" % (sun.yaml(spectrum),)
 
 	if medium>1e-99:
-		iyaml+='- atmosphere: {extinction: %s}\n'%medium 
+		iyaml+='- atmosphere: {extinction: %e}\n'%medium 
 		iyaml+='\n'
 
 		   
@@ -166,33 +169,28 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims,hst_w, hst_h
 	#------------------------------
 	#
 	# CREATE an occultant material
-	r_f = 0. # front
-	r_b = 0. # and back reflectivity
-	iyaml+='- material: &%s\n' % 'material_black'
+	iyaml+='- material: &material_black\n'
 	iyaml+='   front:\n'
-	iyaml+='     matte: {reflectivity: %6.4f }\n' % r_f    
+	iyaml+='     matte: {reflectivity: 0.}\n' # front    
 	iyaml+='   back:\n'
-	iyaml+='     matte: {reflectivity: %6.4f }\n' % r_b
+	iyaml+='     matte: {reflectivity: 0. }\n' # and back reflectivity
 	iyaml+='\n'
 	#
 	# CREATE a specular material
-	r_f= rho_refl # front
-	r_b = 0.      # and back reflectivity
-	iyaml+='- material: &%s\n' % 'material_mirror'
+	iyaml+='- material: &material_mirror\n'
 	iyaml+='   front:\n'
 	if spectral:
-		iyaml+='     mirror: {reflectivity: *%s, slope_error: %15.8e }\n' % ('ref_mirror', slope_error ) 
+		iyaml+='     mirror: {reflectivity: *ref_mirror, slope_error: %15.8e }\n' % (slope_error ) 
 	else:
-		iyaml+='     mirror: {reflectivity: %6.4f, slope_error: %15.8e }\n' % (r_f, slope_error) 
-
+		iyaml+='     mirror: {reflectivity: %6.4f, slope_error: %15.8e }\n' % (rho_refl, slope_error) 
 	iyaml+='   back:\n'
-	iyaml+='     matte: {reflectivity: %6.4f }\n' % r_b 
+	iyaml+='     matte: {reflectivity: 0. }\n'
 	iyaml+='\n'
 	#
 	# CREATE a material for the target
 	r_f = 1.-rec_abs # front
 	r_b = 1.-rec_abs # and back reflectivity
-	iyaml+='- material: &%s\n' % 'material_target'
+	iyaml+='- material: &material_target\n'
 	iyaml+='   front:\n'
 	iyaml+='     matte: {reflectivity: %6.4f }\n' % r_f    
 	iyaml+='   back:\n'
@@ -200,7 +198,7 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims,hst_w, hst_h
 	iyaml+='\n'
 	#
 	# CREATE a virtual material for the calculation of spillage
-	iyaml+='- material: &%s\n' % 'material_virtual'
+	iyaml+='- material: &material_virtual\n'
 	iyaml+='   virtual:\n'
 	iyaml+='\n'
 
@@ -216,8 +214,8 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims,hst_w, hst_h
 	# (cylindrical shape)
 	#
 	slices = 10 # slices for the envelop circle
-	iyaml+='- geometry: &%s\n' % 'tower_g' 
-	iyaml+='  - material: *%s\n' % 'material_black' 
+	iyaml+='- geometry: &tower_g\n' 
+	iyaml+='  - material: *material_black\n' 
 	#iyaml+='    transform: { translation: %s, rotation: %s }\n' % ([0, 0, h_tow*0.5], [0, 90, 0]) 
 	iyaml+='    cylinder: {height: %7.3f, radius: %7.3f, slices: %d }\n' % (tower_h, tower_r, slices) 
 	iyaml+='\n'
@@ -259,27 +257,27 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims,hst_w, hst_h
 		aim_z=hst_aims[:,2]
 		num_hst=len(hst_x)
 	slices = 4 # slices for the envelop circle
-	pts_hst = [ [-hst_w*0.5, -hst_h*0.5], [-hst_w*0.5, hst_h*0.5], [hst_w*0.5, hst_h*0.5], [hst_w*0.5,-hst_h*0.5] ]
+	
 	# CREATE a reflective facet (mirror)
 	for i in range(0,num_hst):
 		name_hst_g = 'hst_g_'+str(i)
 		iyaml+='- geometry: &%s\n' % name_hst_g 
-		iyaml+='  - material: *%s\n' % 'material_mirror' 
+		iyaml+='  - material: *material_mirror\n' 
 		#iyaml+='    transform: { translation: %s, rotation: %s }\n' % ([hst_x[i], hst_y[i], hst_z[i]], [0, 0, 0]) )
 		iyaml+='    parabol: \n'
 		iyaml+='      focal: %s\n' % hst_foc[i]
 		iyaml+='      clip: \n'  
 		iyaml+='      - operation: AND \n'
-		iyaml+='        vertices: %s\n' % pts_hst
+		iyaml+='        vertices: [ [%e, %e], [%e, %e], [%e, %e], [%e, %e] ]\n' % (-hst_w*0.5, -hst_h*0.5, -hst_w*0.5, hst_h*0.5, hst_w*0.5, hst_h*0.5, hst_w*0.5,-hst_h*0.5)
 		iyaml+='      slices: %d\n' % slices  
 
 	# CREATE the pylon "pylon_g" geometry cylindrical shape
 	h_pyl = 0.001 # pylon height
 	r_pyl = 0.2 # pylon radius
 	slices = 4 # slices for the envelop circle
-	iyaml+='- geometry: &%s\n' % 'pylon_g' 
-	iyaml+='  - material: *%s\n' % 'material_black' 
-	iyaml+='    transform: { translation: %s, rotation: %s }\n' % ([0, 0, -h_pyl*3], [0, 90, 0]) 
+	iyaml+='- geometry: &pylon_g\n'
+	iyaml+='  - material: *material_black\n' 
+	iyaml+='    '+yamltransform(pos=[0,0,-h_pyl*3],rot=[0,90,0]) + '\n'
 	iyaml+='    cylinder: {height: %7.3f, radius: %7.3f, slices: %d }\n' % (h_pyl,r_pyl,slices) 
 	#   
 
@@ -298,7 +296,7 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims,hst_w, hst_h
 		iyaml+='    geometry: *pylon_g\n'
 		iyaml+='    children: \n' 
 		iyaml+='    - name: pivot\n'
-		iyaml+='      zx_pivot: {target: {position: %s}} \n' % ([float(aim_x[i]),float(aim_y[i]),float(aim_z[i])]) 
+		iyaml += '      zx_pivot: {target: {position: [%.6f, %.6f, %.6f]}}\n' % (aim_x[i], aim_y[i], aim_z[i])
 		iyaml+='      children: \n'
 		iyaml+='      - name: reflect_surface\n'
 		iyaml+='        primary: 1\n'
@@ -319,7 +317,7 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims,hst_w, hst_h
 	iyaml+='\n- entity:\n'
 	iyaml+='    name: tower_e\n'
 	iyaml+='    primary: 0\n' 
-	iyaml+='    transform: { translation: %s, rotation: %s }\n' % ([0, -tower_r, tower_h*0.5], [0, 0, 0]) 
+	iyaml+='    ' + yamltransform(pos=[0,-tower_r, tower_h*0.5],rot=[0,0,0]) + '\n'
 	iyaml+='    geometry: *%s\n' % 'tower_g'    
 	#
 	# heliostat entities from the template
@@ -328,7 +326,7 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims,hst_w, hst_h
 		name_hst_t = 'hst_t_'+str(i)
 		iyaml+='\n- entity:\n'
 		iyaml+='    name: %s\n' % name_e
-		iyaml+='    transform: { translation: %s, rotation: %s }\n' % ([float(hst_x[i]), float(hst_y[i]), float(hst_z[i])], [0, 0, 0]) 
+		iyaml+='    ' + yamltransform(pos=[hst_x[i], hst_y[i], hst_z[i]],rot=[0,0,0]) + '\n'
 		iyaml+='    children: [ *%s ]\n' % name_hst_t    
 
 	with open(outfile_yaml,'w') as f:
@@ -361,14 +359,13 @@ def flat_receiver(rec_param, hemisphere='North'):
 	# rotation anagle, positive is anti-clockwise
 
 	geom=''
-	pts=[ [-rec_w*0.5, -rec_h*0.5], [-rec_w*0.5, rec_h*0.5], [rec_w*0.5, rec_h*0.5], [rec_w*0.5,-rec_h*0.5] ]
 
-	geom+='- geometry: &%s\n' % 'target_g'
-	geom+='  - material: *%s\n' % 'material_target'
+	geom+='- geometry: &target_g\n'
+	geom+='  - material: *material_target\n'
 	geom+='    plane: \n'
 	geom+='      clip: \n' 
 	geom+='      - operation: AND \n'
-	geom+='        vertices: %s\n' % pts
+	geom+='        vertices: [ [%e, %e], [%e, %e], [%e, %e], [%e, %e] ] \n' % (-rec_w*0.5, -rec_h*0.5, -rec_w*0.5, rec_h*0.5, rec_w*0.5, rec_h*0.5, rec_w*0.5,-rec_h*0.5)
 	geom+='      slices: %d\n' % slices 
 	geom+='\n'
 
@@ -378,27 +375,27 @@ def flat_receiver(rec_param, hemisphere='North'):
 	entt+='    name: target_e\n'
 	entt+='    primary: 0\n'
 	if hemisphere=='North':
-		entt+='    transform: { translation: %s, rotation: %s }\n' % ([x, y, z], [-90.-tilt, 0, 0]) 
+		entt+='    ' + yamltransform(pos=[x, y , z],rot=[-90.-tilt, 0, 0]) + '\n'
 	else:
-		entt+='    transform: { translation: %s, rotation: %s }\n' % ([x, y, z], [90.+tilt, 0, 0]) 
+		entt+='    ' + yamltransform(pos=[x, y , z],rot=[90.+tilt, 0, 0]) + '\n'
 	entt+='    geometry: *%s\n' % 'target_g'
 
 	# CREATE a virtual target entity from "target_g" geometry (primary = 0)
-	pts = [ [-rec_w*10., -rec_h*10.], [-rec_w*10., rec_h*10.], [rec_w*10., rec_h*10.], [rec_w*10.,-rec_h*10.] ]
+	 
 	slices = 4
 	entt+='\n- entity:\n'
 	entt+='    name: virtual_target_e\n'
 	entt+='    primary: 0\n'
 	if hemisphere=='North':
-		entt+='    transform: { translation: %s, rotation: %s }\n' % ([x, y-5., z], [-90.-tilt, 0, 0])
+		entt+='    ' + yamltransform(pos=[x, y-5, z],rot=[-90.-tilt, 0, 0]) + '\n'
 	else:
-		entt+='    transform: { translation: %s, rotation: %s }\n' % ([x, y+5., z], [90.+tilt, 0, 0])
+		entt+='    ' + yamltransform(pos=[x, y+5 , z],rot=[90.+tilt, 0, 0]) + '\n'
 	entt+='    geometry: \n' 
 	entt+='      - material: *%s\n' % 'material_virtual' 
 	entt+='        plane: \n'
 	entt+='          clip: \n'    
 	entt+='          - operation: AND \n'
-	entt+='            vertices: %s\n' % pts
+	entt+='            vertices: [ [%e, %e], [%e, %e], [%e, %e], [%e, %e] ] \n' % (-rec_w*10., -rec_h*10., -rec_w*10., rec_h*10., rec_w*10., rec_h*10., rec_w*10.,-rec_h*10.)
 	entt+='          slices: %d\n' % slices  
 
 	rcv=''
@@ -446,27 +443,23 @@ def cylindrical_receiver(rec_param, hemisphere='North'):
 	entt+='\n- entity:\n'
 	entt+='    name: target_e\n'
 	entt+='    primary: 0\n'
-
-	entt+='    transform: { translation: %s, rotation: %s }\n' % ([x, y, z], [0., 0., 0.]) 
-
+	entt+='    ' + yamltransform(pos=[x, y , z],rot=[0, 0, 0]) + '\n'
 	entt+='    geometry: *%s\n' % 'target_g'
 
 	# CREATE a virtual target entity from "target_g" geometry (primary = 0)
 	Vsize=100.
-	pts = [ [-rec_h*Vsize, -rec_h*Vsize], [-rec_h*Vsize, rec_h*Vsize], [rec_h*Vsize, rec_h*Vsize], [rec_h*Vsize,-rec_h*Vsize] ]
+
 	slices = 4
 	entt+='\n- entity:\n'
 	entt+='    name: virtual_target_e\n'
 	entt+='    primary: 0\n'
-
-	entt+='    transform: { translation: %s, rotation: %s }\n' % ([x, y, z+rec_h/2.+1], [-180., 0, 0])
-
+	entt+='    ' + yamltransform(pos=[x, y, z+rec_h/2.+1],rot=[-180., 0, 0]) + '\n'
 	entt+='    geometry: \n' 
 	entt+='      - material: *%s\n' % 'material_virtual' 
 	entt+='        plane: \n'
 	entt+='          clip: \n'    
 	entt+='          - operation: AND \n'
-	entt+='            vertices: %s\n' % pts
+	entt+='            vertices: [ [%e, %e], [%e, %e], [%e, %e], [%e, %e] ]\n' % (-rec_h*Vsize, -rec_h*Vsize, -rec_h*Vsize, rec_h*Vsize, rec_h*Vsize, rec_h*Vsize, rec_h*Vsize,-rec_h*Vsize)
 	entt+='          slices: %d\n' % slices  
 
 	rcv=''
@@ -506,33 +499,32 @@ def STL_receiver(rec_param, hemisphere='North'):
 	entt+='    name: STL_receiver_e\n'
 	entt+='    primary: 0\n'
 	if hemisphere=='North':
-
-		entt+='    transform: { translation: %s, rotation: %s }\n' % ([x, y, z], [-90.-tilt, 0, 0]) 
+		entt+='    ' + yamltransform(pos=[x, y, z],rot=[-90.-tilt, 0, 0]) + '\n'
 	else:
 		# if it is the mesh model of the bladed receiver at CSIRO
-		entt+='    transform: { translation: %s, rotation: %s }\n' % ([x, y, z], [180.+tilt, 0, 0]) 
+		entt+='    ' + yamltransform(pos=[x, y, z],rot=[180.+tilt, 0, 0]) + '\n'
 	entt+='    geometry:\n'
 	entt+='    - material: *material_target\n'
-	entt+='      transform: {translation: [0, 0, 0], rotation: [0, 0, 0]}\n'
+	entt+='    ' + yamltransform(pos=[0,0,0],rot=[0, 0, 0]) + '\n'
 	entt+="      stl : {path: %s }  \n"%(stlfile)
 
 
 	# CREATE a virtual target entity from "target_g" geometry (primary = 0)
-	pts = [ [-rec_w*10., -rec_h*10.], [-rec_w*10., rec_h*10.], [rec_w*10., rec_h*10.], [rec_w*10.,-rec_h*10.] ]
+
 	slices = 4
 	entt+='\n- entity:\n'
 	entt+='    name: virtual_target_e\n'
 	entt+='    primary: 0\n'
 	if hemisphere=='North':
-		entt+='    transform: { translation: %s, rotation: %s }\n' % ([x, y-5., z], [-90.-tilt, 0, 0])
+		entt+='    ' + yamltransform(pos=[x, y-5., z],rot=[-90.-tilt, 0, 0]) + '\n'
 	else:
-		entt+='    transform: { translation: %s, rotation: %s }\n' % ([x, y+5., z], [90.+tilt, 0, 0])
+		entt+='    ' + yamltransform(pos=[x, y+5., z],rot=[90.+tilt, 0, 0]) + '\n'
 	entt+='    geometry: \n' 
 	entt+='      - material: *%s\n' % 'material_virtual' 
 	entt+='        plane: \n'
 	entt+='          clip: \n'    
 	entt+='          - operation: AND \n'
-	entt+='            vertices: %s\n' % pts
+	entt+='            vertices: [ [%e, %e], [%e, %e], [%e, %e], [%e, %e] ] \n' % (-rec_w*10., -rec_h*10., -rec_w*10., rec_h*10., rec_w*10., rec_h*10., rec_w*10.,-rec_h*10.)
 	entt+='          slices: %d\n' % slices  
 
 	rcv=''
@@ -583,14 +575,12 @@ def multi_aperture_receiver(rec_param, hemisphere='North', plot=False):
 	vir_z=0.
 	for i in range(num_aperture):
 
-		pts=[ [-rec_w[i]*0.5, -rec_h[i]*0.5], [-rec_w[i]*0.5, rec_h[i]*0.5], [rec_w[i]*0.5, rec_h[i]*0.5], [rec_w[i]*0.5,-rec_h[i]*0.5] ]
-
 		geom+='- geometry: &%s\n' % 'target_g_%.0f\n'%(i)
 		geom+='  - material: *%s\n' % 'material_target'
 		geom+='    plane: \n'
 		geom+='      clip: \n' 
 		geom+='      - operation: AND \n'
-		geom+='        vertices: %s\n' % pts
+		geom+='        vertices: [ [%e, %e], [%e, %e], [%e, %e], [%e, %e] ]\n' % (-rec_w[i]*0.5, -rec_h[i]*0.5, -rec_w[i]*0.5, rec_h[i]*0.5, rec_w[i]*0.5, rec_h[i]*0.5, rec_w[i]*0.5,-rec_h[i]*0.5)
 		geom+='      slices: %d\n' % rec_grid_w 
 		geom+='\n'
 
@@ -605,9 +595,9 @@ def multi_aperture_receiver(rec_param, hemisphere='North', plot=False):
 		entt+='    name: target_e_%.0f\n'%(i)
 		entt+='    primary: 0\n'
 		if hemisphere=='North':
-			entt+='    transform: { translation: %s, rotation: %s }\n' % ([xc, yc, zc], [-90.-rec_tilt, 90.-ang_pos,0]) 
+			entt+='    ' + yamltransform(pos=[xc, yc, zc],rot=[-90.-rec_tilt, 90.-ang_pos,0]) + '\n'
 		else:
-			entt+='    transform: { translation: %s, rotation: %s }\n' % ([-xc, -yc, zc], [90.+rec_tilt, 90.-ang_pos,0]) 
+			entt+='    ' + yamltransform(pos=[-xc, -yc, zc],rot=[90.+rec_tilt, 90.-ang_pos,0]) + '\n'
 		entt+='    geometry: *%s\n' % 'target_g_%.0f\n'%(i)
 
 	vir_z/=float(num_aperture)
@@ -636,7 +626,4 @@ def multi_aperture_receiver(rec_param, hemisphere='North', plot=False):
 
 	return geom, entt, rcv
 
-
-
-#------------------------------
 

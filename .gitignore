@@ -1,3 +1,7 @@
+tests/test-crs-design
+tests/test-dish-parabolia
+tests/test-multi-aperture
+tests/test_master
 
 postproc/solpaths
 postproc/solpp
