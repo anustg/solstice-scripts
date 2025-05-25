@@ -37,7 +37,7 @@ class TestMaster(unittest.TestCase):
 
 		field, Nzones, Nrows_zone=radial_stagger(latitude=latitude, num_hst=1000, width=hst_w, height=hst_h, hst_z=3., towerheight=tower_h, R1=50., fb=0.5, dsep=0., field='polar', savedir=self.casedir, plot=False, verbose=False)
 		hst_pos=field[2:,:3].astype(float)
-		hst_foc=field[2:,3] .astype(float)
+		hst_foc=field[2:,3].astype(float) 
 		hst_aims=field[2:,4:].astype(float)
 
 		#

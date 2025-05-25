@@ -76,10 +76,10 @@ class TestDesignDish(unittest.TestCase):
 		with open(fn) as f:
 			for r in f.readlines():
 				if 'v' in r:
-					v=re.findall("[-+]?\d*\.\d+|\d+", r)
+					v=re.findall(r"[-+]?\d*\.\d+|\d+", r)
 					vertices=np.append(vertices, np.r_[float(v[0]), float(v[1]), float(v[2])])
 				elif 'f' in r:
-					f=re.findall("[-+]?\d*\.\d+|\d+", r)
+					f=re.findall(r"[-+]?\d*\.\d+|\d+", r)
 					faces=np.append(faces, np.r_[int(f[0]), int(f[1]), int(f[2]), int(f[3])])
 		vertices=vertices.reshape(int(len(vertices)/3),3)
 		faces=faces.reshape(int(len(faces)/4),4)
@@ -87,7 +87,7 @@ class TestDesignDish(unittest.TestCase):
 		multifacets=True
 		fct_w=1.17
 		fct_h=1.17
-		print(len(faces))
+		#print(len(faces))
 
 		dish=Dish(casedir, nproc=1, verbose=True)
 		dish.yaml(dish_radius, dish_foc, rho_refl, slope_error, rec_r, rec_x, rec_y, rec_z, rec_grid_r, rec_abs, multifacets, vertices, faces, fct_w, fct_h, dni=dni, sunshape=sunshape, half_angle_deg=half_angle_deg)

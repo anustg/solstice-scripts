@@ -4,19 +4,25 @@ This repository contains Python wrappers for running the  [Solstice](https://www
 
 [![github](https://readthedocs.org/projects/solsticepy/badge/?version=latest)][1]
 
-# solsticepy
+# 1. solsticepy
 
 See the [documentation](https://solsticepy.readthedocs.io/en/latest/?badge=latest) for `solsticepy` at Read The Docs.
 
-# Installing Solstice
+# 2. Install Solstice
 
-## Windows
+## 2.1 Windows
 
 * For Windows (Windows 10, 64-bit), use our 64-bit [binary installer](https://github.com/anustg/solstice-scripts/releases) to install Solstice. The resulting files will be located in `c:\Program Files\solstice-0.9.0` (with the appropriate version number). Note that the Windows installer **also includes** the post-processing tools.
 
-## Linux
+## 2.2 Linux
 
-* In Linux system (eg Ubuntu 18.04 64-bit), you must download the binary tarball  from the [Solstice homepage](https://www.meso-star.com/projects/solstice/solstice.html). Note, you will also separately need to set up the post-processing tools. 
+* In Linux system (eg Ubuntu 18.04 64-bit), you need
+
+(1) download the binary tarball from the [Solstice homepage](https://www.meso-star.com/projects/solstice/solstice.html). 
+
+(2) set up the post-processing tools. 
+
+### 2.2.1 Install solstice
 
 ```bash
 ### download and extract:
@@ -30,22 +36,28 @@ export LD_LIBRARY_PATH=$LB_LIBRARY_PATH:~/Solstice-0.9.0-GNU-Linux64/lib
 solstice --help
 ```
 
-* Note that you can add the two `export` commands to your `~/.profile` file in order that `solstice` remains available next time you log in.
+Note that you can add the two `export` commands to your `~/.profile` file in order that `solstice` remains available next time you log in.
 
-* To install the post-processing scripts:
+### 2.2.2 Install the post-processing program
+
+Perform the following comments to clone the solsticepy package, and compile the post-processing program by scons
 
 ```bash
-### download this code repository:
 cd ~
 git clone https://github.com/anustg/solstice-scripts.git
-cd solstice-scripts
-### compile the post-processing scripts
+cd solstice-scripts/postproc
 scons
-### install the post-processing scripts to the solstice PATH
-scons INSTALL_PREFIX=~/Solstice-0.9.0-GNU-Linux64 install
 ```
 
-# Installing `solsticepy` wrapper scripts
+To install the post-processing programs in a user-defined path, replace the last step by the following comment, and then add the /user/defined/path to system path if needed.
+
+```bash
+scons INSTALL_PREFIX=/user/defined/path install
+export PATH=$PATH:/user/defined/path
+
+```
+
+# 3. Install `solsticepy` 
 
 The instructions below give easy instructions for end-users. If you are interested in hacking/developing/changing `solsticepy` code, see [HACKING](HACKING.md) instead.
 
@@ -71,7 +83,9 @@ install.py
 ```
 * You should see Python downloading and installing 'solsticepy' from the PyPI servers.
 
-# Installing Paraview
+# 4. Install Paraview
+
+Pavaview is a software to visualise Solstice simulation scene.
 
 * **Be sure to install a version 4 release of Paraview**. Version 5 was not stable on Windows when we tested it (Apr 2020).
 * On Windows:
@@ -82,7 +96,7 @@ install.py
 
   * `sudo apt install paraview` should be all you need.
 
-# Running a example wrapper script:
+# 5. Running an example:
 
 * **This section yet to be completed**
 

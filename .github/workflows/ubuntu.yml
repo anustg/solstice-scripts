@@ -21,11 +21,12 @@ jobs:
         os: [ubuntu-22.04]
         include:
           - os: ubuntu-22.04
-            python-version: 3.8
+            python-version: 3.11
 
 
     env:
       PYTEST_ADDOPTS: --color=yes
+      SOLSTICEVER: 0.9.1
       
     steps:
     - uses: actions/checkout@v2
@@ -38,7 +39,7 @@ jobs:
     - name: Install Python dependencies
       run: |
         python3 -m pip install --upgrade pip 
-        python3 -m pip install numpy scipy matplotlib colorama uncertainties pytest flake8
+        python3 -m pip install scons numpy scipy matplotlib colorama uncertainties pytest flake8
         # if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
     - name: Show Python context
@@ -56,7 +57,7 @@ jobs:
       run: |
         sudo apt install build-essential libpolyclipping-dev libtbb-dev libyaml-dev  libgomp1
         export UBVER=`lsb_release -cs`
-        export SOLSTICEURL="https://cloudstor.aarnet.edu.au/plus/s/TaoO6XnrGRiwoiC/download?path=%2F&files=solstice-0.9-x86_64-$UBVER.tar.gz"
+        export SOLSTICEURL="https://github.com/anustg/installation-packages/releases/download/omc-dakota-solstice-installation/solstice-${SOLSTICEVER}-x86_64-$UBVER.tar.gz"
         sudo tar zxv --strip-components=3 -C /usr/local < <(wget "$SOLSTICEURL" -q -O-)
         echo "CHECK SOLSTICE DEPS"
         export PATH=$PATH:/usr/local/bin
@@ -72,11 +73,17 @@ jobs:
     - name: Install solsticepy
       run: |
         python3 -m pip install .
-
+        
+ 
+    - name: Install postprocessing programs
+      run: |
+        cd postproc
+        scons INSTALL_PREFIX=~/bin install 
+        cd .
         
     - name: Test solsticepy
       run: |
-        export PATH=$PATH:/usr/local/bin
+        export PATH=$PATH:/usr/local/bin:~/bin
         export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib
         cd tests
         python -m pytest
