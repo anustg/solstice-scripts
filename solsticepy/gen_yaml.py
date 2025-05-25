@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 from .data_spectral import SolarSpectrum, MirrorRhoSpectrum
 from .cal_layout import multi_aperture_pos
 import sys
+from .geometry import get_rotation
 
 class Sun:
 	"""Sun parameters for solstice-input
@@ -58,10 +59,10 @@ class Sun:
 
 
 def gen_yaml(sun, hst_pos, hst_foc, hst_aims, hst_w, hst_h
-		, rho_refl, slope_error, cant, bands, receiver, rec_param, rec_abs
+		, rho_refl, slope_error, receiver, rec_param, rec_abs
 		, outfile_yaml, outfile_recv
 		, hemisphere='North', tower_h=0.01, tower_r=0.01,  spectral=False
-		, medium=0, one_heliostat=False
+		, medium=0, one_heliostat=False, cant=False, bands=np.array([[None, None]])
 		, fct_w=0, fct_h=0, fct_gap=0, n_row=0, n_col=0, shape='curved'):
 	"""Generate the heliostat field and receiver YAML input files for Solstice ray-tracing simulation.
 
@@ -187,16 +188,31 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims, hst_w, hst_h
 	# CREATE a specular material
 	r_f= rho_refl # front
 	r_b = 0.      # and back reflectivity
-	iyaml+='- material: &%s\n' % 'material_mirror'
-	iyaml+='   front:\n'
-	if spectral:
-		iyaml+='     mirror: {reflectivity: *%s, slope_error: %15.8e }\n' % ('ref_mirror', slope_error ) 
+	if isinstance(slope_error, float):
+		iyaml+='- material: &%s\n' % 'material_mirror'
+		iyaml+='   front:\n'
+		if spectral:
+			iyaml+='     mirror: {reflectivity: *%s, slope_error: %15.8e }\n' % ('ref_mirror', slope_error ) 
+		else:
+			iyaml+='     mirror: {reflectivity: %6.4f, slope_error: %15.8e }\n' % (r_f, slope_error) 
+		iyaml+='   back:\n'
+		iyaml+='     matte: {reflectivity: %6.4f }\n' % r_b 
+		iyaml+='\n'
 	else:
-		iyaml+='     mirror: {reflectivity: %6.4f, slope_error: %15.8e }\n' % (r_f, slope_error) 
+		for i in range(len(slope_error)):
+			#TODO this is only works for the single facet paraboloid heliostat
+			iyaml+='- material: &%s\n' % 'material_mirror_%.0f'%i
+			iyaml+='   front:\n'
+			if spectral:
+				iyaml+='     mirror: {reflectivity: *%s, slope_error: %15.8e }\n' % ('ref_mirror', slope_error[i] ) 
+			else:
+				iyaml+='     mirror: {reflectivity: %6.4f, slope_error: %15.8e }\n' % (r_f, slope_error[i]) 	
+			iyaml+='   back:\n'
+			iyaml+='     matte: {reflectivity: %6.4f }\n' % r_b 
+			iyaml+='\n'	
 
-	iyaml+='   back:\n'
-	iyaml+='     matte: {reflectivity: %6.4f }\n' % r_b 
-	iyaml+='\n'
+
+
 	#
 	# CREATE a material for the target
 	r_f = 1.-rec_abs # front
@@ -212,7 +228,6 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims, hst_w, hst_h
 	iyaml+='- material: &%s\n' % 'material_virtual'
 	iyaml+='   virtual:\n'
 	iyaml+='\n'
-
 
 	# 
 	### Section (4) & (5)
@@ -316,7 +331,7 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims, hst_w, hst_h
 			iyaml+="      clip:\n"
 			iyaml+="      - operation: AND\n" 
 			iyaml+="        vertices: [[%s, %s], [%s, %s], [%s, %s], [%s, %s]]\n"%(-fct_w/2., -fct_h/2.,-fct_w/2., fct_h/2., fct_w/2., fct_h/2., fct_w/2., -fct_h/2.)
-			iyaml+="      slices: 1\n\n"	
+			iyaml+="      slices: 4\n\n"	
 
 
 
@@ -379,7 +394,7 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims, hst_w, hst_h
 				for i in range(n_row):			
 					iyaml+='        - name: facet_%s_c%s_r%s\n'%(b, j, i)
 					iyaml+='          primary: 1\n'
-					iyaml+='          transform: {translation: [%.4f,0,%.4f], rotation: [%s,%s,0]}\n'%(fct_x[i,j], fct_z[i,j], rotx[i,j]-90, roty[i,j])
+					iyaml+='          transform: {translation: [%.4f,0,%.4f], rotation: [%s,%s,0]}\n'%(fct_x[i,j], fct_z[i,j], rotx[i,j], roty[i,j])
 					if shape=='flat':
 						iyaml+='          geometry: *facet_g\n'
 					else:
@@ -425,9 +440,9 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims, hst_w, hst_h
 
 			for i in range(num_hst):
 			# CREATE the heliostat templates   
-				name_hst_t = 'hst_t'
+				name_hst_t = 'hst_t_%s' %i
 				iyaml+='- template: &%s\n' % name_hst_t 
-				name_hst_n = 'hst_'
+				name_hst_n = 'hst_%s\n'%i
 				iyaml+='    name: %s\n' % name_hst_n 
 				iyaml+='    primary: 0\n'   
 				iyaml+='    geometry: *pylon_g\n'
@@ -445,19 +460,22 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims, hst_w, hst_h
 
 
 				name_e ='H_'+str(i)
-				name_hst_t = 'hst_t'
+				name_hst_t = 'hst_t_%s'%i
 				iyaml+='\n- entity:\n'
 				iyaml+='    name: %s\n' % name_e
 				iyaml+='    transform: { translation: %s, rotation: %s }\n' % ([hst_x[i], hst_y[i], hst_z[i]], [0, 0, 0]) 
 				iyaml+='    children: [ *%s ]\n' % name_hst_t 	
 	
-		else:
-			
+		else: # single facet, paraboloid			
 			for i in range(len(bands)):
 					foc=bands[i,1]
 					name_hst_g = 'hst_g_band_'+str(i)
 					iyaml+='- geometry: &%s\n' % name_hst_g 
-					iyaml+='  - material: *%s\n' % 'material_mirror' 
+					if isinstance(slope_error, float):
+						iyaml+='  - material: *%s\n' % 'material_mirror' 
+					else:
+						idx_f=np.argmin(abs(hst_foc-foc))
+						iyaml+='  - material: *%s\n' % 'material_mirror_%.0f'%idx_f 						
 
 					if  shape=='parabolic-cylinder':
 						iyaml+="    parabolic-cylinder:\n"
@@ -562,41 +580,13 @@ def heliostat_canted_facets(hst_w, hst_h, fct_w, fct_h, gap, n_row, n_col, foc, 
 			# the focal point is (0, foc, 0)
 			# facet location
 			O=np.r_[x, 0, z] 
-			OH=np.r_[0,1,0] # original hst norm 
-			OX=np.r_[1,0,0]	
 
 			n0=np.r_[-x/2./foc, 1, -z/2./foc] # facet pointing direction           
-			n0=n0/np.linalg.norm(n0)			
-
-			n1=np.cross(OH, OX)
-			n2=np.cross(n0, OX)	
-
-			rotx=np.arccos(np.dot(n1, n2)/(np.linalg.norm(n1)*np.linalg.norm(n2)))*180./np.pi
-			if z>0:
-				rotx=-rotx
-
-			v_proj=np.cross(n2, (np.cross(OH, n2)/np.linalg.norm(n2)))/np.linalg.norm(n2)
-			norm=np.linalg.norm(v_proj)*np.linalg.norm(n0)
-
-			if norm<1e-12:
-				cosy=np.dot(n0, np.r_[0,0,1])
-				roty=-np.arccos(cosy)*180./np.pi
-			else:
-				cosy=np.dot(v_proj, n0)/norm
-				if 1-abs(cosy)<1e-12:
-					roty=0
-				else:
-					roty=np.arccos(cosy)*180./np.pi
-
-			if x>0:
-				roty=-roty
-			elif x<0 and z==0:
-				roty=-roty
+			n0=n0/np.linalg.norm(n0)	
+			rotx, roty=get_rotation(O, n0)
 			
-
 			data=np.append(data, (x, z, rotx, roty))
-
-			#print(x, 0, z, n0[0], n0[1], n0[2])
+			#print(x, 0, z, rotx, roty)
 	
 	data=data.reshape(int(len(data)/4), 4)		
 	
@@ -621,9 +611,9 @@ def flat_receiver(rec_param, hemisphere='North'):
 	z=rec_param[6]
 	tilt=rec_param[7]
 	if len(rec_param)>8:
-		tilt_z=rec_param[8]
+		tilt_y=rec_param[8]
 	else:
-		tilt_z=0
+		tilt_y=0
 	# receiver tilt angle:
 	# 0 is vertical
 	# the standby posiion of a plane in solstice is normal points to the +z axis
@@ -633,7 +623,7 @@ def flat_receiver(rec_param, hemisphere='North'):
 	pts=[ [-rec_w*0.5, -rec_h*0.5], [-rec_w*0.5, rec_h*0.5], [rec_w*0.5, rec_h*0.5], [rec_w*0.5,-rec_h*0.5] ]
 
 	geom+='- geometry: &%s\n' % 'target_g'
-	geom+='  - material: *%s\n' % 'material_virtual'
+	geom+='  - material: *%s\n' % 'material_target'
 	geom+='    plane: \n'
 	geom+='      clip: \n' 
 	geom+='      - operation: AND \n'
@@ -647,9 +637,9 @@ def flat_receiver(rec_param, hemisphere='North'):
 	entt+='    name: target_e\n'
 	entt+='    primary: 0\n'
 	if hemisphere=='North':
-		entt+='    transform: { translation: %s, rotation: %s }\n' % ([x, y, z], [-90.-tilt, 0, tilt_z]) 
+		entt+='    transform: { translation: %s, rotation: %s }\n' % ([x, y, z], [-90.-tilt, tilt_y, 0]) 
 	else:
-		entt+='    transform: { translation: %s, rotation: %s }\n' % ([x, y, z], [90.+tilt, 0, -tilt_z]) 
+		entt+='    transform: { translation: %s, rotation: %s }\n' % ([x, y, z], [90.+tilt, -tilt_y, 0]) 
 	entt+='    geometry: *%s\n' % 'target_g'
 
 

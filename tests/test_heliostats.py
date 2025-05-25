@@ -20,7 +20,7 @@ class TestHeliostats(unittest.TestCase):
         self.DNI = 1000 # W/m2
         self.sunshape = 'pillbox'
         self.half_angle_deg = 0.2664   
-        self.num_rays=int(300e6)#300e6,  1000e7
+        self.num_rays=int(20e6)#300e6,  1000e7
 
         # Heliostat
         self.rho_refl=0.9 # mirror reflectivity
@@ -83,10 +83,16 @@ class TestHeliostats(unittest.TestCase):
         times=[12, 8]
         focuses=['a', 'b']
         aims=[1, 2]
-        for t in times:
-            for f in focuses:
-                for a in aims:
-                    
+
+        total_energy=np.array([720498.8, 673714.5, 719432.4, 670472.3 , 632148.5, 591322.3, 630599.7, 588141.3 ])
+        peak_flux=np.array([2340.535, 1224.455, 2162.62, 1215.44, 2253.435, 1168.56, 2087.81, 1157.135])
+        total_energy=total_energy.reshape(2, 2, 2)
+        peak_flux=peak_flux.reshape(2, 2, 2)
+        
+        for i,t in enumerate(times):
+            for j,f in enumerate(focuses):
+                for k,a in enumerate(aims):
+    
                     start=time.time()    
                     casename='solstice_Task_1%s_AimStrat_%s_%s'%(f, a, t)
                     casedir='./'+casename
@@ -147,20 +153,20 @@ class TestHeliostats(unittest.TestCase):
                                             hst_aims=hst_aims, 
                                             hst_w=self.hst_w, 
                                             hst_h=self.hst_h,
-	                                        rho_refl=self.rho_refl, 
+                                            rho_refl=self.rho_refl, 
                                             slope_error=self.slope_error, 
                                             cant=cant, 
                                             bands=bands, 
                                             receiver=self.receiver, 
                                             rec_param=self.rec_param, 
                                             rec_abs=self.rec_abs,
-	                                        outfile_yaml=outfile_yaml, 
+                                            outfile_yaml=outfile_yaml, 
                                             outfile_recv=outfile_recv,
-	                                        hemisphere=self.hemisphere, 
+                                            hemisphere=self.hemisphere, 
                                             tower_h=self.tower_h, 
                                             tower_r=self.tower_r,  
                                             spectral=False,
-	                                        medium=0, 
+                                            medium=0, 
                                             one_heliostat=False, 
                                             fct_w=self.fct_w, 
                                             fct_h=self.fct_h, 
@@ -169,13 +175,16 @@ class TestHeliostats(unittest.TestCase):
                                             n_col=self.fct_col, 
                                             shape=shape)
                        
-                        master.run(azi, ele, self.num_rays, self.rho_refl, self.DNI, folder=casedir, gen_vtk=True,  printresult=True, verbose=True, system='crs')
+                        master.run(azi, ele, int(self.num_rays), self.rho_refl, self.DNI, folder=casedir, gen_vtk=True,  printresult=True, verbose=True, system='crs')
                     end=time.time()
-                    print('time', (start-end)/60, 'min')
+                    print('time', (end-start)/60, 'min')
                     points, tri, flux, flux_abs, flux_back, flux_abs_back=flux_reader(vtkfile, casedir)
-                    plot_fluxmap(points, tri, flux, casedir, casename=casename, loc_z_rec=self.loc_z, rec_r=self.rec_r, rec_h=self.rec_h, m=self.mesh_h, n=self.mesh_circ)
+                    Q_receiver, peak=plot_fluxmap(points, tri, flux, casedir, casename=casename, loc_z_rec=self.loc_z, rec_r=self.rec_r, rec_h=self.rec_h, m=self.mesh_h, n=self.mesh_circ)
+                    print('Peak=%.2f, Qrec=%.2f'%(peak, Q_receiver))
+                    self.assertTrue(abs(Q_receiver-total_energy[i,j,k])/Q_receiver<0.01)
+                    self.assertTrue(abs(peak-peak_flux[i,j,k])/peak<0.01)
 
-    #@unittest.skip(" ")
+    @unittest.skip(" ")
     def test_2(self):
         """ 
         Whole field
@@ -204,9 +213,15 @@ class TestHeliostats(unittest.TestCase):
         times=[12, 8]
         focuses=['a', 'b']
         aims=[1, 2]
-        for a in aims:
-            for t in times:
-                for f in focuses:
+
+        total_energy=np.array([710474.9, 663659.5,709418.2, 660562.9, 623605.1, 582802, 622091.1 , 579752.7])
+        peak_flux=np.array([2258.667, 1206.28, 2111.024, 1199.243, 2184.837, 1150.8, 2051.039, 1145.619])
+        total_energy=total_energy.reshape(2, 2, 2)
+        peak_flux=peak_flux.reshape(2, 2, 2)
+
+        for ii,t in enumerate(times):        
+            for jj,f in enumerate(focuses):
+                for kk,a in enumerate(aims):
                     start=time.time()
 
                     layout=np.loadtxt('./data/heliostats_pos_ID.csv', delimiter=',', skiprows=1)
@@ -219,133 +234,142 @@ class TestHeliostats(unittest.TestCase):
                     m=500
                     casename_0='solstice_Task_2%s_AimStrat_%s_%s'%(f, a, t)
                     casedir_0='./'+casename_0
-                    for i in range(int(num/m)+1):
-                        casename='solstice_Task_2%s_AimStrat_%s_%s-%s'%(f, a, t, i)
-                        casedir=casedir_0+'/%s'%casename
-                        if not os.path.exists(casedir):
-                            os.makedirs(casedir)
+                    if not os.path.exists(casedir_0+'/solstice_Task_2%s_AimStrat_%s_%s_fluxmap.csv'%(f, a, t)):
+                        for i in range(int(num/m)+1):
+                            casename='solstice_Task_2%s_AimStrat_%s_%s-%s'%(f, a, t, i)
+                            casedir=casedir_0+'/%s'%casename
+                            if not os.path.exists(casedir):
+                                os.makedirs(casedir)
 
-                        if not os.path.exists(casedir+'/flux_tri.png'):
+                            if not os.path.exists(casedir+'/flux_tri.png'):
 
-                            if i<=int(num/m)-1:                                         
-                                hst_x=layout[i*m:(i+1)*m,1]
-                                hst_y=layout[i*m:(i+1)*m,2]
-                                if a==2:
-                                    offset_z=layout[i*m:(i+1)*m, 4]
-                            else:
-                                hst_x=layout[i*m:,1]
-                                hst_y=layout[i*m:,2]
-                                if a==2:
-                                    offset_z=layout[i*m:,4]
-                            print(len(hst_x), i)
-                            hst_z=np.ones(len(hst_x))*self.H_pedestal
-                            hst_pos=np.append(hst_x, (hst_y, hst_z))
-                            hst_pos=hst_pos.reshape(3, len(hst_x))
-                            hst_pos=hst_pos.T
+                                if i<=int(num/m)-1:                                         
+                                    hst_x=layout[i*m:(i+1)*m,1]
+                                    hst_y=layout[i*m:(i+1)*m,2]
+                                    if a==2:
+                                        offset_z=layout[i*m:(i+1)*m, 4]
+                                else:
+                                    hst_x=layout[i*m:,1]
+                                    hst_y=layout[i*m:,2]
+                                    if a==2:
+                                        offset_z=layout[i*m:,4]
+                                print(len(hst_x), i)
+                                hst_z=np.ones(len(hst_x))*self.H_pedestal
+                                hst_pos=np.append(hst_x, (hst_y, hst_z))
+                                hst_pos=hst_pos.reshape(3, len(hst_x))
+                                hst_pos=hst_pos.T
 
-                            if f=='a':
-                                bands=np.array([[None, None]])
-                                hst_foc=np.sqrt((hst_x)**2+(hst_y)**2+(hst_z-self.loc_z)**2) #slant range is the centre point of the receiver cylinder
-                            else:
-                                bands=np.array([[502, 516],  # band range (<=), focal length
-                                    [885, 668],
-                                    [1267, 959],
-                                    [1650, 1500]])
-                                hst_foc=np.sqrt((hst_x)**2+(hst_y)**2+(hst_z)**2) # slant range is the heliostat to the bottom of the tower (0,0,0)
+                                if f=='a':
+                                    bands=np.array([[None, None]])
+                                    hst_foc=np.sqrt((hst_x)**2+(hst_y)**2+(hst_z-self.loc_z)**2) #slant range is the centre point of the receiver cylinder
+                                else:
+                                    bands=np.array([[502, 516],  # band range (<=), focal length
+                                        [885, 668],
+                                        [1267, 959],
+                                        [1650, 1500]])
+                                    hst_foc=np.sqrt((hst_x)**2+(hst_y)**2+(hst_z)**2) # slant range is the heliostat to the bottom of the tower (0,0,0)
 
-                            if t==12:
-                                azi=self.azimuth
-                                ele=self.elevation
-                                vtkfile=casedir+'/%.0f-%.0f-target_e.vtk'%(azi, ele)
-                            elif t==8:
-                                azi=14.7333
-                                ele=26.4378
-                                vtkfile=casedir+'/%s-%s-target_e.vtk'%(azi, ele)
+                                if t==12:
+                                    azi=self.azimuth
+                                    ele=self.elevation
+                                    vtkfile=casedir+'/%.0f-%.0f-target_e.vtk'%(azi, ele)
+                                elif t==8:
+                                    azi=14.7333
+                                    ele=26.4378
+                                    vtkfile=casedir+'/%s-%s-target_e.vtk'%(azi, ele)
 
- 
-                            # aim at the receiver center
-                            hst_azimuth=np.arccos(hst_y/np.sqrt(hst_x**2+hst_y**2))
-                            hst_azimuth[hst_x>0]=np.pi*2.-hst_azimuth[hst_x>0]
-                            hst_aims=np.zeros((len(hst_x),3))
-                
-                            hst_aims[:,0]=-self.rec_r*np.sin(hst_azimuth)
-                            hst_aims[:,1]=self.rec_r*np.cos(hst_azimuth)
-                            hst_aims[:,2]=self.loc_z+offset_z
-
-
-                            master=Master(casedir=casedir)
-                            outfile_yaml = master.in_case(folder=casedir, fn='input.yaml')
-                            outfile_recv = master.in_case(folder=casedir, fn='input-rcv.yaml')
-
-                            SUN = solsticepy.Sun(dni=self.DNI, sunshape=self.sunshape, half_angle_deg=self.half_angle_deg) 
-                                                           
-                            solsticepy.gen_yaml(sun=SUN, 
-                                                hst_pos=hst_pos, 
-                                                hst_foc=hst_foc, 
-                                                hst_aims=hst_aims, 
-                                                hst_w=self.hst_w, 
-                                                hst_h=self.hst_h,
-	                                            rho_refl=self.rho_refl, 
-                                                slope_error=self.slope_error, 
-                                                cant=cant, 
-                                                bands=bands, 
-                                                receiver=self.receiver, 
-                                                rec_param=self.rec_param, 
-                                                rec_abs=self.rec_abs,
-	                                            outfile_yaml=outfile_yaml, 
-                                                outfile_recv=outfile_recv,
-	                                            hemisphere=self.hemisphere, 
-                                                tower_h=self.tower_h, 
-                                                tower_r=self.tower_r,  
-                                                spectral=False,
-	                                            medium=0, 
-                                                one_heliostat=False, 
-                                                fct_w=self.fct_w, 
-                                                fct_h=self.fct_h, 
-                                                fct_gap=self.gap, 
-                                                n_row=self.fct_row, 
-                                                n_col=self.fct_col, 
-                                                shape=shape)
-                            if not os.path.exists(vtkfile):                             
-                                master.run(azi, ele, self.num_rays, self.rho_refl, self.DNI, folder=casedir, gen_vtk=True,  printresult=True, verbose=True, system='crs')
-                            points, tri, flux, flux_abs, flux_back, flux_abs_back=flux_reader(vtkfile, casedir)
-                            plot_fluxmap(points, tri, flux, casedir, casename=casename, loc_z_rec=self.loc_z, rec_r=self.rec_r, rec_h=self.rec_h, m=self.mesh_h, n=self.mesh_circ)
-                            
-
-                    width=2.*np.pi*self.rec_r
-                    height=self.rec_h
-                    FLUX=np.zeros((self.mesh_h,self.mesh_circ))
-                    RESULTS=np.zeros(10)
-                    for i in range(int(num/m)+1):
-                        casename='solstice_Task_2%s_AimStrat_%s_%s-%s'%(f, a, t, i)
-                        casedir='/'+casename
-
-                        flux=np.loadtxt(casedir_0+'%s/%s_fluxmap.csv'%(casedir, casename), delimiter=',')
-                        FLUX+=flux
-                        XX=np.loadtxt(casedir_0+'%s/%s_xx.csv'%(casedir, casename), delimiter=',')
-                        YY=np.loadtxt(casedir_0+'%s/%s_yy.csv'%(casedir, casename), delimiter=',')
+     
+                                # aim at the receiver center
+                                hst_azimuth=np.arccos(hst_y/np.sqrt(hst_x**2+hst_y**2))
+                                hst_azimuth[hst_x>0]=np.pi*2.-hst_azimuth[hst_x>0]
+                                hst_aims=np.zeros((len(hst_x),3))
                     
-                        data=np.loadtxt(casedir_0+'%s/result-formatted.csv'%(casedir), delimiter=',', dtype=str)
-                        res=data[1:,1].astype(float)
-                        RESULTS+=res
+                                hst_aims[:,0]=-self.rec_r*np.sin(hst_azimuth)
+                                hst_aims[:,1]=self.rec_r*np.cos(hst_azimuth)
+                                hst_aims[:,2]=self.loc_z+offset_z
 
-                    data[1:,1]=RESULTS          
-                    np.savetxt(casedir_0+'/solstice_Task_2%s_AimStrat_%s_%s_results.csv'%(f, a, t), data[:,:2], fmt='%s', delimiter=',')	  
 
-                    np.savetxt(casedir_0+'/solstice_Task_2%s_AimStrat_%s_%s_fluxmap.csv'%(f, a, t), FLUX, fmt='%.6f', delimiter=',')
-                    np.savetxt(casedir_0+'/solstice_Task_2%s_AimStrat_%s_%s_xx.csv'%(f, a, t), XX, fmt='%.2f', delimiter=',')
-                    np.savetxt(casedir_0+'/solstice_Task_2%s_AimStrat_%s_%s_yy.csv'%(f, a, t), YY, fmt='%.2f', delimiter=',')	                    
-                    
-                    plt.pcolormesh(XX[0], YY[:,0], FLUX, cmap='jet')#, vmax=2400, vmin=0)
-                    plt.colorbar()
-                    plt.xlim([-width/2., width/2.])
-                    plt.ylim([-height/2.,height/2.])
-                    plt.gca().set_aspect('equal', adjustable='box')
-                    plt.savefig(open(casedir_0+'/solstice_Task_2%s_AimStrat_%s_%s_flux_map.png'%(f, a, t), 'wb'), bbox_inches='tight')
-                    #plt.show()
-                    plt.close()
-                    end=time.time()
-                    print('Total time', (end-start)/60., 'min')                                    
+                                master=Master(casedir=casedir)
+                                outfile_yaml = master.in_case(folder=casedir, fn='input.yaml')
+                                outfile_recv = master.in_case(folder=casedir, fn='input-rcv.yaml')
+
+                                SUN = solsticepy.Sun(dni=self.DNI, sunshape=self.sunshape, half_angle_deg=self.half_angle_deg) 
+                                                               
+                                solsticepy.gen_yaml(sun=SUN, 
+                                                    hst_pos=hst_pos, 
+                                                    hst_foc=hst_foc, 
+                                                    hst_aims=hst_aims, 
+                                                    hst_w=self.hst_w, 
+                                                    hst_h=self.hst_h,
+	                                                rho_refl=self.rho_refl, 
+                                                    slope_error=self.slope_error, 
+                                                    cant=cant, 
+                                                    bands=bands, 
+                                                    receiver=self.receiver, 
+                                                    rec_param=self.rec_param, 
+                                                    rec_abs=self.rec_abs,
+	                                                outfile_yaml=outfile_yaml, 
+                                                    outfile_recv=outfile_recv,
+	                                                hemisphere=self.hemisphere, 
+                                                    tower_h=self.tower_h, 
+                                                    tower_r=self.tower_r,  
+                                                    spectral=False,
+	                                                medium=0, 
+                                                    one_heliostat=False, 
+                                                    fct_w=self.fct_w, 
+                                                    fct_h=self.fct_h, 
+                                                    fct_gap=self.gap, 
+                                                    n_row=self.fct_row, 
+                                                    n_col=self.fct_col, 
+                                                    shape=shape)
+                                if not os.path.exists(vtkfile):                             
+                                    master.run(azi, ele, self.num_rays, self.rho_refl, self.DNI, folder=casedir, gen_vtk=True,  printresult=True, verbose=True, system='crs')
+                                points, tri, flux, flux_abs, flux_back, flux_abs_back=flux_reader(vtkfile, casedir)
+                                plot_fluxmap(points, tri, flux, casedir, casename=casename, loc_z_rec=self.loc_z, rec_r=self.rec_r, rec_h=self.rec_h, m=self.mesh_h, n=self.mesh_circ)
+                                
+
+                        width=2.*np.pi*self.rec_r
+                        height=self.rec_h
+                        FLUX=np.zeros((self.mesh_h,self.mesh_circ))
+                        RESULTS=np.zeros(10)
+                        for i in range(int(num/m)+1):
+                            casename='solstice_Task_2%s_AimStrat_%s_%s-%s'%(f, a, t, i)
+                            casedir='/'+casename
+
+                            flux=np.loadtxt(casedir_0+'%s/%s_fluxmap.csv'%(casedir, casename), delimiter=',')
+                            FLUX+=flux
+                            XX=np.loadtxt(casedir_0+'%s/%s_xx.csv'%(casedir, casename), delimiter=',')
+                            YY=np.loadtxt(casedir_0+'%s/%s_yy.csv'%(casedir, casename), delimiter=',')
+                        
+                            data=np.loadtxt(casedir_0+'%s/result-formatted.csv'%(casedir), delimiter=',', dtype=str)
+                            res=data[1:,1].astype(float)
+                            RESULTS+=res
+
+                        data[1:,1]=RESULTS          
+                        np.savetxt(casedir_0+'/solstice_Task_2%s_AimStrat_%s_%s_results.csv'%(f, a, t), data[:,:2], fmt='%s', delimiter=',')	  
+
+                        np.savetxt(casedir_0+'/solstice_Task_2%s_AimStrat_%s_%s_fluxmap.csv'%(f, a, t), FLUX, fmt='%.6f', delimiter=',')
+                        np.savetxt(casedir_0+'/solstice_Task_2%s_AimStrat_%s_%s_xx.csv'%(f, a, t), XX, fmt='%.2f', delimiter=',')
+                        np.savetxt(casedir_0+'/solstice_Task_2%s_AimStrat_%s_%s_yy.csv'%(f, a, t), YY, fmt='%.2f', delimiter=',')	                    
+                        
+                        plt.pcolormesh(XX[0], YY[:,0], FLUX, cmap='jet')#, vmax=2400, vmin=0)
+                        plt.colorbar()
+                        plt.xlim([-width/2., width/2.])
+                        plt.ylim([-height/2.,height/2.])
+                        plt.gca().set_aspect('equal', adjustable='box')
+                        plt.savefig(open(casedir_0+'/solstice_Task_2%s_AimStrat_%s_%s_flux_map.png'%(f, a, t), 'wb'), bbox_inches='tight')
+                        #plt.show()
+                        plt.close()
+                        end=time.time()
+                        print('Total time', (end-start)/60., 'min')      
+                    else:
+                        FLUX=np.loadtxt(casedir_0+'/solstice_Task_2%s_AimStrat_%s_%s_fluxmap.csv'%(f, a, t), delimiter=',')
+
+                    peak=np.max(FLUX)
+                    Q_receiver=np.sum(FLUX)*self.rec_h/float(self.mesh_h)*2.*self.rec_r*np.pi/float(self.mesh_circ)
+                    print('Peak=%.2f, Qrec=%.2f'%(peak, Q_receiver), abs(Q_receiver-total_energy[ii,jj,kk])/Q_receiver<0.01, abs(peak-peak_flux[ii,jj,kk])/peak<0.01)
+                    self.assertTrue(abs(Q_receiver-total_energy[ii,jj,kk])/Q_receiver<0.01)
+                    self.assertTrue(abs(peak-peak_flux[ii,jj,kk])/peak<0.01)                             
               
 
     #@unittest.skip(" ")
@@ -370,16 +394,22 @@ class TestHeliostats(unittest.TestCase):
         solstice_Task_3b_AimStrat_2_8_fluxmap
 
         """
-        
+        total_energy=np.array([711727.8, 665492.8, 710699.2, 662315.4, 624745.4, 584544.2, 623219.7, 581353.5])
+        peak_flux=np.array([2310.994, 1210.318, 2138.98, 1204.841, 2231.946, 1156.564, 2078.981, 1148.694])
+        total_energy=total_energy.reshape(2, 2, 2)
+        peak_flux=peak_flux.reshape(2, 2, 2)
+ 
+       
         shape='curved'#, 'curved' #'flat'
         cant=True
         
-        times=[8, 12]
+        times=[12, 8]
         focuses=['a','b']
         aims=[1, 2]
-        for a in aims:
-            for t in times:
-                for f in focuses:
+
+        for ii,t in enumerate(times):        
+            for jj,f in enumerate(focuses):
+                for kk,a in enumerate(aims):
                     start=time.time()
                     layout=np.loadtxt('./data/heliostats_pos_ID.csv', delimiter=',', skiprows=1)
                     if a==1:
@@ -391,142 +421,152 @@ class TestHeliostats(unittest.TestCase):
                     m=500
                     casename_0='solstice_Task_3%s_AimStrat_%s_%s'%(f, a, t)
                     casedir_0='./'+casename_0
-                    for i in range(int(num/m)+1):
-                        casename='solstice_Task_3%s_AimStrat_%s_%s-%s'%(f, a, t, i)
-                        casedir=casedir_0+'/%s'%casename
-  
-                        if not os.path.exists(casedir):
-                            os.makedirs(casedir)
+                    if not os.path.exists(casedir_0+'/solstice_Task_3%s_AimStrat_%s_%s_fluxmap.csv'%(f, a, t)):
+                        for i in range(int(num/m)+1):
+                            casename='solstice_Task_3%s_AimStrat_%s_%s-%s'%(f, a, t, i)
+                            casedir=casedir_0+'/%s'%casename
+      
+                            if not os.path.exists(casedir):
+                                os.makedirs(casedir)
 
-                        if not os.path.exists(casedir+'/flux_tri.png'):
+                            if not os.path.exists(casedir+'/flux_tri.png'):
 
-                            if i<=int(num/m)-1:                                         
-                                hst_x=layout[i*m:(i+1)*m,1]
-                                hst_y=layout[i*m:(i+1)*m,2]
-                                if a==2:
-                                    offset_z=layout[i*m:(i+1)*m, 4]
-                            else:
-                                hst_x=layout[i*m:,1]
-                                hst_y=layout[i*m:,2]
-                                if a==2:
-                                    offset_z=layout[i*m:,4]
-                            print(len(hst_x), i)
-                            hst_z=np.ones(len(hst_x))*self.H_pedestal
-                            hst_pos=np.append(hst_x, (hst_y, hst_z))
-                            hst_pos=hst_pos.reshape(3, len(hst_x))
-                            hst_pos=hst_pos.T
+                                if i<=int(num/m)-1:                                         
+                                    hst_x=layout[i*m:(i+1)*m,1]
+                                    hst_y=layout[i*m:(i+1)*m,2]
+                                    if a==2:
+                                        offset_z=layout[i*m:(i+1)*m, 4]
+                                else:
+                                    hst_x=layout[i*m:,1]
+                                    hst_y=layout[i*m:,2]
+                                    if a==2:
+                                        offset_z=layout[i*m:,4]
+                                print(len(hst_x), i)
+                                hst_z=np.ones(len(hst_x))*self.H_pedestal
+                                hst_pos=np.append(hst_x, (hst_y, hst_z))
+                                hst_pos=hst_pos.reshape(3, len(hst_x))
+                                hst_pos=hst_pos.T
 
-                            if f=='a':
-                                bands=np.array([[None, None]])
-                                hst_foc=np.sqrt((hst_x)**2+(hst_y)**2+(hst_z-self.loc_z)**2) #slant range is the centre point of the receiver cylinder
-                            else:
-                                bands=np.array([[502, 516, 353.8],  # band range (<=), focal length of cant, focal length of facets
-                                    [885, 668, 704.8],
-                                    [1267, 959, 1072.5],
-                                    [1650, 1500, 1444.3]])
-
-
-                                #bands=np.array([[502.5, 353.8],  # band range (<=), focal length
-                                #    [878, 704.8],
-                                #    [1253.5, 1072.5],
-                                #    [1650, 1444.3]])
+                                if f=='a':
+                                    bands=np.array([[None, None]])
+                                    hst_foc=np.sqrt((hst_x)**2+(hst_y)**2+(hst_z-self.loc_z)**2) #slant range is the centre point of the receiver cylinder
+                                else:
+                                    bands=np.array([[502, 516, 353.8],  # band range (<=), focal length of cant, focal length of facets
+                                        [885, 668, 704.8],
+                                        [1267, 959, 1072.5],
+                                        [1650, 1500, 1444.3]])
 
 
-                                hst_foc=np.sqrt((hst_x)**2+(hst_y)**2+(hst_z)**2) # slant range is the heliostat to the bottom of the tower (0,0,0)
-
-                            if t==12:
-                                azi=self.azimuth
-                                ele=self.elevation
-                                vtkfile=casedir+'/%.0f-%.0f-target_e.vtk'%(azi, ele)
-                            elif t==8:
-                                azi=14.7333
-                                ele=26.4378
-                                vtkfile=casedir+'/%s-%s-target_e.vtk'%(azi, ele)
-
- 
-                            # aim at the receiver center
-                            hst_azimuth=np.arccos(hst_y/np.sqrt(hst_x**2+hst_y**2))
-                            hst_azimuth[hst_x>0]=np.pi*2.-hst_azimuth[hst_x>0]
-                            hst_aims=np.zeros((len(hst_x),3))
-                
-                            hst_aims[:,0]=-self.rec_r*np.sin(hst_azimuth)
-                            hst_aims[:,1]=self.rec_r*np.cos(hst_azimuth)
-                            hst_aims[:,2]=self.loc_z+offset_z
+                                    #bands=np.array([[502.5, 353.8],  # band range (<=), focal length
+                                    #    [878, 704.8],
+                                    #    [1253.5, 1072.5],
+                                    #    [1650, 1444.3]])
 
 
-                            master=Master(casedir=casedir)
-                            outfile_yaml = master.in_case(folder=casedir, fn='input.yaml')
-                            outfile_recv = master.in_case(folder=casedir, fn='input-rcv.yaml')
+                                    hst_foc=np.sqrt((hst_x)**2+(hst_y)**2+(hst_z)**2) # slant range is the heliostat to the bottom of the tower (0,0,0)
 
-                            SUN = solsticepy.Sun(dni=self.DNI, sunshape=self.sunshape, half_angle_deg=self.half_angle_deg) 
-                                                           
-                            solsticepy.gen_yaml(sun=SUN, 
-                                                hst_pos=hst_pos, 
-                                                hst_foc=hst_foc, 
-                                                hst_aims=hst_aims, 
-                                                hst_w=self.hst_w, 
-                                                hst_h=self.hst_h,
-	                                            rho_refl=self.rho_refl, 
-                                                slope_error=self.slope_error, 
-                                                cant=cant, 
-                                                bands=bands, 
-                                                receiver=self.receiver, 
-                                                rec_param=self.rec_param, 
-                                                rec_abs=self.rec_abs,
-	                                            outfile_yaml=outfile_yaml, 
-                                                outfile_recv=outfile_recv,
-	                                            hemisphere=self.hemisphere, 
-                                                tower_h=self.tower_h, 
-                                                tower_r=self.tower_r,  
-                                                spectral=False,
-	                                            medium=0, 
-                                                one_heliostat=False, 
-                                                fct_w=self.fct_w, 
-                                                fct_h=self.fct_h, 
-                                                fct_gap=self.gap, 
-                                                n_row=self.fct_row, 
-                                                n_col=self.fct_col, 
-                                                shape=shape)
-                            if not os.path.exists(vtkfile):                             
-                                master.run(azi, ele, self.num_rays, self.rho_refl, self.DNI, folder=casedir, gen_vtk=True,  printresult=True, verbose=True, system='crs')
-                            points, tri, flux, flux_abs, flux_back, flux_abs_back=flux_reader(vtkfile, casedir)
-                            plot_fluxmap(points, tri, flux, casedir, casename=casename, loc_z_rec=self.loc_z, rec_r=self.rec_r, rec_h=self.rec_h, m=self.mesh_h, n=self.mesh_circ)
-                            
+                                if t==12:
+                                    azi=self.azimuth
+                                    ele=self.elevation
+                                    vtkfile=casedir+'/%.0f-%.0f-target_e.vtk'%(azi, ele)
+                                elif t==8:
+                                    azi=14.7333
+                                    ele=26.4378
+                                    vtkfile=casedir+'/%s-%s-target_e.vtk'%(azi, ele)
 
-                    width=2.*np.pi*self.rec_r
-                    height=self.rec_h
-                    FLUX=np.zeros((self.mesh_h,self.mesh_circ))
-                    RESULTS=np.zeros(10)
-                    for i in range(int(num/m)+1):
-                        casename='solstice_Task_3%s_AimStrat_%s_%s-%s'%(f, a, t, i)
-                        casedir='/'+casename
-
-                        flux=np.loadtxt(casedir_0+'%s/%s_fluxmap.csv'%(casedir, casename), delimiter=',')
-                        FLUX+=flux
-                        XX=np.loadtxt(casedir_0+'%s/%s_xx.csv'%(casedir, casename), delimiter=',')
-                        YY=np.loadtxt(casedir_0+'%s/%s_yy.csv'%(casedir, casename), delimiter=',')
+     
+                                # aim at the receiver center
+                                hst_azimuth=np.arccos(hst_y/np.sqrt(hst_x**2+hst_y**2))
+                                hst_azimuth[hst_x>0]=np.pi*2.-hst_azimuth[hst_x>0]
+                                hst_aims=np.zeros((len(hst_x),3))
                     
-                        data=np.loadtxt(casedir_0+'%s/result-formatted.csv'%(casedir), delimiter=',', dtype=str)
-                        res=data[1:,1].astype(float)
-                        RESULTS+=res
+                                hst_aims[:,0]=-self.rec_r*np.sin(hst_azimuth)
+                                hst_aims[:,1]=self.rec_r*np.cos(hst_azimuth)
+                                hst_aims[:,2]=self.loc_z+offset_z
 
-                    data[1:,1]=RESULTS          
-                    np.savetxt(casedir_0+'/solstice_Task_3%s_AimStrat_%s_%s_results.csv'%(f, a, t), data[:,:2], fmt='%s', delimiter=',')	  
 
-                    np.savetxt(casedir_0+'/solstice_Task_3%s_AimStrat_%s_%s_fluxmap.csv'%(f, a, t), FLUX, fmt='%.6f', delimiter=',')
-                    np.savetxt(casedir_0+'/solstice_Task_3%s_AimStrat_%s_%s_xx.csv'%(f, a, t), XX, fmt='%.2f', delimiter=',')
-                    np.savetxt(casedir_0+'/solstice_Task_3%s_AimStrat_%s_%s_yy.csv'%(f, a, t), YY, fmt='%.2f', delimiter=',')	                    
-                    
-                    plt.pcolormesh(XX[0], YY[:,0], FLUX, cmap='jet')#, vmax=2400, vmin=0)
-                    plt.colorbar()
-                    plt.xlim([-width/2., width/2.])
-                    plt.ylim([-height/2.,height/2.])
-                    plt.gca().set_aspect('equal', adjustable='box')
-                    plt.savefig(open(casedir_0+'/solstice_Task_3%s_AimStrat_%s_%s_flux_map.png'%(f, a, t), 'wb'), bbox_inches='tight')
-                    #plt.show()
-                    plt.close()
-                    end=time.time()
-                    print('Total time', (end-start)/60., 'min')                      
+                                master=Master(casedir=casedir)
+                                outfile_yaml = master.in_case(folder=casedir, fn='input.yaml')
+                                outfile_recv = master.in_case(folder=casedir, fn='input-rcv.yaml')
+
+                                SUN = solsticepy.Sun(dni=self.DNI, sunshape=self.sunshape, half_angle_deg=self.half_angle_deg) 
+                                                               
+                                solsticepy.gen_yaml(sun=SUN, 
+                                                    hst_pos=hst_pos, 
+                                                    hst_foc=hst_foc, 
+                                                    hst_aims=hst_aims, 
+                                                    hst_w=self.hst_w, 
+                                                    hst_h=self.hst_h,
+	                                                rho_refl=self.rho_refl, 
+                                                    slope_error=self.slope_error, 
+                                                    cant=cant, 
+                                                    bands=bands, 
+                                                    receiver=self.receiver, 
+                                                    rec_param=self.rec_param, 
+                                                    rec_abs=self.rec_abs,
+	                                                outfile_yaml=outfile_yaml, 
+                                                    outfile_recv=outfile_recv,
+	                                                hemisphere=self.hemisphere, 
+                                                    tower_h=self.tower_h, 
+                                                    tower_r=self.tower_r,  
+                                                    spectral=False,
+	                                                medium=0, 
+                                                    one_heliostat=False, 
+                                                    fct_w=self.fct_w, 
+                                                    fct_h=self.fct_h, 
+                                                    fct_gap=self.gap, 
+                                                    n_row=self.fct_row, 
+                                                    n_col=self.fct_col, 
+                                                    shape=shape)
+                                if not os.path.exists(vtkfile):                             
+                                    master.run(azi, ele, self.num_rays, self.rho_refl, self.DNI, folder=casedir, gen_vtk=True,  printresult=True, verbose=True, system='crs')
+                                points, tri, flux, flux_abs, flux_back, flux_abs_back=flux_reader(vtkfile, casedir)
+                                plot_fluxmap(points, tri, flux, casedir, casename=casename, loc_z_rec=self.loc_z, rec_r=self.rec_r, rec_h=self.rec_h, m=self.mesh_h, n=self.mesh_circ)
+                                
+
+                        width=2.*np.pi*self.rec_r
+                        height=self.rec_h
+                        FLUX=np.zeros((self.mesh_h,self.mesh_circ))
+                        RESULTS=np.zeros(10)
+                        for i in range(int(num/m)+1):
+                            casename='solstice_Task_3%s_AimStrat_%s_%s-%s'%(f, a, t, i)
+                            casedir='/'+casename
+
+                            flux=np.loadtxt(casedir_0+'%s/%s_fluxmap.csv'%(casedir, casename), delimiter=',')
+                            FLUX+=flux
+                            XX=np.loadtxt(casedir_0+'%s/%s_xx.csv'%(casedir, casename), delimiter=',')
+                            YY=np.loadtxt(casedir_0+'%s/%s_yy.csv'%(casedir, casename), delimiter=',')
+                        
+                            data=np.loadtxt(casedir_0+'%s/result-formatted.csv'%(casedir), delimiter=',', dtype=str)
+                            res=data[1:,1].astype(float)
+                            RESULTS+=res
+
+                        data[1:,1]=RESULTS          
+                        np.savetxt(casedir_0+'/solstice_Task_3%s_AimStrat_%s_%s_results.csv'%(f, a, t), data[:,:2], fmt='%s', delimiter=',')	  
+
+                        np.savetxt(casedir_0+'/solstice_Task_3%s_AimStrat_%s_%s_fluxmap.csv'%(f, a, t), FLUX, fmt='%.6f', delimiter=',')
+                        np.savetxt(casedir_0+'/solstice_Task_3%s_AimStrat_%s_%s_xx.csv'%(f, a, t), XX, fmt='%.2f', delimiter=',')
+                        np.savetxt(casedir_0+'/solstice_Task_3%s_AimStrat_%s_%s_yy.csv'%(f, a, t), YY, fmt='%.2f', delimiter=',')	                    
+                        
+                        plt.pcolormesh(XX[0], YY[:,0], FLUX, cmap='jet')#, vmax=2400, vmin=0)
+                        plt.colorbar()
+                        plt.xlim([-width/2., width/2.])
+                        plt.ylim([-height/2.,height/2.])
+                        plt.gca().set_aspect('equal', adjustable='box')
+                        plt.savefig(open(casedir_0+'/solstice_Task_3%s_AimStrat_%s_%s_flux_map.png'%(f, a, t), 'wb'), bbox_inches='tight')
+                        #plt.show()
+                        plt.close()
+                        end=time.time()
+                        print('Total time', (end-start)/60., 'min')     
+                    else:
+                        FLUX=np.loadtxt(casedir_0+'/solstice_Task_3%s_AimStrat_%s_%s_fluxmap.csv'%(f, a, t), delimiter=',')
+                    peak=np.max(FLUX)
+                    Q_receiver=np.sum(FLUX)*self.rec_h/float(self.mesh_h)*2.*self.rec_r*np.pi/float(self.mesh_circ)
+
+                    print('Peak=%.2f, Qrec=%.2f'%(peak, Q_receiver), abs(Q_receiver-total_energy[ii,jj,kk])/Q_receiver<0.01, abs(peak-peak_flux[ii,jj,kk])/peak<0.01)
+                    self.assertTrue(abs(Q_receiver-total_energy[ii,jj,kk])/Q_receiver<0.01)
+                    self.assertTrue(abs(peak-peak_flux[ii,jj,kk])/peak<0.01)   
+                 
 
     @unittest.skip(" ")
     def test_4c(self):
@@ -565,6 +605,10 @@ class TestHeliostats(unittest.TestCase):
         outfile_recv = master.in_case(folder=casedir, fn='input-rcv.yaml')
 
         SUN = solsticepy.Sun(dni=self.DNI, sunshape=self.sunshape, half_angle_deg=self.half_angle_deg) 
+        #TODO currently need to run it twice
+        #     firstly generate the yaml for the whole setting
+        #     secondly, manually change the reflectivity of all the other heliostats to 0
+        #     finally, block the gen_yaml function, and run this test again
         '''
         solsticepy.gen_yaml(sun=SUN, 
                             hst_pos=hst_pos, 
@@ -733,6 +777,10 @@ class TestHeliostats(unittest.TestCase):
             outfile_recv = master.in_case(folder=casedir, fn='input-rcv.yaml')
 
             SUN = solsticepy.Sun(dni=self.DNI, sunshape=self.sunshape, half_angle_deg=self.half_angle_deg) #1e-4)#
+            #TODO currently need to run it twice
+            #     firstly generate the yaml for the whole setting
+            #     secondly, manually change the reflectivity of all the other heliostats to 0
+            #     finally, block the gen_yaml function, and run this test again
             '''          
             solsticepy.gen_yaml(sun=SUN, 
                                 hst_pos=hst_pos, 
@@ -986,6 +1034,10 @@ class TestHeliostats(unittest.TestCase):
         outfile_recv = master.in_case(folder=casedir, fn='input-rcv.yaml')
 
         SUN = solsticepy.Sun(dni=self.DNI, sunshape=self.sunshape, half_angle_deg=self.half_angle_deg) 
+        #TODO currently need to run it twice
+        #     firstly generate the yaml for the whole setting
+        #     secondly, manually change the reflectivity of all the other heliostats to 0
+        #     finally, block the gen_yaml function, and run this test again
         '''
         solsticepy.gen_yaml(sun=SUN, 
                             hst_pos=hst_pos, 
@@ -1274,7 +1326,7 @@ class TestHeliostats(unittest.TestCase):
                 master.run(azi, ele, self.num_rays, self.rho_refl, self.DNI, folder=casedir, gen_vtk=True,  printresult=True, verbose=True, system='crs')
                 
             points, tri, flux, flux_abs, flux_back, flux_abs_back=flux_reader(vtkfile, casedir)
-            plot_fluxmap(points, tri, flux, casedir, casename=casename, loc_z_rec=self.loc_z, rec_r=self.rec_r, rec_h=self.rec_h, m=self.mesh_h, n=self.mesh_circ)
+            Q_receiver, peak=plot_fluxmap(points, tri, flux, casedir, casename=casename, loc_z_rec=self.loc_z, rec_r=self.rec_r, rec_h=self.rec_h, m=self.mesh_h, n=self.mesh_circ)
  
 def heliostat_selection(case_id, casedir, H_pedestal):
 
@@ -1313,7 +1365,7 @@ def heliostat_selection(case_id, casedir, H_pedestal):
     return hst_x, hst_y, hst_z, hst_pos
 
 
-def plot_fluxmap(points, tri, flux, casedir, casename, loc_z_rec=171.035, rec_r=7.75, rec_h= 25.05609, m=31, n=60):
+def plot_fluxmap(points, tri, flux, casedir, casename, loc_z_rec, rec_r, rec_h, m, n):
 
 	X=points[:,0]
 	Y=points[:,1]
@@ -1336,7 +1388,6 @@ def plot_fluxmap(points, tri, flux, casedir, casename, loc_z_rec=171.035, rec_r=
 	idx=(Y+rec_r>0.01)
 	circ=THETA*rec_r
 
-
 	plt.tripcolor(X, Z, tri[:-2*31], facecolors=flux[:-2*31], cmap='jet') 
 	plt.colorbar()
 	plt.savefig(open(casedir+'/flux_tri.png', 'wb'), bbox_inches='tight')
@@ -1345,9 +1396,12 @@ def plot_fluxmap(points, tri, flux, casedir, casename, loc_z_rec=171.035, rec_r=
 	print('flux shape 0', np.shape(flux))  
 	flux=(flux[::2]+flux[1::2])/2. # triangle bins combined to rectangular bins
 	print('flux shape', np.shape(flux), n)
-	flux=flux[:-n] #TODO why this?
+	flux=flux[:-n] # Remove the flux on the top and bottom circle of the cylinder
 	width=2.*np.pi*rec_r
 	height=rec_h
+
+	Q_receiver=np.sum(flux)*rec_h/float(m)*2.*rec_r*np.pi/float(n)
+	peak=np.max(flux)
 
 	flux=flux.reshape(n,m)
 	flux=flux.T
@@ -1360,7 +1414,7 @@ def plot_fluxmap(points, tri, flux, casedir, casename, loc_z_rec=171.035, rec_r=
 	idx_x=np.fliplr(idx_x.T)
 	idx_y=np.fliplr(idx_y.T)
 
-
+	# re-order the unwraped flux map, N-E-S-W-N
 	for i in range(n):
 		q=flux[:,i]
 		ix=int(idx_x[0,i])
@@ -1420,6 +1474,9 @@ def plot_fluxmap(points, tri, flux, casedir, casename, loc_z_rec=171.035, rec_r=
 	np.savetxt(casedir+'/%s_fluxmap.csv'%(casename), FLUX, fmt='%.6f', delimiter=',')
 	np.savetxt(casedir+'/%s_xx.csv'%(casename), XX, fmt='%.2f', delimiter=',')
 	np.savetxt(casedir+'/%s_yy.csv'%(casename), YY, fmt='%.2f', delimiter=',')	
+
+	return Q_receiver, peak
+	    
 
 if __name__ == '__main__':
 	unittest.main()

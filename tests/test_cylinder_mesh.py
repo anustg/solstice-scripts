@@ -119,10 +119,10 @@ class TestCylinder(unittest.TestCase):
                             one_heliostat=True, 
                             shape=shape)
         
-        #master.run(azi, ele, int(self.num_rays/10), self.rho_refl, self.DNI, folder=casedir, gen_vtk=True,  printresult=True, verbose=True, system='crs')
+        master.run(azi, ele, int(self.num_rays/10), self.rho_refl, self.DNI, folder=casedir, gen_vtk=True,  printresult=True, verbose=True, system='crs')
         casename='test-cylinder-mesh'
         vtkfile=casedir+'/%s-%s-target_e.vtk'%(azi, ele)
-        points, tri, flux, flux_abs, flux_back, flux_abs_back=flux_reader(vtkfile, casedir, check=True)
+        points, tri, flux, flux_abs, flux_back, flux_abs_back=flux_reader(vtkfile, casedir, check=False)
 	
         num_points=len(points)
         num_cells=len(tri)

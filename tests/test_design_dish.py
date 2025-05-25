@@ -44,7 +44,7 @@ class TestDesignDish(unittest.TestCase):
 		self.assertEqual(round(eta, 3), 0.757)		
 		#os.system('rm -rf %s'%casedir)
 
-	#@unittest.skip("check whether the dish data is shareable")
+	@unittest.skip("check whether the dish data is shareable")
 	def test_dish_multi_facets(self):
 
 		start=time.time()
