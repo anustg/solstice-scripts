@@ -310,10 +310,11 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims, hst_w, hst_h
 	# 
 	### Section (5)
 
-	if bands.any()==None:
+	if None in bands:
 		if one_heliostat:
 			bands=np.array([hst_foc, hst_foc, hst_foc])
 			bands=bands.reshape(1,3)
+			print('One heliostats: band', bands)	    
 		else:
 			dist=(hst_w+hst_h)/2.
 			min_foc=np.min(hst_foc)
@@ -475,33 +476,33 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims, hst_w, hst_h
 				iyaml+='\n- entity:\n'
 				iyaml+='    name: %s\n' % name_e
 				iyaml+='    ' + yamltransform(pos=[hst_x[i], hst_y[i], hst_z[i]],rot=[0,0,0]) + '\n' 
-				iyaml+='    children: [ *%d ]\n' % name_hst_t 	
+				iyaml+='    children: [ *%s ]\n' % name_hst_t 	
 	
 		else: # single facet, paraboloid			
 			for i in range(len(bands)):
-					foc=bands[i,1]
-					name_hst_g = 'hst_g_band_'+str(i)
-					iyaml+='- geometry: &%s\n' % name_hst_g 
-					if isinstance(slope_error, float):
-						iyaml+='  - material: *%s\n' % 'material_mirror' 
-					else:
-						idx_f=np.argmin(abs(hst_foc-foc))
-						iyaml+='  - material: *%s\n' % 'material_mirror_%d'%idx_f 						
+				foc=bands[i,1]
+				name_hst_g = 'hst_g_band_'+str(i)
+				iyaml+='- geometry: &%s\n' % name_hst_g 
+				if isinstance(slope_error, float):
+					iyaml+='  - material: *%s\n' % 'material_mirror' 
+				else:
+					idx_f=np.argmin(abs(hst_foc-foc))
+					iyaml+='  - material: *%s\n' % 'material_mirror_%d'%idx_f 						
+				print(i, 'focal', foc)
+				if  shape=='parabolic-cylinder':
+					iyaml+="    parabolic-cylinder:\n"
+					iyaml+='      focal: %e\n' % foc
+				elif shape=='sphere':
+					iyaml+="    hemisphere:\n"
+					iyaml+="      radius: %e\n"%(foc*2.)
+				else:# shape=='paraboloid':
+					iyaml+='    parabol: \n'
+					iyaml+='      focal: %e\n' % foc
 
-					if  shape=='parabolic-cylinder':
-						iyaml+="    parabolic-cylinder:\n"
-						iyaml+='      focal: %e\n' % foc
-					elif shape=='sphere':
-						iyaml+="    hemisphere:\n"
-						iyaml+="      radius: %e\n"%(foc*2.)
-					else:# shape=='paraboloid':
-						iyaml+='    parabol: \n'
-						iyaml+='      focal: %e\n' % foc
-
-					iyaml+='      clip: \n'  
-					iyaml+='      - operation: AND \n'
-					iyaml+='        vertices: [ [%e, %e], [%e, %e], [%e, %e], [%e, %e] ]\n' % (-hst_w*0.5, -hst_h*0.5, -hst_w*0.5, hst_h*0.5, hst_w*0.5, hst_h*0.5, hst_w*0.5,-hst_h*0.5)
-					iyaml+='      slices: %d\n\n' % slices 
+				iyaml+='      clip: \n'  
+				iyaml+='      - operation: AND \n'
+				iyaml+='        vertices: [ [%e, %e], [%e, %e], [%e, %e], [%e, %e] ]\n' % (-hst_w*0.5, -hst_h*0.5, -hst_w*0.5, hst_h*0.5, hst_w*0.5, hst_h*0.5, hst_w*0.5,-hst_h*0.5)
+				iyaml+='      slices: %d\n\n' % slices 
 
 
 			summary=np.array(['x','y','z', 'band foc'])
