@@ -207,7 +207,7 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims, hst_w, hst_h
 			iyaml+='- material: &%s\n' % 'material_mirror_%.0f'%i
 			iyaml+='   front:\n'
 			if spectral:
-				iyaml+='     mirror: {reflectivity: *%s, slope_error: %15.8e }\n' % ('ref_mirror', slope_error[i] ) 
+				iyaml+='     mirror: {reflectivity: *ref_mirror, slope_error: %15.8e }\n' % (slope_error[i] ) 
 			else:
 				iyaml+='     mirror: {reflectivity: %6.4f, slope_error: %15.8e }\n' % (r_f, slope_error[i]) 	
 			iyaml+='   back:\n'
@@ -243,7 +243,7 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims, hst_w, hst_h
 	slices = 10 # slices for the envelop circle
 	iyaml+='- geometry: &tower_g\n' 
 	iyaml+='  - material: *material_black\n' 
-	#iyaml+='    transform: { translation: %s, rotation: %s }\n' % ([0, 0, h_tow*0.5], [0, 90, 0]) 
+	#iyaml+='   ' + yamltransform(pos=[0,0,tower_h*0.5],rot=[0,90,0]) + '\n'  
 	iyaml+='    cylinder: {height: %7.3f, radius: %7.3f, slices: %d }\n' % (tower_h, tower_r, slices) 
 	iyaml+='\n'
 	#
@@ -290,9 +290,8 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims, hst_w, hst_h
 		name_hst_g = 'hst_g_'+str(i)
 		iyaml+='- geometry: &%s\n' % name_hst_g 
 		iyaml+='  - material: *material_mirror\n' 
-		#iyaml+='    transform: { translation: %s, rotation: %s }\n' % ([hst_x[i], hst_y[i], hst_z[i]], [0, 0, 0]) )
 		iyaml+='    parabol: \n'
-		iyaml+='      focal: %s\n' % hst_foc[i]
+		iyaml+='      focal: %e\n' % hst_foc[i]
 		iyaml+='      clip: \n'  
 		iyaml+='      - operation: AND \n'
 		iyaml+='        vertices: [ [%e, %e], [%e, %e], [%e, %e], [%e, %e] ]\n' % (-hst_w*0.5, -hst_h*0.5, -hst_w*0.5, hst_h*0.5, hst_w*0.5, hst_h*0.5, hst_w*0.5,-hst_h*0.5)
@@ -350,10 +349,10 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims, hst_w, hst_h
 		elif shape=='parabolic-cylinder': # curved facets 
 			for i in range(len(bands)):
 				foc=bands[i,2]				
-				iyaml+="- geometry: &facet_g_band_%s\n"%i
+				iyaml+="- geometry: &facet_g_band_%d\n"%i
 				iyaml+="  - material: *material_mirror\n"
 				iyaml+="    parabolic-cylinder:\n"
-				iyaml+="      focal: %s\n"%foc
+				iyaml+="      focal: %e\n"%foc
 				iyaml+="      clip:\n"
 				iyaml+="      - operation: AND\n" 
 				iyaml+="        vertices: [ [%e, %e], [%e, %e], [%e, %e], [%e, %e] ]\n"%(-fct_w/2., -fct_h/2.,-fct_w/2., fct_h/2., fct_w/2., fct_h/2., fct_w/2., -fct_h/2.)
@@ -362,10 +361,10 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims, hst_w, hst_h
 		elif shape=='sphere': # parabol curved facets 
 			for i in range(len(bands)):
 				foc=bands[i,2]				
-				iyaml+="- geometry: &facet_g_band_%s\n"%i
+				iyaml+="- geometry: &facet_g_band_%d\n"%i
 				iyaml+="  - material: *material_mirror\n"
 				iyaml+="    hemisphere:\n"
-				iyaml+="      radius: %s\n"%(foc*2.)
+				iyaml+="      radius: %e\n"%(foc*2.)
 				iyaml+="      clip:\n"
 				iyaml+="      - operation: AND\n" 
 				iyaml+="        vertices: [ [%e, %e], [%e, %e], [%e, %e], [%e, %e] ]\n"%(-fct_w/2., -fct_h/2.,-fct_w/2., fct_h/2., fct_w/2., fct_h/2., fct_w/2., -fct_h/2.)
@@ -375,10 +374,10 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims, hst_w, hst_h
 		else: # parabol curved facets 
 			for i in range(len(bands)):
 				foc=bands[i,2]				
-				iyaml+="- geometry: &facet_g_band_%s\n"%i
+				iyaml+="- geometry: &facet_g_band_%d\n"%i
 				iyaml+="  - material: *material_mirror\n"
 				iyaml+="    parabol:\n"
-				iyaml+="      focal: %s\n"%foc
+				iyaml+="      focal: %e\n"%foc
 				iyaml+="      clip:\n"
 				iyaml+="      - operation: AND\n" 
 				iyaml+="        vertices: [ [%e, %e], [%e, %e], [%e, %e], [%e, %e] ]\n"%(-fct_w/2., -fct_h/2.,-fct_w/2., fct_h/2., fct_w/2., fct_h/2., fct_w/2., -fct_h/2.)
@@ -387,7 +386,7 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims, hst_w, hst_h
 
 
 		for b in range(len(bands)):
-			iyaml+="- template: &facets_t_band_%s\n"%b
+			iyaml+="- template: &facets_t_band_%d\n"%b
 			iyaml+="    name: facets\n"
 			iyaml+="    primary: 0\n"
 			iyaml+='    ' + yamltransform(pos=[0,0,0],rot=[0,0,0]) + '\n'
@@ -404,20 +403,20 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims, hst_w, hst_h
 
 			for j in range(n_col):
 				for i in range(n_row):			
-					iyaml+='        - name: facet_%s_c%s_r%s\n'%(b, j, i)
+					iyaml+='        - name: facet_%d_c%d_r%d\n'%(b, j, i)
 					iyaml+='          primary: 1\n'
 					iyaml+='          ' + yamltransform(pos=[fct_x[i,j], 0, fct_z[i,j]],rot=[rotx[i,j], roty[i,j],0]) + '\n' 
 					if shape=='flat':
 						iyaml+='          geometry: *facet_g\n'
 					else:
-						iyaml+='          geometry: *facet_g_band_%s\n'%b
+						iyaml+='          geometry: *facet_g_band_%d\n'%b
 
 
 		# heliostat entities from the template
 		for i in range(num_hst):
 
-			iyaml+='- template: &hst_t_%s\n'%i
-			iyaml+='    name: hst_%s\n'%i
+			iyaml+='- template: &hst_t_%d\n'%i
+			iyaml+='    name: hst_%d\n'%i
 			iyaml+='    primary: 0\n'
 			iyaml+='    geometry: *pylon_g\n'
 			iyaml+='    children:\n'     
@@ -426,18 +425,18 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims, hst_w, hst_h
 			iyaml+='        zx_pivot: \n'
 			iyaml+='          spacing: 0\n'
 			iyaml+='          ref_point: [0,0,0]\n'
-			iyaml+='          target: {position: [%s, %s, %s]}\n' % (aim_x[i],aim_y[i],aim_z[i]) 
+			iyaml+='          target: {position: [%e, %e, %e]}\n' % (aim_x[i],aim_y[i],aim_z[i]) 
 			foc=hst_foc[i]
 			idx=np.argmin(abs(foc-bands[:,0]))
 			if foc-bands[idx, 0]>0:
 				idx+=1
 			#idx= np.where(bands[foc<=bands][0]==bands)[0][0]
-			iyaml+='        children: [ *facets_t_band_%s ]\n\n'%idx
+			iyaml+='        children: [ *facets_t_band_%d ]\n\n'%idx
 
 			iyaml+='- entity:\n'
-			iyaml+='    name: H_%s\n'%i
+			iyaml+='    name: H_%d\n'%i
 			iyaml+='    ' + yamltransform(pos=[hst_x[i], hst_y[i], hst_z[i]],rot=[0,0,0]) + '\n' 
-			iyaml+='    children: [ *hst_t_%s ]\n'%i
+			iyaml+='    children: [ *hst_t_%d ]\n'%i
 
 	else: # single facet
 		if shape=='flat':
@@ -452,15 +451,15 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims, hst_w, hst_h
 
 			for i in range(num_hst):
 			# CREATE the heliostat templates   
-				name_hst_t = 'hst_t_%s' %i
+				name_hst_t = 'hst_t_%d' %i
 				iyaml+='- template: &%s\n' % name_hst_t 
-				name_hst_n = 'hst_%s\n'%i
+				name_hst_n = 'hst_%d\n'%i
 				iyaml+='    name: %s\n' % name_hst_n 
 				iyaml+='    primary: 0\n'   
 				iyaml+='    geometry: *pylon_g\n'
 				iyaml+='    children: \n' 
 				iyaml+='    - name: pivot\n'
-				iyaml+='      zx_pivot: {target: {position: %s}} \n' % ([aim_x[i],aim_y[i],aim_z[i]]) 
+				iyaml+='      zx_pivot: {target: {position: [%e, %e, %e]}} \n' % (aim_x[i],aim_y[i],aim_z[i]) 
 				iyaml+='      children: \n'
 				iyaml+='      - name: reflect_surface\n'
 				iyaml+='        primary: 1\n'
@@ -472,11 +471,11 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims, hst_w, hst_h
 
 
 				name_e ='H_'+str(i)
-				name_hst_t = 'hst_t_%s'%i
+				name_hst_t = 'hst_t_%d'%i
 				iyaml+='\n- entity:\n'
 				iyaml+='    name: %s\n' % name_e
 				iyaml+='    ' + yamltransform(pos=[hst_x[i], hst_y[i], hst_z[i]],rot=[0,0,0]) + '\n' 
-				iyaml+='    children: [ *%s ]\n' % name_hst_t 	
+				iyaml+='    children: [ *%d ]\n' % name_hst_t 	
 	
 		else: # single facet, paraboloid			
 			for i in range(len(bands)):
@@ -487,17 +486,17 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims, hst_w, hst_h
 						iyaml+='  - material: *%s\n' % 'material_mirror' 
 					else:
 						idx_f=np.argmin(abs(hst_foc-foc))
-						iyaml+='  - material: *%s\n' % 'material_mirror_%.0f'%idx_f 						
+						iyaml+='  - material: *%s\n' % 'material_mirror_%d'%idx_f 						
 
 					if  shape=='parabolic-cylinder':
 						iyaml+="    parabolic-cylinder:\n"
-						iyaml+='      focal: %s\n' % foc
+						iyaml+='      focal: %e\n' % foc
 					elif shape=='sphere':
 						iyaml+="    hemisphere:\n"
-						iyaml+="      radius: %s\n"%(foc*2.)
+						iyaml+="      radius: %e\n"%(foc*2.)
 					else:# shape=='paraboloid':
 						iyaml+='    parabol: \n'
-						iyaml+='      focal: %s\n' % foc
+						iyaml+='      focal: %e\n' % foc
 
 					iyaml+='      clip: \n'  
 					iyaml+='      - operation: AND \n'
@@ -516,7 +515,7 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims, hst_w, hst_h
 				iyaml+='    geometry: *pylon_g\n'
 				iyaml+='    children: \n' 
 				iyaml+='    - name: pivot\n'
-				iyaml+='      zx_pivot: {target: {position: %s}} \n' % ([aim_x[i],aim_y[i],aim_z[i]]) 
+				iyaml+='      zx_pivot: {target: {position: [%e, %e, %e]}} \n' % (aim_x[i],aim_y[i],aim_z[i]) 
 				iyaml+='      children: \n'
 				iyaml+='      - name: reflect_surface\n'
 				iyaml+='        primary: 1\n'
