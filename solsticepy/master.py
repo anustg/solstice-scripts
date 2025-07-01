@@ -14,6 +14,9 @@ def yellow(text):
 def green(text):
     return colorama.Fore.GREEN + colorama.Style.BRIGHT + text + colorama.Style.RESET_ALL
 
+def red(text):
+    return colorama.Fore.RED + colorama.Style.BRIGHT + text + colorama.Style.RESET_ALL
+
 def SPROG(name):
     return find_prog(name)
 
