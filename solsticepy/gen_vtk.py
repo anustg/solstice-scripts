@@ -72,6 +72,8 @@ def read_vtk(vtkfile):
 
     l=len(content)
     i=0
+    has_polygons=False
+    has_lines=False
 
     while i<l:
         line=content[i]
@@ -84,7 +86,7 @@ def read_vtk(vtkfile):
             points=np.array([])
             while j<end:
                 line=content[j]
-                v =[float(s) for s in re.findall(r'-?\d+\.?\d*', line)]
+                v =[float(s) for s in re.findall(r'[+-]?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?', line)]
                 points=np.append(points, v)
                 j+=1 
             i+=num_points
@@ -102,12 +104,42 @@ def read_vtk(vtkfile):
                 poly=np.append(poly, v)
                 j+=1 
             i+=num_polygon 
+            has_polygons=True
+            
+
+        elif 'LINES' in line: # ray path
+            v= [int(s) for s in line.split() if s.isdigit()]   
+            num_lines=v[0]
+            start=i+1
+            j=start
+            end=i+num_lines+1
+            lines=np.array([])
+            while j<end:
+                line=content[j]
+                v =[float(s) for s in re.findall(r'-?\d+\.?\d*', line)]
+                if v[0]>=3:    
+                    lines=np.append(lines, v[1:])
+                    npoint=v[0]
+                else:
+                    num_lines-=1
+                j+=1 
+            i+=num_lines
+            has_lines=True
+
         else:
             i+=1
+    
     points=points.reshape(num_points, 3)
-    poly=poly.reshape(num_polygon, 4)
+    if has_polygons:
+        poly=poly.reshape(num_polygon, 4)
+    else:
+        poly=0
+    if has_lines:
+        lines=lines.reshape(num_lines, int(npoint))
+    else:
+        lines=0
 
-    return points, poly
+    return points, poly, lines
 
 
 def flux_reader(vtkfile, casedir, check=False):
