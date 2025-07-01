@@ -66,7 +66,7 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims, hst_w, hst_h
 		, outfile_yaml, outfile_recv
 		, hemisphere='North', tower_h=0.01, tower_r=0.01,  spectral=False
 		, medium=0, one_heliostat=False, cant=False, bands=np.array([[None, None]])
-		, fct_w=0, fct_h=0, fct_gap=0, n_row=0, n_col=0, shape='curved'):
+		, fct_w=0, fct_h=0, fct_gap=0, n_row=0, n_col=0, shape='paraboloid',target_aligned=False):
 
 	"""Generate the heliostat field and receiver YAML input files for Solstice ray-tracing simulation.
 
@@ -94,6 +94,7 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims, hst_w, hst_h
 	  * `shape` (str): "paraboloid" or "flat" or "parabolic-cylinder" or 'sphere' shaped heliostats/facets  
 	  * `tower_h` (float): tower height (m)
 	  * `tower_r` (float): tower radius (a cylindrical shape tower) (m)
+	  * `target_aligned' (bool): use target_aligned tracking or not (False is using azi-ele tracking), only avaiable for single facet heliostats at the moment
 	3. the receiver
 	  * `receiver` (str): ``'flat'``, ``'cylinder'``, or ``'stl' or 'multi-aperture'`` (first of the 'receiver' parameters)
 	  * `rec_abs` (float): receiver absorptivity
@@ -285,17 +286,6 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims, hst_w, hst_h
 		num_hst=len(hst_x)
 	slices = 4 # slices for the envelop circle
 	
-	# CREATE a reflective facet (mirror)
-	for i in range(0,num_hst):
-		name_hst_g = 'hst_g_'+str(i)
-		iyaml+='- geometry: &%s\n' % name_hst_g 
-		iyaml+='  - material: *material_mirror\n' 
-		iyaml+='    parabol: \n'
-		iyaml+='      focal: %e\n' % hst_foc[i]
-		iyaml+='      clip: \n'  
-		iyaml+='      - operation: AND \n'
-		iyaml+='        vertices: [ [%e, %e], [%e, %e], [%e, %e], [%e, %e] ]\n' % (-hst_w*0.5, -hst_h*0.5, -hst_w*0.5, hst_h*0.5, hst_w*0.5, hst_h*0.5, hst_w*0.5,-hst_h*0.5)
-		iyaml+='      slices: %d\n' % slices  
 
 	# CREATE the pylon "pylon_g" geometry cylindrical shape
 	h_pyl = 0.001 # pylon height
@@ -333,7 +323,7 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims, hst_w, hst_h
     plane:
       clip: 
       - operation: AND 
-        vertices: [[-0.00001, -0.00001], [-0.00001, 0.00001], [0.000015, 0.00001], [0.00001, -0.00001]]
+        vertices: [[-0.00001, -0.00001], [-0.00001, 0.00001], [0.00001, 0.00001], [0.00001, -0.00001]]
       slices: 1\n\n"""
 
 		if shape=='flat':
@@ -372,7 +362,7 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims, hst_w, hst_h
 				iyaml+="      slices: 4\n\n"
 
 				
-		else: # parabol curved facets 
+		else: # paraboloid facets 
 			for i in range(len(bands)):
 				foc=bands[i,2]				
 				iyaml+="- geometry: &facet_g_band_%d\n"%i
@@ -396,7 +386,7 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims, hst_w, hst_h
 
 			foc=bands[b,1] # canting focus
 			#print('foc', foc)
-			data=heliostat_canted_facets(hst_w, hst_h, fct_w, fct_h, fct_gap, n_row, n_col, foc, shape)
+			data=heliostat_canted_facets(hst_w, hst_h, fct_w, fct_h, fct_gap, n_row, n_col, foc)
 			fct_x=data[:,0].reshape(n_row, n_col)
 			fct_z=data[:,1].reshape(n_row, n_col)
 			rotx=data[:,2].reshape(n_row, n_col)
@@ -460,12 +450,16 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims, hst_w, hst_h
 				iyaml+='    geometry: *pylon_g\n'
 				iyaml+='    children: \n' 
 				iyaml+='    - name: pivot\n'
-				iyaml+='      zx_pivot: {target: {position: [%e, %e, %e]}} \n' % (aim_x[i],aim_y[i],aim_z[i]) 
+				iyaml+='      zx_pivot:\n'
+				if target_aligned:
+					iyaml+='        target_aligned: true\n'
+				iyaml+='        target:\n'
+				iyaml+='          position: [%e, %e, %e] \n' % (aim_x[i],aim_y[i],aim_z[i]) 
 				iyaml+='      children: \n'
 				iyaml+='      - name: reflect_surface\n'
 				iyaml+='        primary: 1\n'
-				iyaml+='        transform: {rotation: [-90,0,0]} \n' 
-
+				if not target_aligned: 
+					iyaml+='        transform: {rotation: [-90,0,0]} \n' 
 				#idx= np.where(bands[foc<=bands][0]==bands)[0][0]
 				name_hst_g = 'hst_g'
 				iyaml+='        geometry: *%s\n\n' % name_hst_g 
@@ -516,11 +510,16 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims, hst_w, hst_h
 				iyaml+='    geometry: *pylon_g\n'
 				iyaml+='    children: \n' 
 				iyaml+='    - name: pivot\n'
-				iyaml+='      zx_pivot: {target: {position: [%e, %e, %e]}} \n' % (aim_x[i],aim_y[i],aim_z[i]) 
+				iyaml+='      zx_pivot:\n' 
+				if target_aligned:
+					iyaml+='        target_aligned: true\n'
+				iyaml+='        target:\n'
+				iyaml+='          position: [%e, %e, %e] \n' % (aim_x[i],aim_y[i],aim_z[i]) 
 				iyaml+='      children: \n'
 				iyaml+='      - name: reflect_surface\n'
 				iyaml+='        primary: 1\n'
-				iyaml+='        transform: {rotation: [-90,0,0]} \n' 
+				if not target_aligned: 
+					iyaml+='        transform: {rotation: [-90,0,0]} \n' 
 				foc=hst_foc[i]
 				if len(bands)==1:
 					idx=0
@@ -569,7 +568,7 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims, hst_w, hst_h
 		f.write(rcv) 
 
 
-def heliostat_canted_facets(hst_w, hst_h, fct_w, fct_h, gap, n_row, n_col, foc, shape='curved'):
+def heliostat_canted_facets(hst_w, hst_h, fct_w, fct_h, gap, n_row, n_col, foc):
 	"""
 	Ideally on-axis canted (4fy=x^2+z^2)
 
@@ -582,7 +581,6 @@ def heliostat_canted_facets(hst_w, hst_h, fct_w, fct_h, gap, n_row, n_col, foc, 
   	* `n_row` (int): number of rows for the facets arrangement 
   	* `n_col` (int): number of columns for the facets arrangement
   	* `foc` (float): focal length 
-  	* `shape` (str): 'flat' or 'curved' facets 
 	"""
 	data=np.array([])
 	for i in range(n_row):
