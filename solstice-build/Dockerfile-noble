@@ -15,7 +15,7 @@ RUN useradd -s /bin/bash -m john
 RUN usermod -aG sudo john
 
 ARG DEBIAN_FRONTEND=noninteractive
-RUN apt-get update && apt-get install -y sudo build-essential git wget vim lsb-release libtbb-dev libglfw3-dev freeglut3-dev libmagick++-dev cmake libopenimageio-dev pkg-config libjpeg-dev libpng-dev cmake libpolyclipping-devlibyaml-dev
+RUN apt-get update && apt-get install -y sudo build-essential git wget vim lsb-release libtbb-dev libglfw3-dev freeglut3-dev libmagick++-dev cmake libopenimageio-dev pkg-config libjpeg-dev libpng-dev cmake libpolyclipping-dev libyaml-dev
 
 RUN echo "username	ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
 
