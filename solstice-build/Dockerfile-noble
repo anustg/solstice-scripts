@@ -15,11 +15,9 @@ RUN useradd -s /bin/bash -m john
 RUN usermod -aG sudo john
 
 ARG DEBIAN_FRONTEND=noninteractive
-RUN apt-get update && apt-get install -y sudo build-essential git wget vim lsb-release
+RUN apt-get update && apt-get install -y sudo build-essential git wget vim lsb-release libtbb-dev libglfw3-dev freeglut3-dev libmagick++-dev cmake libopenimageio-dev pkg-config libjpeg-dev libpng-dev cmake libpolyclipping-devlibyaml-dev
 
 RUN echo "username	ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
-
-RUN apt-get update && apt-get install -y cmake 
 
 WORKDIR /home/john
 
@@ -27,11 +25,30 @@ ENV MAKE_FLAGS="-j7"
 ENV BUILD_TYPE="RELEASE"
 #ENV BUILD_TYPE="DEBUG"
 
+# ISPC
+WORKDIR /home/john/
+RUN sudo su john -c "wget https://github.com/ispc/ispc/releases/download/v1.12.0/ispc-v1.12.0b-linux.tar.gz"
+RUN sudo su john -c "tar zxvf ispc-v1.12*-linux.tar.gz"
+WORKDIR /home/john/ispc-v1.12.0-linux
+ENV BIN_ISPC=/home/john/ispc-v1.12.0-linux/bin/ispc
+RUN sudo su john -c "$BIN_ISPC --version"
+
+# EMBREE
+WORKDIR /home/john/
+#ENV VER_EMBREE=v2.17.7
+#ENV VER_EMBREE=v3.13.1
+ENV VER_EMBREE=v3.13.5
+RUN sudo su john -c "git clone https://github.com/embree/embree.git"
+WORKDIR /home/john/embree
+RUN sudo su john -c "git checkout $VER_EMBREE"
+RUN sudo su john -c "cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++ -DEMBREE_ISPC_EXECUTABLE=$BIN_ISPC -DCMAKE_INSTALL_PREFIX=/usr/local"
+RUN sudo su john -c "make $MAKE_FLAGS && make DESTDIR=~/install install"
+RUN make install
+
 # RCMAKE
 ENV VER_RCMAKE=0.4
 RUN sudo su john -c "git clone https://gitlab.com/vaplv/rcmake.git"
 WORKDIR /home/john/rcmake
-
 RUN sudo su john -c "git checkout tags/$VER_RCMAKE"
 WORKDIR /home/john/rcmake/cmake
 RUN sudo su john -c "cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE . && make $MAKE_FLAGS"
@@ -47,28 +64,6 @@ WORKDIR /home/john/rsys
 RUN sudo su john -c "git checkout tags/$VER_RSYS"
 WORKDIR /home/john/rsys/cmake
 RUN sudo su john -c "cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE . && make $MAKE_FLAGS"
-RUN sudo su john -c "make DESTDIR=~/install install"
-RUN make install
-
-# ISPC
-WORKDIR /home/john/
-RUN sudo su john -c "wget https://github.com/ispc/ispc/releases/download/v1.12.0/ispc-v1.12.0b-linux.tar.gz"
-RUN sudo su john -c "tar zxvf ispc-v1.12*-linux.tar.gz"
-WORKDIR /home/john/ispc-v1.12.0-linux
-ENV BIN_ISPC=/home/john/ispc-v1.12.0-linux/bin/ispc
-RUN sudo su john -c "$BIN_ISPC --version"
-
-# EMBREE
-RUN apt-get install -y libtbb-dev libglfw3-dev freeglut3-dev libmagick++-dev cmake libopenimageio-dev pkg-config libjpeg-dev libpng-dev
-WORKDIR /home/john/
-#ENV VER_EMBREE=v2.17.7
-#ENV VER_EMBREE=v3.13.1
-ENV VER_EMBREE=v3.13.5
-RUN sudo su john -c "git clone https://github.com/embree/embree.git"
-WORKDIR /home/john/embree
-RUN sudo su john -c "git checkout $VER_EMBREE"
-RUN sudo su john -c "cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++ -DEMBREE_ISPC_EXECUTABLE=$BIN_ISPC -DCMAKE_INSTALL_PREFIX=/usr/local"
-RUN sudo su john -c "make $MAKE_FLAGS"
 RUN sudo su john -c "make DESTDIR=~/install install"
 RUN make install
 
@@ -89,7 +84,6 @@ ENV VER_RANDOM123=1.14.0
 WORKDIR /home/john
 RUN sudo su john -c "git clone https://github.com/DEShawResearch/random123.git"
 WORKDIR /home/john/random123
-RUN sudo su john -c "git tag"
 RUN sudo su john -c "git checkout tags/v$VER_RANDOM123"
 #WORKDIR /home/john/Random123-$VER_RANDOM123/examples
 #RUN sudo su john -c "make"
@@ -102,8 +96,7 @@ WORKDIR /home/john/star-sp
 RUN sudo su john -c "git checkout $VER_STARSP"
 WORKDIR /home/john/star-sp/cmake
 RUN sudo su john -c "cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DRandom123_INCLUDE_DIR=/home/john/random123/include . && make $MAKE_FLAGS"
-RUN sudo su john -c "make test"
-RUN sudo su john -c "make DESTDIR=~/install install"
+RUN sudo su john -c "make test && make DESTDIR=~/install install"
 RUN make install
 
 # STAR-3DUT
@@ -114,8 +107,7 @@ WORKDIR /home/john/star-3dut
 RUN sudo su john -c "git checkout tags/$VER_STAR3DUT"
 WORKDIR /home/john/star-3dut/cmake
 RUN sudo su john -c "cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE . && make $MAKE_FLAGS"
-RUN sudo su john -c "make test"
-RUN sudo su john -c "make DESTDIR=~/install install"
+RUN sudo su john -c "make test && make DESTDIR=~/install install"
 RUN make install
 
 # POLYGON
@@ -126,21 +118,18 @@ WORKDIR /home/john/polygon
 RUN sudo su john -c "git checkout tags/$VER_POLYGON"
 WORKDIR /home/john/polygon/cmake
 RUN sudo su john -c "cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE . && make $MAKE_FLAGS"
-RUN sudo su john -c "make test"
-RUN sudo su john -c "make DESTDIR=~/install install"
+RUN sudo su john -c "make test && make DESTDIR=~/install install"
 RUN make install
 
 # STAR-CPR
 WORKDIR /home/john
 ENV VER_STARCPR=0.1.2
-RUN apt-get install -y libpolyclipping-dev
 RUN sudo su john -c "git clone https://gitlab.com/meso-star/star-cpr.git"
 WORKDIR /home/john/star-cpr
 RUN sudo su john -c "git checkout tags/$VER_STARCPR"
 WORKDIR /home/john/star-cpr/cmake
 RUN sudo su john -c "cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE . && make $MAKE_FLAGS"
-RUN sudo su john -c "make test"
-RUN sudo su john -c "make DESTDIR=~/install install"
+RUN sudo su john -c "make test && make DESTDIR=~/install install"
 RUN make install
 
 # STAR-SF
@@ -151,8 +140,7 @@ WORKDIR /home/john/star-sf
 RUN sudo su john -c "git checkout tags/$VER_STARSF"
 WORKDIR /home/john/star-sf/cmake
 RUN sudo su john -c "cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE . && make $MAKE_FLAGS"
-RUN sudo su john -c "make test"
-RUN sudo su john -c "make DESTDIR=~/install install"
+RUN sudo su john -c "make test && make DESTDIR=~/install install"
 RUN make install
 
 # SOLSTICE-SOLVER
@@ -163,8 +151,7 @@ WORKDIR /home/john/solstice-solver
 RUN sudo su john -c "git checkout tags/$VER_SOLSTICESOLVER"
 WORKDIR /home/john/solstice-solver/cmake
 RUN sudo su john -c "cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE . && make $MAKE_FLAGS"
-RUN sudo su john -c "make test"
-RUN sudo su john -c "make DESTDIR=~/install install"
+RUN sudo su john -c "make test && make DESTDIR=~/install install"
 RUN make install
 
 # SOLSTICE-ANIM
@@ -175,8 +162,7 @@ WORKDIR /home/john/solstice-anim
 RUN sudo su john -c "git checkout tags/$VER_SOLSTICEANIM"
 WORKDIR /home/john/solstice-anim/cmake
 RUN sudo su john -c "cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE . && make $MAKE_FLAGS"
-RUN sudo su john -c "make test"
-RUN sudo su john -c "make DESTDIR=~/install install"
+RUN sudo su john -c "make test && make DESTDIR=~/install install"
 RUN make install
 
 # STAR-STL
@@ -187,12 +173,10 @@ WORKDIR /home/john/star-stl
 RUN sudo su john -c "git checkout tags/$VER_STARSTL"
 WORKDIR /home/john/star-stl/cmake
 RUN sudo su john -c "cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE . && make $MAKE_FLAGS"
-RUN sudo su john -c "make test"
-RUN sudo su john -c "make DESTDIR=~/install install"
+RUN sudo su john -c "make test && make DESTDIR=~/install install"
 RUN make install
 
 # SOLSTICE!!!
-RUN apt-get install -y libyaml-dev
 WORKDIR /home/john
 ENV VER_SOLSTICE=0.9.1
 RUN sudo su john -c "git clone https://gitlab.com/meso-star/solstice.git"
@@ -200,12 +184,10 @@ WORKDIR /home/john/solstice
 RUN sudo su john -c "git checkout tags/$VER_SOLSTICE"
 WORKDIR /home/john/solstice/cmake
 RUN sudo su john -c "cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE . && make $MAKE_FLAGS"
-RUN sudo su john -c "make test"
-RUN sudo su john -c "make DESTDIR=~/install install"
+RUN sudo su john -c "make test && make DESTDIR=~/install install"
 RUN make install
 
 # CLEAN UP EMBREE BINS
-
 RUN rm -rf /home/john/install/usr/local/bin/embree3
 
 # TAR UP THE BINARY
