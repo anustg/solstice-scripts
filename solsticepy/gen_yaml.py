@@ -788,7 +788,10 @@ def gen_yaml_target_aligned(sun, hst_pos, hst_aims, hst_w, hst_h
 	sun_vec=sun_vec.reshape(1, 3)
 
 	OH=hst_pos - hst_aims # heliostat and target vectors
-	norms = np.linalg.norm(OH) #, axis=0, keepdims=True) 
+	if one_heliostat:
+		norms = np.linalg.norm(OH) #, axis=0, keepdims=True) 
+	else:
+		norms = np.linalg.norm(OH, axis=0, keepdims=True) 
 	unit_OH =OH/norms
 
 	dot_products = np.sum(unit_OH * sun_vec, axis=1)
