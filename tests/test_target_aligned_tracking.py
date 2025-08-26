@@ -4,7 +4,7 @@ from __future__ import division
 import unittest
 
 from solsticepy.cal_sun import SunPosition
-from solsticepy.gen_yaml import Sun, gen_yaml
+from solsticepy.gen_yaml import Sun, gen_yaml, gen_yaml_target_aligned
 from solsticepy.master import Master
 from solsticepy.cal_layout import radial_stagger
 from solsticepy.gen_vtk import flux_reader, read_vtk
@@ -23,8 +23,13 @@ def test_alignment():
     sunshape_param=1e-4
     slope_error=1e-6
 
+    target_aligned=True
+    if target_aligned:
+        casename='test-target-aligned-tracking-quadricxy'
+    else:
+        casename='test-azi-ele-tracking'
 
-    casename='test-not-target-aligned-tracking'
+
     hst_z=hst_w*0.7
     hst_pos=np.r_[0, 500, hst_z]
     hst_pos=hst_pos.reshape(1,3)
@@ -60,121 +65,83 @@ def test_alignment():
     loc_z=62.# m
     rec_abs=1.
     rec_mesh=100
-
-                                                
+                                          
     casefolder=casename
-    shape='flat' #TODO yaml file add single flat heliostat option
+    shape='flat'
     rec_param=np.r_[rec_w, rec_h, rec_mesh, rec_mesh, loc_x, loc_y, loc_z, tilt]
     hst_aims=np.r_[loc_x, loc_y, loc_z]
     hst_aims=hst_aims.reshape(1, 3)
     hst_foc=np.linalg.norm(hst_aims-hst_pos)
 
-
     master=Master(casedir=casefolder)
     outfile_yaml = master.in_case(folder=casefolder, fn='input.yaml')
     outfile_recv = master.in_case(folder=casefolder, fn='input-rcv.yaml')
 
-    # generate the YAML file from the input parameters specified above
-    gen_yaml(sun, hst_pos, hst_foc, hst_aims,hst_w, hst_h
-	    , rho_refl, slope_error, receiver, rec_param, rec_abs
-	    , outfile_yaml=outfile_yaml, outfile_recv=outfile_recv
-	    , hemisphere='North', tower_h=tower_h, tower_r=tower_r,  spectral=False
-	    , medium=0, one_heliostat=True, shape=shape, target_aligned=False)
+
+    data=np.array(['pillbox', 'slope (mrad)', 'hst size (m)', 'position', 'azimuth', 'elevation', 'DNI (W/m2)', 'peak flux (W/m2)', 'beam area (m2)', 'aligned', 'H-incident zenith (deg)','H-incident azimuth (deg)'])
+    poses=np.arange(45., 360., 45.)
+    nd=5
+    nh=22
+    for p in poses:
+
+        casedir=casefolder+'/P_%.0f'%(p)
+
+        sunpos=SunPosition()
+        AZI, ZENITH,table,case_list=sunpos.annual_angles(latitude, casefolder=casedir, nd=nd, nh=nh)
+        case_list=case_list[1:]
+        SOLSTICE_AZI, SOLSTICE_ELE=sunpos.convert_convention('solstice', AZI, ZENITH)
+        run=np.r_[0]
+        for i in range(len(case_list)):     
+            c=int(case_list[i,0].astype(float))
+            if c not in run:
+                azimuth=SOLSTICE_AZI[c-1]
+                elevation=SOLSTICE_ELE[c-1]
+                if np.sin(elevation*np.pi/180.)>=1.e-5:
+    	            dni=1618.*np.exp(-0.606/(np.sin(elevation*np.pi/180.)**0.491))
+                else:
+    	            dni=0.
+
+                onesunfolder=casedir+'/sunpos_%.0f'%(c)
+                # run Solstice using the generate inputs, and run all required post-processing
+                azimuth=azimuth+p
+                if azimuth>=360:
+                    azimuth-=360.
+
+                azimuth=int(azimuth)
+                elevation=int(elevation)
+                hst_vtk_fn=onesunfolder+'/%.0f-%.0f-primaries.vtk'%(azimuth, elevation)
+
+                sun_azi=azimuth/180.*np.pi
+                sun_ele=elevation/180.*np.pi
+                # generate the YAML file from the input parameters specified above
+                gen_yaml_target_aligned(sun, hst_pos, hst_aims, hst_w, hst_h
+                    ,  rho_refl, slope_error, receiver, rec_param, rec_abs
+                    , outfile_yaml=outfile_yaml, outfile_recv=outfile_recv, sun_azi=sun_azi, sun_ele=sun_ele
+                    , hemisphere='North', tower_h=tower_h, tower_r=tower_r, spectral=False
+                    , medium=0, one_heliostat=True)
 
 
-    sunpos=SunPosition()
-    mm=['Dec', 'Mar', 'Jun']
-    dd=[21, 20, 20]
-    seasons=['winter', 'spring', 'summer']
-    poses=np.arange(0., 360., 45.)
+                if not os.path.exists(hst_vtk_fn):
+                    print(onesunfolder, 'dni', dni)
+                    print(hst_vtk_fn)
+                    master.run(azimuth, elevation, num_rays, rho_refl, dni, folder=onesunfolder, gen_vtk=True,verbose=True)
+        
 
-    data=np.array(['pillbox', 'slope (mrad)', 'hst size (m)', 'position', 'day', 'time', 'azimuth', 'elevation', 'DNI (W/m2)', 'peak flux (W/m2)', 'beam area (m2)', 'aligned'])
-    for i in range(len(dd)):
-        d=dd[i]
-        m=mm[i]
-        day=sunpos.days(d, m)
-        delta=sunpos.declination(day)
-      
-        # solar noon
-        omega=0. # solar noon
-        theta=sunpos.zenith(latitude, delta, omega)
-        phi=sunpos.azimuth(latitude, theta, delta, omega)
-        azi, ele=sunpos.convert_convention(tool='solstice', azimuth=phi, zenith=theta)
-        azi=int(azi)
-        ele=int(ele)		
-        #print(m, d, 'noon', azi, ele)
-        if np.sin(ele*np.pi/180.)>=1.e-5:
-            dni=1618.*np.exp(-0.606/(np.sin(ele*np.pi/180.)**0.491))
-        else:
-            dni=0.
+                area, peak=plot_flux(onesunfolder, dni, name='%.0f-%.0f-target_e'%(azimuth, elevation), casename='sunpos %s'%c,loc_z=loc_z)
 
-        for p in poses:
-            onesunfolder=casename+'/azi_%.0f_%s_noon'%(p, seasons[i])
-            # run Solstice using the generate inputs, and run all required post-processing
-            azimuth=azi+p
-            if azimuth>=360:
-                azimuth-=360.
-            hst_vtk_fn=onesunfolder+'/%.0f-%.0f-primaries.vtk'%(azimuth, ele)
+                testx, testy, zenith_angle_deg, azimuth_angle_deg=check_alignment(onesunfolder, azimuth, elevation, plot=False)
+                data=np.append(data, (sunshape_param, slope_error*1000., hst_w, p,  azimuth, elevation, dni, peak, area, testx, zenith_angle_deg, azimuth_angle_deg))
 
-            if not os.path.exists(hst_vtk_fn):
-                print(onesunfolder, 'dni', dni)
-                print(hst_vtk_fn)
-                master.run(azimuth, ele, num_rays, rho_refl, dni, folder=onesunfolder, gen_vtk=True,verbose=True)
-
-            area, peak=plot_flux(onesunfolder, dni, name='%.0f-%.0f-target_e'%(azimuth, ele), casename='%s noon'%seasons[i],loc_z=loc_z)
-
-            testx, testy=check_alignment(onesunfolder, azimuth, ele, plot=False)
-            data=np.append(data, (sunshape_param, slope_error*1000., hst_w, p, seasons[i], 'noon', azi, ele, dni, peak, area, testx))
-
-            sys.stderr.write(yellow("Case %s, %s\n"%(p, onesunfolder))) 
-            if testx:
-                sys.stderr.write(green("Targed aligned\n")) 
-            else:
-                sys.stderr.write(red("Not aligned\n"))    
-            print()             
-    
-
-        # morning : 2 h after sunrise
-        daytime,sunrise=sunpos.solarhour(delta, latitude)
-        omega=sunrise+15.*2
-        theta=sunpos.zenith(latitude, delta, omega)
-        phi=sunpos.azimuth(latitude, theta, delta, omega)
-        azi, ele=sunpos.convert_convention(tool='solstice', azimuth=phi, zenith=theta)
-        azi=int(azi)
-        ele=int(ele)
-        #print(m, d, 'morning', azi, ele)
-        if np.sin(ele*np.pi/180.)>=1.e-5:
-            dni=1618.*np.exp(-0.606/(np.sin(ele*np.pi/180.)**0.491))
-        else:
-            dni=0.
-
-        for p in poses:
-            onesunfolder=casename+'/azi_%.0f_%s_morning'%(p, seasons[i])
-
-            azimuth=azi+p
-            if azimuth>=360:
-                azimuth-=360.
-            hst_vtk_fn=onesunfolder+'/%.0f-%.0f-primaries.vtk'%(azimuth, ele)
-            if not os.path.exists(hst_vtk_fn):
-                print(onesunfolder, 'dni', dni)
-
-                master.run(azimuth, ele, num_rays, rho_refl, dni, folder=onesunfolder, gen_vtk=True,verbose=True)
-
-            area, peak=plot_flux(onesunfolder, dni, name='%.0f-%.0f-target_e'%(azimuth, ele), casename='%s morning'%seasons[i], loc_z=loc_z)
-
-            testx, testy=check_alignment(onesunfolder, azimuth, ele, plot=False)
-            data=np.append(data, (sunshape_param, slope_error*1000., hst_w,  p, seasons[i], 'morning',  azi, ele, dni, peak, area, testx))
-
-            sys.stderr.write(yellow("Case %s, %s\n"%(p, onesunfolder))) 
-            if testx:
-                sys.stderr.write(green("Targed aligned\n")) 
-            else:
-                sys.stderr.write(red("Not aligned\n"))    
-            print()             
+                sys.stderr.write(yellow("Case %s, %s\n"%(p, onesunfolder))) 
+                if testx:
+                    sys.stderr.write(green("Targed aligned\n")) 
+                else:
+                    sys.stderr.write(red("Not aligned\n"))    
+                print()             
 
 
-    data=data.reshape(int(len(data)/12), 12)
-    np.savetxt(casefolder+'/data-summary.csv', data, fmt='%s', delimiter=',')
+        data=data.reshape(int(len(data)/12), 12)
+        np.savetxt(casedir+'/data-summary.csv', data, fmt='%s', delimiter=',')
 
 
 def plot_flux(casefolder, dni, name, casename, loc_z):
@@ -299,6 +266,7 @@ def check_alignment(casefolder, sun_azi, sun_ele, plot=False):
     centroid = np.array([np.mean(x), np.mean(y), np.mean(z)])
 
 
+
     if plot:
         # Create the figure and 3D axis
         fig = plt.figure()
@@ -324,8 +292,8 @@ def check_alignment(casefolder, sun_azi, sun_ele, plot=False):
         cc=points[l[2]]
         #print(aa, bb, cc)
  
-        OR=cc-bb
-        OS=aa-bb
+        OR=bb-cc
+        OS=bb-aa
         n_SR=np.cross(OR, OS)
         cosx=np.dot(n_SR, local_x)/np.linalg.norm(n_SR)/np.linalg.norm(local_x)
         cosy=np.dot(n_SR, local_y)/np.linalg.norm(n_SR)/np.linalg.norm(local_y)
@@ -334,10 +302,14 @@ def check_alignment(casefolder, sun_azi, sun_ele, plot=False):
         #print('angle n_SR and local_y', cosy)
         #print('angle n_SR and local_x', cosx)   
 
+    zenith_angle_deg, azimuth_angle_deg	= calculate_angles(OS, local_x, local_y, local_z)
+
+
     testx=abs(cosx-1)<1e-5 or abs(cosx+1)<1e-5 
     testy=abs(cosy)<1e-5 
 
     print('Target aligned', testx, cosx, testy, cosy)
+    print('zenith = %.0f, azimuth =%.0f'%(zenith_angle_deg, azimuth_angle_deg))
 
     if plot:
   
@@ -363,14 +335,14 @@ def check_alignment(casefolder, sun_azi, sun_ele, plot=False):
         )
 
       
-        local_x=local_x
-        local_y=local_y
+
         # draw a plane come through local y and z
         # Define the range for the local y and z axes
         y_range = np.linspace(-5, 5, 10)  # Range for the local y-axis
         z_range = np.linspace(-5, 5, 10)  # Range for the local z-axis
         # Create a grid of points in the local y-z plane
         y_grid, z_grid = np.meshgrid(y_range, z_range)
+
 
 
 
@@ -419,7 +391,7 @@ def check_alignment(casefolder, sun_azi, sun_ele, plot=False):
 
         # Show the plot
         plt.show()
-    return testx, testy
+    return testx, testy, zenith_angle_deg, azimuth_angle_deg
 
 def set_axes_equal(ax):
     """Set equal scaling for 3D plot axes."""
@@ -440,9 +412,115 @@ def set_axes_equal(ax):
     ax.set_xlim([x_mid - max_range / 2, x_mid + max_range / 2])
     ax.set_ylim([y_mid - max_range / 2, y_mid + max_range / 2])
     ax.set_zlim([z_mid - max_range / 2, z_mid + max_range / 2])
-	
+
+def calculate_angles(S, x_axis, y_axis, z_axis):
+
+    # Calculate magnitudes
+    magnitude_S = np.linalg.norm(S)
+    magnitude_z = np.linalg.norm(z_axis)
+    magnitude_y = np.linalg.norm(y_axis)
+
+    # Calculate the dot product for zenith angle
+    dot_product_S_z = np.dot(S, z_axis)
+
+    # Calculate the zenith angle
+    zenith_angle = np.arccos(dot_product_S_z / (magnitude_S * magnitude_z))
+
+    # Project S onto the xy-plane
+    projection_S_z = (dot_product_S_z / magnitude_z**2) * z_axis
+    S_xy = S - projection_S_z
+
+    # Calculate the magnitude of the projection
+    magnitude_S_xy = np.linalg.norm(S_xy)
+
+    # Calculate the dot product for azimuth angle
+    dot_product_S_xy_y = np.dot(S_xy, y_axis)
+    dot_product_S_xy_x = np.dot(S_xy, x_axis)
+
+    # Calculate the azimuth angle using atan2 for correct quadrant
+    azimuth_angle = np.arctan2(dot_product_S_xy_x, dot_product_S_xy_y)
+
+    # Convert angles from radians to degrees
+    zenith_angle_deg = np.degrees(zenith_angle)
+    azimuth_angle_deg = np.degrees(azimuth_angle)
+
+    return zenith_angle_deg, azimuth_angle_deg	
+
+def plot_hst_azi_zenith():
+    '''
+    plot the incident angle relate to the heliostat azi and zenith
+
+    '''
+    cases=['test-target-aligned-tracking-quadricxy1'] #'test-target-aligned-tracking', 'test-azi-ele-tracking']
+    names=['target-aligned tracking']#, 'azi-ele tracking']
+    poses=np.r_[45] #np.arange(0, 360., 45.)
+    '''
+    for p in poses:
+        # Create the polar plot
+        plt.rcParams.update({'font.size': 14})
+        fig, ax = plt.subplots(subplot_kw={'projection': 'polar'})
+        for i,c in enumerate(cases):
+            casefolder=c
+            casedir=casefolder+'/P_%.0f'%(p)
+            fn=casedir+'/data-summary.csv'
+            data=np.loadtxt(fn, delimiter=',', skiprows=1)
+            zenith=data[:,-2]
+            azimuth=data[:,-1]
+        
+            #r=np.sin(zenith*np.pi/180.)
+            azimuth=azimuth*np.pi/180.    
+            ax.plot(azimuth, zenith, '.', label=names[i])
+
+        # Add labels and legend
+        ax.set_title('P=%.0f°'%(p), va='bottom')
+        ax.legend(loc='upper left', bbox_to_anchor=(1.05, 1.05))
+
+        
+        # Show the plot
+        #plt.show()    
+        plt.savefig(open('./azi_zen_P_%.0f.png'%p, 'wb'), bbox_inches='tight', dpi=300)
+        plt.close()
+    '''
+
+    # Create a 4x2 grid of subplots (8 subplots in total)
+    fig, axes = plt.subplots(2, 4, subplot_kw={'projection': 'polar'}, figsize=(18, 10))
+ 
+    for j,p in enumerate(poses):
+        # Create the polar plot
+        plt.rcParams.update({'font.size': 14})
+        ax=axes.flat[j]
+
+        for i,c in enumerate(cases):
+            casefolder=c
+            casedir=casefolder+'/P_%.0f'%(p)
+            fn=casedir+'/data-summary.csv'
+            data=np.loadtxt(fn, delimiter=',', skiprows=1)
+            zenith=data[:,-2]
+            azimuth=data[:,-1]
+        
+            #r=np.sin(zenith*np.pi/180.)
+            azimuth=azimuth*np.pi/180.    
+            ax.plot(azimuth, zenith, '.', label=names[i])
+
+        # Add labels and legend
+        ax.set_title('P=%.0f°'%(p), va='bottom')
+        #ax.legend(loc='upper left', bbox_to_anchor=(1.05, 1.05))
+
+        
+    # Show the plot
+    #plt.show()    
+    plt.savefig(open('./azi_zen_all-quadric.png', 'wb'), bbox_inches='tight', dpi=300)
+    plt.close()
+
+
+
+
+
+
+
 if __name__=='__main__':
     test_alignment()
+    #plot_hst_azi_zenith()
 
 
 
