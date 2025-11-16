@@ -12,12 +12,12 @@ from .process_raw import *
 from .cal_layout import radial_stagger
 from .cal_field import *
 from .cal_sun import *
-from .gen_yaml import gen_yaml, Sun
+from .gen_yaml import gen_yaml, Sun, gen_yaml_target_aligned
 from .gen_vtk import *
 from .input import Parameters
 from .output_motab import output_metadata_motab, output_motab
 from .master import *
-
+from .incident_angles import get_annual_incident
 
 class CRS:
 	'''
@@ -85,7 +85,7 @@ class CRS:
 
 
 
-	def heliostatfield(self, field, hst_rho, slope, hst_w, hst_h, tower_h, tower_r=0.01, hst_z=0., num_hst=0., R1=0., fb=0., dsep=0.):
+	def heliostatfield(self, field, hst_rho, slope, hst_w, hst_h, tower_h, tower_r=0.01, hst_z=0., num_hst=0., R1=0., fb=0., dsep=0., target_aligned=False):
 
 		'''
 		Arguements:
@@ -99,16 +99,18 @@ class CRS:
 		           - the first three columns are X, Y, Z coordinates of each heliostat
 		           - the fourth column is the focal length
 		           - the last three columns are the aiming points
-		    (2) hst_w     : float, width of a heliostat (m) 
-		    (3) hst_h     : float, height of a heliostat (m)
-		    (4) hst_z     : float, the installation height of the heliostat
-		    (5) hst_rho   : float, reflectivity of heliostat 
-		    (6) slope     : float, slope error(radians)
-		    (7) R1        : float, layout parameter, the distance of the first row of heliostat 
-		    (8) dsep      : float, layout parameter, the separation distance of heliostats (m)
-		    (9) tower_h    : float, tower height (m)
-		    (10)tower_r   : float, radius of tower (m)
-		    (11)num_hst  :   int, number of heliostats used in the field design 
+		    (2) hst_rho   : float, reflectivity of heliostat 
+		    (3) slope     : float, slope error(radians)
+		    (4) hst_w     : float, width of a heliostat (m) 
+		    (5) hst_h     : float, height of a heliostat (m)
+		    (6) tower_h    : float, tower height (m)
+		    (7)tower_r   : float, radius of tower (m)
+		    (8) hst_z     : float, the installation height of the heliostat
+		    (9)num_hst  :   int, number of heliostats used in the field design 
+		    (10) R1        : float, layout parameter, the distance of the first row of heliostat 
+		    (11) fb        : float, layout parameter, the field layout growing factor, in (0, 1)
+		    (12) dsep      : float, layout parameter, the separation distance of heliostats (m)
+		    (13) target_aligned: boolean, using target aligned heliostat design (True) or conventional az-ele tracked heliostats (False)
 
 		 '''
 	   
@@ -143,8 +145,21 @@ class CRS:
 		self.hst_zone=layout[:,9].astype(float)     # zone number
 		self.hst_row=layout[:,10].astype(float)      # row index in the zone
 
+		if target_aligned:
+			print('calculating angles')
+			incidents=np.array([])
+			for i,h in enumerate(self.hst_pos):
+				print(i)
+				pos=h.reshape(1,3)
+				aim=self.hst_aims[i].reshape(1, 3)
+				theta= get_annual_incident(pos, aim, self.latitude, casename='', verbose=False)  
+				incidents=np.append(incidents, theta)     
+			incidents=incidents*np.pi/180.
+			self.Fx=self.hst_foc*np.cos(incidents)
+			self.Fy=self.hst_foc/np.cos(incidents)
 
-	def yaml(self, dni=1000,sunshape=None,csr=0.01,half_angle_deg=0.2664,std_dev=0.2):
+
+	def yaml(self, dni=1000,sunshape=None,csr=0.01,half_angle_deg=0.2664,std_dev=0.2, target_aligned=False):
 		'''
 		Generate YAML files for the Solstice simulation
 		'''
@@ -160,11 +175,23 @@ class CRS:
 			hemisphere='North'
 		else:
 			hemisphere='South'
-		gen_yaml(sun, self.hst_pos, self.hst_foc, self.hst_aims, self.hst_w
-		, self.hst_h, self.hst_rho, self.slope, self.receiver, self.rec_param
-		, self.rec_abs, outfile_yaml=outfile_yaml, outfile_recv=outfile_recv
-		, hemisphere='North', tower_h=self.tower_h, tower_r=self.tower_r
-		, spectral=False , medium=att_factor, one_heliostat=False)
+
+		if target_aligned:
+			print('generating target aligned yaml')
+			gen_yaml_target_aligned(sun, self.hst_pos, self.hst_aims, self.Fx, self.Fy, self.hst_w
+			, self.hst_h, self.hst_rho, self.slope, self.receiver, self.rec_param
+			, self.rec_abs, outfile_yaml=outfile_yaml, outfile_recv=outfile_recv
+			, hemisphere=hemisphere, tower_h=self.tower_h, tower_r=self.tower_r
+			,  spectral=False , medium=att_factor, one_heliostat=False)
+
+
+		else:
+			gen_yaml(sun, self.hst_pos, self.hst_foc, self.hst_aims, self.hst_w
+			, self.hst_h, self.hst_rho, self.slope, self.receiver, self.rec_param
+			, self.rec_abs, outfile_yaml=outfile_yaml, outfile_recv=outfile_recv
+			, hemisphere=hemisphere, tower_h=self.tower_h, tower_r=self.tower_r
+			, spectral=False , medium=att_factor, one_heliostat=False)
+
 
 
 	def field_design_annual(self,  dni_des, num_rays, nd, nh, weafile, method, Q_in_des=None, n_helios=None, zipfiles=False, gen_vtk=False, plot=False):

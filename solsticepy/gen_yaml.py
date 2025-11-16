@@ -560,9 +560,9 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims, hst_w, hst_h
 	with open(outfile_recv,'w') as f:
 		f.write(rcv) 
 
-def gen_yaml_target_aligned(sun, hst_pos, hst_aims, hst_w, hst_h
+def gen_yaml_target_aligned(sun, hst_pos, hst_aims, Fx, Fy, hst_w, hst_h
 		, rho_refl, slope_error, receiver, rec_param, rec_abs
-		, outfile_yaml, outfile_recv, sun_azi, sun_ele
+		, outfile_yaml, outfile_recv
 		, hemisphere='North', tower_h=0.01, tower_r=0.01,  spectral=False
 		, medium=0, one_heliostat=False):
 
@@ -575,6 +575,8 @@ def gen_yaml_target_aligned(sun, hst_pos, hst_aims, hst_w, hst_h
 	2. the field
 	  * `hst_pos` (nx3 numpy array): heliostat positions (x, y, z) (first of the 'field' parameters)
 	  * `hst_aims` (nx3 numpy array): heliostat aiming point (ax, ay, az)
+      * `Fx` (numpy array, n): tangential focal length (x direction)
+      * `Fy` (numpy array, n): sagittal focal length (y direction)
 	  * `hst_w` (float): heliostat mirror width  (in x direction)
 	  * `hst_h` (float): heliostat mirror height (in y direction)
 	  * `hst_z` (float): heliostat center height (in z direction)
@@ -591,8 +593,6 @@ def gen_yaml_target_aligned(sun, hst_pos, hst_aims, hst_w, hst_h
 	  * `spectral` (bool): True - simulate the spectral dependent performance (first of the 'other' parameters)
 	  * `medium` (float): if the atmosphere is surrounded by non-participant medium, medium=0; otherwise it is the extinction coefficient in m-1
 	  * `one_heliosat` (boolean): if `True`, implements ray tracing from just one heliostat.
-	  * `sun_azi' (float), sun azimuth angnle, rad
-	  * `sun_ele' (float), sun elevation angle, rad
 
 	Returns: nothing (requested files are created and written)
 
@@ -779,26 +779,6 @@ def gen_yaml_target_aligned(sun, hst_pos, hst_aims, hst_w, hst_h
 		slants=((hst_x-aim_x)**2+(hst_y-aim_y)**2+(hst_z-aim_z)**2)**0.5
 	slices = 4 # slices for the envelop circle
 	
-
-	sun_x=np.cos(sun_ele)*np.cos(sun_azi)
-	sun_y=np.cos(sun_ele)*np.sin(sun_azi)
-	sun_z=np.sin(sun_ele)
-	sun_vec=np.r_[sun_x, sun_y, sun_z]
-	sun_vec=sun_vec / np.linalg.norm(sun_vec)
-	sun_vec=sun_vec.reshape(1, 3)
-
-	OH=hst_pos - hst_aims # heliostat and target vectors
-	if one_heliostat:
-		norms = np.linalg.norm(OH) #, axis=0, keepdims=True) 
-	else:
-		norms = np.linalg.norm(OH, axis=0, keepdims=True) 
-	unit_OH =OH/norms
-
-	dot_products = np.sum(unit_OH * sun_vec, axis=1)
-	cos_theta = dot_products
-	angles_rad = np.arccos(np.clip(cos_theta, -1.0, 1.0))
-	angles=angles_rad/2.
-
 	# 
 	### Section (5)			
 	for i in range(len(slants)):
@@ -810,11 +790,10 @@ def gen_yaml_target_aligned(sun, hst_pos, hst_aims, hst_w, hst_h
 		else:
 			iyaml+='  - material: *%s\n' % 'material_mirror_%d'%i 						
 
-		theta=angles[i]
-		f1=slant/np.cos(theta)
-		f2=slant*np.cos(theta)
-		ax2=1./4./f2
-		ay2=1./4./f1
+		fx=Fx[i]
+		fy=Fy[i]	
+		ax2=1./4./fx
+		ay2=1./4./fy
 		iyaml+="    quadricxy:\n"
 		iyaml+="      ax2: %e\n"%(ax2)
 		iyaml+="      ay2: %e\n"%(ay2)
@@ -826,7 +805,6 @@ def gen_yaml_target_aligned(sun, hst_pos, hst_aims, hst_w, hst_h
 		iyaml+='      - operation: AND \n'
 		iyaml+='        vertices: [ [%e, %e], [%e, %e], [%e, %e], [%e, %e] ]\n' % (-hst_w*0.5, -hst_h*0.5, -hst_w*0.5, hst_h*0.5, hst_w*0.5, hst_h*0.5, hst_w*0.5,-hst_h*0.5)
 		iyaml+='      slices: %d\n\n' % slices 
-
 
 	for i in range(num_hst):
 		# CREATE the heliostat templates   
@@ -877,6 +855,7 @@ def gen_yaml_target_aligned(sun, hst_pos, hst_aims, hst_w, hst_h
 
 	with open(outfile_recv,'w') as f:
 		f.write(rcv) 
+
 
 
 def heliostat_canted_facets(hst_w, hst_h, fct_w, fct_h, gap, n_row, n_col, foc):

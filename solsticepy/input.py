@@ -88,6 +88,7 @@ class Parameters:
 		self.R1=90.
 		self.dsep=0.
 		self.fb=0.7
+		self.target_aligned=False # simulating target aligned heliostats or not
 
 	def Receiver(self):
 		'''
@@ -176,6 +177,7 @@ class Parameters:
 				['Z_helio', self.Z_helio, 'm'],      
 				['helio_refl', self.helio_refl, '-'],    
 				['slope_error', self.slope_error, 'rad'],
+				['target_aligned', self.target_aligned, '-'],
 				['H_tower', self.H_tower, 'm'],    
 				['R_tower', self.R_tower, 'm'], 
 				['concret_tower', self.concret_tower, '-'],    
