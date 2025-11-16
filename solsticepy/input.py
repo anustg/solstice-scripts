@@ -35,7 +35,7 @@ class Parameters:
 		self.lat=37.44 # latitude, default: location of PS10
 		self.dni_des=1000.
 		self.sunshape='pillbox'
-		self.crs=0.01
+		self.csr=0.01
 		self.half_angle_deg=4.65*1.e-3*180./np.pi # convert rad to degree --> solstice convention
 		self.std_dev=0.1
 		self.extinction=1e-6
@@ -79,7 +79,7 @@ class Parameters:
 		self.W_helio=10.
 		self.H_helio=10.
 		self.slope_error=2.e-3 # radian
-		self.rho_helio=0.9
+		self.helio_refl=0.9
 		self.H_tower=100.
 		self.R_tower=0.001  # shading effect of tower is neglected at the moment
 		self.concret_tower=False
@@ -137,6 +137,8 @@ class Parameters:
 		self.casedir='.'
 		self.method=1 # 1 - design the field based on the Q_in_rcv
 				      # 2 - design the field based on the n_helios
+		self.verbose=0 # save all the simulation details or not? 1 is yes, 0 is no
+		self.gen_vtk=0 # visualise the simulation scene or not? 1 is yes, 0 is no	
     
 
 	def dependent_par(self):
@@ -172,7 +174,7 @@ class Parameters:
 				['W_helio', self.W_helio, 'm'],    
 				['H_helio', self.H_helio, 'm'],
 				['Z_helio', self.Z_helio, 'm'],      
-				['rho_helio', self.rho_helio, '-'],    
+				['helio_refl', self.helio_refl, '-'],    
 				['slope_error', self.slope_error, 'rad'],
 				['H_tower', self.H_tower, 'm'],    
 				['R_tower', self.R_tower, 'm'], 
