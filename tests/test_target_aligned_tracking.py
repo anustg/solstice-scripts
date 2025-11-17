@@ -5,14 +5,14 @@ import unittest
 
 from solsticepy.cal_sun import SunPosition
 from solsticepy.gen_yaml import Sun, gen_yaml, gen_yaml_target_aligned
-from solsticepy.master import Master
+from solsticepy.master import Master, yellow, green, red
 from solsticepy.cal_layout import radial_stagger
 from solsticepy.gen_vtk import flux_reader, read_vtk
 import os, sys
 import numpy as np
 import matplotlib.pyplot as plt
 import colorama
-from solsticepy.master import yellow, green, red
+from solsticepy.incident_angles import get_annual_incident
 
 
 def test_alignment():
@@ -20,18 +20,19 @@ def test_alignment():
     hst_h=12.2
     
     sunshape='pillbox'
-    sunshape_param=1e-4
-    slope_error=1e-6
+    sunshape_param=4.65e-3*180./np.pi
+    slope_error=1e-3
 
-    target_aligned=True
+    target_aligned=False
     if target_aligned:
-        casename='test-target-aligned-tracking-quadricxy'
+        casename='test-target-aligned-tracking-quadricxy-sunshape'
+        #casename='test-target-aligned-tracking-quadricxy-fixed-focal-sunshape'
     else:
-        casename='test-azi-ele-tracking'
+        casename='test-azi-ele-tracking-sunshape'
 
 
     hst_z=hst_w*0.7
-    hst_pos=np.r_[0, 500, hst_z]
+    hst_pos=np.r_[0, 100, hst_z]
     hst_pos=hst_pos.reshape(1,3)
 
     #==================================================
@@ -71,15 +72,15 @@ def test_alignment():
     rec_param=np.r_[rec_w, rec_h, rec_mesh, rec_mesh, loc_x, loc_y, loc_z, tilt]
     hst_aims=np.r_[loc_x, loc_y, loc_z]
     hst_aims=hst_aims.reshape(1, 3)
-    hst_foc=np.linalg.norm(hst_aims-hst_pos)
+    slant=np.linalg.norm(hst_aims-hst_pos)
 
     master=Master(casedir=casefolder)
     outfile_yaml = master.in_case(folder=casefolder, fn='input.yaml')
     outfile_recv = master.in_case(folder=casefolder, fn='input-rcv.yaml')
 
 
-    data=np.array(['pillbox', 'slope (mrad)', 'hst size (m)', 'position', 'azimuth', 'elevation', 'DNI (W/m2)', 'peak flux (W/m2)', 'beam area (m2)', 'aligned', 'H-incident zenith (deg)','H-incident azimuth (deg)'])
-    poses=np.arange(45., 360., 45.)
+    data=np.array(['pillbox', 'slope (mrad)', 'hst size (m)', 'position', 'azimuth', 'elevation', 'DNI (W/m2)', 'peak flux (W/m2)', 'beam area (m2)', 'aligned', 'H-incident zenith (deg)','H-incident azimuth (deg)', 'slant', 'fx', 'fy'])
+    poses=np.r_[45] #arange(45, 90., 45.)
     nd=5
     nh=22
     for p in poses:
@@ -101,7 +102,7 @@ def test_alignment():
                 else:
     	            dni=0.
 
-                onesunfolder=casedir+'/sunpos_%.0f'%(c)
+                onesunfolder=os.path.abspath(casedir+'/sunpos_%.0f'%(c))
                 # run Solstice using the generate inputs, and run all required post-processing
                 azimuth=azimuth+p
                 if azimuth>=360:
@@ -113,35 +114,82 @@ def test_alignment():
 
                 sun_azi=azimuth/180.*np.pi
                 sun_ele=elevation/180.*np.pi
-                # generate the YAML file from the input parameters specified above
-                gen_yaml_target_aligned(sun, hst_pos, hst_aims, hst_w, hst_h
-                    ,  rho_refl, slope_error, receiver, rec_param, rec_abs
-                    , outfile_yaml=outfile_yaml, outfile_recv=outfile_recv, sun_azi=sun_azi, sun_ele=sun_ele
-                    , hemisphere='North', tower_h=tower_h, tower_r=tower_r, spectral=False
-                    , medium=0, one_heliostat=True)
+  
+                if 'fixed-focal' in casename: 
+                    # clear-sky DNI weighted angle    
+                    theta= get_annual_incident(hst_pos, hst_aims, latitude, casename='', verbose=False)  
+                    theta=np.array([theta])
+                    Fx=slant*np.cos(theta)
+                    Fy=slant/np.cos(theta)       
+                else:
+                    Fx, Fy=target_align_focals(sun_ele, sun_azi, hst_pos, hst_aims, slant, one_heliostat=True)
 
+
+
+                if target_aligned:
+                    gen_yaml_target_aligned(sun, hst_pos, hst_aims, Fx, Fy, hst_w, hst_h
+                        ,  rho_refl, slope_error, receiver, rec_param, rec_abs
+                        , outfile_yaml=outfile_yaml, outfile_recv=outfile_recv
+                        , hemisphere='North', tower_h=tower_h, tower_r=tower_r, spectral=False
+                        , medium=0, one_heliostat=True)
+
+
+                else:
+                    # generate the YAML file from the input parameters specified above
+                    gen_yaml(sun, hst_pos, slant, hst_aims, hst_w, hst_h
+                        ,  rho_refl, slope_error, receiver, rec_param, rec_abs
+                        , outfile_yaml=outfile_yaml, outfile_recv=outfile_recv
+                        , hemisphere='North', tower_h=tower_h, tower_r=tower_r, spectral=False
+                        , medium=0, one_heliostat=True)
+                    #pass
 
                 if not os.path.exists(hst_vtk_fn):
                     print(onesunfolder, 'dni', dni)
                     print(hst_vtk_fn)
                     master.run(azimuth, elevation, num_rays, rho_refl, dni, folder=onesunfolder, gen_vtk=True,verbose=True)
-        
-
-                area, peak=plot_flux(onesunfolder, dni, name='%.0f-%.0f-target_e'%(azimuth, elevation), casename='sunpos %s'%c,loc_z=loc_z)
 
                 testx, testy, zenith_angle_deg, azimuth_angle_deg=check_alignment(onesunfolder, azimuth, elevation, plot=False)
-                data=np.append(data, (sunshape_param, slope_error*1000., hst_w, p,  azimuth, elevation, dni, peak, area, testx, zenith_angle_deg, azimuth_angle_deg))
 
                 sys.stderr.write(yellow("Case %s, %s\n"%(p, onesunfolder))) 
                 if testx:
                     sys.stderr.write(green("Targed aligned\n")) 
                 else:
-                    sys.stderr.write(red("Not aligned\n"))    
+                    sys.stderr.write(red("Not aligned\n"))            
+
+                area, peak=plot_flux(onesunfolder, dni, name='%.0f-%.0f-target_e'%(azimuth, elevation), casename='sunpos %s'%c,loc_z=loc_z)
+                data=np.append(data, (sunshape_param, slope_error*1000., hst_w, p,  azimuth, elevation, dni, peak, area, testx, zenith_angle_deg, azimuth_angle_deg, slant, Fx[0], Fy[0]))
+
+
                 print()             
+                run=np.append(run,c)
 
-
-        data=data.reshape(int(len(data)/12), 12)
+        data=data.reshape(int(len(data)/15), 15)
         np.savetxt(casedir+'/data-summary.csv', data, fmt='%s', delimiter=',')
+
+
+def target_align_focals(sun_ele, sun_azi, hst_pos, hst_aims, slant, one_heliostat=False):
+    sun_x=np.cos(sun_ele)*np.cos(sun_azi)
+    sun_y=np.cos(sun_ele)*np.sin(sun_azi)
+    sun_z=np.sin(sun_ele)
+    sun_vec=np.r_[sun_x, sun_y, sun_z]
+    sun_vec=sun_vec / np.linalg.norm(sun_vec)
+    sun_vec=sun_vec.reshape(1, 3)
+
+    OH=hst_aims-hst_pos # heliostat and target vectors
+    if one_heliostat:
+        norms = np.linalg.norm(OH) #, axis=0, keepdims=True) 
+    else:
+        norms = np.linalg.norm(OH, axis=0, keepdims=True) 
+    unit_OH =OH/norms
+
+    dot_products = np.sum(unit_OH * sun_vec, axis=1)
+    cos_theta = dot_products
+    angles_rad = np.arccos(np.clip(cos_theta, -1.0, 1.0))
+    angles=angles_rad/2.
+
+    Fx=slant*np.cos(angles)
+    Fy=slant/np.cos(angles)
+    return Fx, Fy
 
 
 def plot_flux(casefolder, dni, name, casename, loc_z):
@@ -161,15 +209,15 @@ def plot_flux(casefolder, dni, name, casename, loc_z):
 		cm = plt.cm.get_cmap('jet')
 
 		#plt.triplot(values[0], values[1], indices) 
-		plt.tripcolor(points[:,0], points[:,2]-loc_z, mesh[:,:3] , facecolors=flux, cmap=cm)  	
+		plt.tripcolor(points[:,0], points[:,2]-loc_z, mesh[:,:3] , facecolors=flux, cmap=cm, vmax=50)  	
 
 		clb=plt.colorbar()
-		clb.ax.set_title(' Flux \n W/$m^2$',y=1.,fontsize=fts)
+		clb.ax.set_title(' Flux \n kW/$m^2$',y=1.,fontsize=fts)
 		plt.xlabel('X',fontsize=fts)
 		plt.ylabel('Y',fontsize=fts)
 		plt.xticks(fontsize=fts)
 		plt.yticks(fontsize=fts)
-		plt.title(casename+'\nDNI=%.0f W/m$^2$'%dni)
+		#plt.title(casename+'\nDNI=%.0f W/m$^2$'%dni)
 		clb.ax.tick_params(labelsize=fts)
 		#plt.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
 		#plt.legend(loc='lower left',fontsize=fts)
@@ -198,6 +246,9 @@ def plot_flux(casefolder, dni, name, casename, loc_z):
 	ntot=len(flux)
 	area=float(ne)/float(ntot)*20.*20. # the targe size is 20 by 20 m
 	return area, peak
+
+
+
 
 def calculate_normal(triangle):
     # Get the vertices of the triangle
@@ -248,6 +299,8 @@ def check_alignment(casefolder, sun_azi, sun_ele, plot=False):
             check=False
             edge1=edge3
             perpend=e2_T_e3
+        else:
+            perpend=99999		
         i+=1
 
     print('edge 1 perpendicular to edge 2: ', abs(perpend)<1e-4, perpend)

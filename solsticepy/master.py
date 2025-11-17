@@ -141,7 +141,7 @@ class Master:
 				sys.stderr.write(green("Completed successfully.\n"))
 			return eta, performance_hst
 
-	def run_annual(self, nd, nh, latitude, num_rays, num_hst,rho_mirror,dni, gen_vtk=False,verbose=False):
+	def run_annual(self, nd, nh, latitude, num_rays, num_hst, rho_mirror, dni, gen_vtk=False,verbose=False):
 
 		"""Run a list of optical simulations to obtain annual performance (lookup table) using Solstice 
 
@@ -180,6 +180,7 @@ class Master:
 		# i.e. performance is not dni-weighted
 		ANNUAL=np.zeros((num_hst, 9))    
 		run=np.r_[0]
+		print('number of heliostat', num_hst)
 
 		for i in range(len(case_list)):     
 			c=int(case_list[i,0].astype(float))

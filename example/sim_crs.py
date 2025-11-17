@@ -130,8 +130,8 @@ if new_case:
 		, medium=0, one_heliostat=one_heliostat)
 
 # run Solstice using the generate inputs, and run all required post-processing
-master.run(azimuth, elevation, num_rays, rho_refl,sun.dni, folder=casefolder, gen_vtk=True)
+#master.run(azimuth, elevation, num_rays, rho_refl,sun.dni, folder=casefolder, gen_vtk=True, verbose=True)
 
 # annual solution (see instructions)
-#master.run_annual(nd=5, nh=5, latitude=latitude, num_rays=num_rays, num_hst=len(hst_pos),rho_mirror=rho_refl, dni=DNI)
+master.run_annual(nd=5, nh=5, latitude=latitude, num_rays=num_rays, num_hst=len(hst_pos),rho_mirror=rho_refl, dni=DNI)
 
