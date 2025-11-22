@@ -148,13 +148,7 @@ class CRS:
 
 		if self.target_aligned:
 			print('calculating angles')
-			incidents=np.array([])
-			for i,h in enumerate(self.hst_pos):
-				print(i)
-				pos=h.reshape(1,3)
-				aim=self.hst_aims[i].reshape(1, 3)
-				theta= get_annual_incident(pos, aim, self.latitude, casename='', verbose=False)  
-				incidents=np.append(incidents, theta)     
+			incidents= get_annual_incident(self.hst_pos, self.hst_aims, self.latitude, casename='', verbose=False)  
 			incidents=incidents*np.pi/180.
 			self.Fx=self.hst_foc*np.cos(incidents)
 			self.Fy=self.hst_foc/np.cos(incidents)

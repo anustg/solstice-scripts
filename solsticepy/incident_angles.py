@@ -13,10 +13,11 @@ def get_incident_angle(sun_ele, sun_azi, hst_pos, hst_aims, slant, one_heliostat
     sun_vec=sun_vec.reshape(1, 3)
 
     OH=hst_aims-hst_pos # heliostat and target vectors
+
     if one_heliostat:
         norms = np.linalg.norm(OH) #, axis=0, keepdims=True) 
     else:
-        norms = np.linalg.norm(OH, axis=0, keepdims=True) 
+        norms = np.linalg.norm(OH, axis=1, keepdims=True) 
     unit_OH =OH/norms
 
     dot_products = np.sum(unit_OH * sun_vec, axis=1)
@@ -43,6 +44,8 @@ def get_annual_incident(hst_pos, hst_aims, latitude, casename='', verbose=False)
     title=np.array(['sun ele','sun azi','Fx','Fy','incident angle','dni'])
     title=title.reshape(1,6)
     sun=SunPosition()
+    inc_avg=np.zeros((len(hst_pos))) # DNI weighted average incident angles
+    i=0
     for day in range(365):
         for h in range(24):
             delta=sun.declination(day)
@@ -52,26 +55,16 @@ def get_annual_incident(hst_pos, hst_aims, latitude, casename='', verbose=False)
             sun_azi, sun_ele=sun.convert_convention(tool='solstice', azimuth=phi, zenith=theta)
             sun_azi=sun_azi
             slant=np.linalg.norm(hst_aims-hst_pos)
-            Fx, Fy, angles=get_incident_angle(sun_ele, sun_azi, hst_pos, hst_aims, slant, one_heliostat=True)
+            Fx, Fy, angles=get_incident_angle(sun_ele, sun_azi, hst_pos, hst_aims, slant, one_heliostat=False)
             dni=get_clear_sky_DNI(sun_ele)
-            summary=np.append(summary, (sun_ele, sun_azi, Fx[0], Fy[0], angles[0]*180./np.pi, dni))    
+            inc_avg=(inc_avg+angles*dni)
 
-    summary=summary.reshape(int(len(summary)/6), 6)
-    incident_angles=summary[:,4]
-    DNI=summary[:,5]
-
-    if verbose:
-        if 0:
-            idx=DNI>100
-            plt.hist(incident_angles[idx], bins=20, weights=DNI[idx], edgecolor='black')
-            plt.title('d=%.0F, pose=%.0f deg'%(d, p))
-            plt.show()
-            plt.close()
-
-        summary=np.vstack((title, summary))
-        np.savetxt('annual_incident_%s.csv'%casename, summary, delimiter=',', fmt='%s')
-
-    inc_avg=np.sum(incident_angles * DNI) / np.sum(DNI)
+            summary=np.append(summary, (sun_ele, sun_azi, dni))    
+            i+=1
+    summary=summary.reshape(int(len(summary)/3), 3)
+    #incident_angles=summary[:,4]
+    DNI=summary[:,2]
+    inc_avg=inc_avg/np.sum(DNI)*180./np.pi
 
     return inc_avg
 
