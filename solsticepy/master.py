@@ -37,7 +37,7 @@ def run_prog(name,args,output_file=None,verbose=True):
 
 class Master:
 
-	def __init__(self, casedir='.', nproc=None):
+	def __init__(self, casedir='.', nproc=0):
 		"""Set up the Solstice simulation, i.e. establishing the case folder, calling the Solstice program and post-processing the results
 
 		``Argument``
@@ -92,7 +92,7 @@ class Master:
 		RECV_IN = self.in_case(self.casedir, 'input-rcv.yaml')
 
 		# main raytrace
-		if self.nproc==None:
+		if self.nproc==0:
 			run_prog("solstice",['-D%s,%s'%(azimuth,elevation),'-v','-n',num_rays,'-R',RECV_IN,'-fo',self.in_case(folder, 'simul'),YAML_IN])
 		else:
 			run_prog("solstice",['-D%s,%s'%(azimuth,elevation),'-v', '-t', self.nproc, '-n',num_rays,'-R',RECV_IN,'-fo',self.in_case(folder, 'simul'),YAML_IN])

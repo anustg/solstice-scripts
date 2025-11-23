@@ -118,7 +118,7 @@ class Parameters:
 		self.n_W_rcv=10
 		self.X_rcv=0. # receiver location
 		self.Y_rcv=0.
-		self.Z_rcv=120.
+
 		self.num_aperture=1
 		self.gamma=0.
 
@@ -134,7 +134,7 @@ class Parameters:
 		self.n_row_oelt=5
 		self.n_col_oelt=5
 		self.n_rays=int(5e6)
-		self.n_procs=1
+		self.n_procs=0
 		self.casedir='.'
 		self.method=1 # 1 - design the field based on the Q_in_rcv
 				      # 2 - design the field based on the n_helios
@@ -161,7 +161,7 @@ class Parameters:
 			  
 			if self.field_type!='surround':
 				self.n_helios*=2.  
-
+		self.Z_rcv=self.H_tower
 
 	def saveparam(self, savedir):
 		if not os.path.exists(savedir):

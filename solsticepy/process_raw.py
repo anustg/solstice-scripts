@@ -130,15 +130,15 @@ def process_raw_results(rawfile, savedir,rho_mirror,dni,verbose=False):
 		#rec_material_loss_err=get_rc(num_res+2,10)
 		rec_front_absorbed+=get_rc(num_res+2+i,13)
 		rec_front_absorbed_err+=get_rc(num_res+2+i,14)
-		rec_front_eff+=get_rc(num_res+2+i,23)
-		rec_front_eff_err+=get_rc(num_res+2+i,24)
+		rec_front_eff+=(rec_front_eff*float(i)+get_rc(num_res+2+i,23))/float(i+1)
+		rec_front_eff_err+=(rec_front_eff_err*float(i)+get_rc(num_res+2+i,24))/float(i+1)
 
 		rec_back_income+=get_rc(num_res+2+i,25)
 		rec_back_income_err+=get_rc(num_res+2+i,26)
 		rec_back_absorbed+=get_rc(num_res+2+i,35)
 		rec_back_absorbed_err+=get_rc(num_res+2+i,36)
-		rec_back_eff+=get_rc(num_res+2+i,-2)
-		rec_back_eff_err+=get_rc(num_res+2+i,-1)
+		rec_back_eff+=(rec_back_eff*float(i)+get_rc(num_res+2+i,-2))/float(i+1)
+		rec_back_eff_err+=(rec_back_eff_err*float(i)+get_rc(num_res+2+i,-1))/float(i+1)
 
 
 	#Virtual target
