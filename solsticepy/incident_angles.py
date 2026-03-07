@@ -68,6 +68,34 @@ def get_annual_incident(hst_pos, hst_aims, latitude, casename='', verbose=False)
 
     return inc_avg
 
+
+
+def twisting_focals(sun_ele, sun_azi, hst_pos, hst_aims, slant, latitude, one_heliostat=False):
+
+    sun_x=np.cos(sun_ele)*np.cos(sun_azi)
+    sun_y=np.cos(sun_ele)*np.sin(sun_azi)
+    sun_z=np.sin(sun_ele)
+    sun_vec=np.r_[sun_x, sun_y, sun_z]
+    sun_vec=sun_vec / np.linalg.norm(sun_vec)
+    sun_vec=sun_vec.reshape(1, 3)
+
+    OH=hst_aims-hst_pos # heliostat and target vectors
+    if one_heliostat:
+        norms = np.linalg.norm(OH) #, axis=0, keepdims=True) 
+    else:
+        norms = np.linalg.norm(OH, axis=0, keepdims=True) 
+    unit_OH =OH/norms
+
+    dot_products = np.sum(unit_OH * sun_vec, axis=1)
+    cos_theta = dot_products
+    angles_rad = np.arccos(np.clip(cos_theta, -1.0, 1.0))
+    angles=angles_rad/2.
+
+    Fx=slant*np.cos(angles)
+    Fy=slant/np.cos(angles)
+    return Fx, Fy
+
+
 def master_angles():
     poses=np.arange(0, 360., 45.) # heliostat angular position
     rec_down=np.arange(15, 90, 15) # receiver lookdown angle

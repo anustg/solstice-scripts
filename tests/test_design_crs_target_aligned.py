@@ -39,7 +39,7 @@ class TestDesignCRSTargetAligned(unittest.TestCase):
 			pm.dependent_par()
 			pm.saveparam(self.casedir)
 
-			crs=CRS(latitude=pm.lat, casedir=self.casedir, nproc=1, verbose=False, target_aligned=pm.target_aligned)   
+			crs=CRS(latitude=pm.lat, casedir=self.casedir, nproc=1, verbose=True, target_aligned=pm.target_aligned, fixed_focus=True)   
 			weafile='../example/demo_TMY3_weather.motab'
 
 			crs.receiversystem(receiver=pm.rcv_type, rec_w=float(pm.W_rcv), rec_h=float(pm.H_rcv), rec_x=float(pm.X_rcv), rec_y=float(pm.Y_rcv), rec_z=float(pm.Z_rcv), rec_tilt=float(pm.tilt_rcv), rec_grid_w=int(pm.n_W_rcv), rec_grid_h=int(pm.n_H_rcv), rec_abs=float(pm.alpha_rcv))
@@ -49,7 +49,7 @@ class TestDesignCRSTargetAligned(unittest.TestCase):
 
 			crs.yaml(dni=900,sunshape=pm.sunshape,csr=pm.csr,half_angle_deg=pm.half_angle_deg,std_dev=pm.std_dev)
 
-			self.oelt, A_land=crs.field_design_annual(dni_des=900., num_rays=int(1e6), nd=pm.n_row_oelt, nh=pm.n_col_oelt, weafile=weafile, method=1, Q_in_des=pm.Q_in_rcv, n_helios=None, zipfiles=False, gen_vtk=False, plot=False)
+			self.oelt, A_land=crs.field_design_annual(dni_des=900., num_rays=int(1e6), nd=pm.n_row_oelt, nh=pm.n_col_oelt, weafile=weafile, method=1, Q_in_des=pm.Q_in_rcv, n_helios=None, zipfiles=False, gen_vtk=True, plot=False)
 
  
 			self.n_helios=crs.n_helios

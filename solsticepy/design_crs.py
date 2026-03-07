@@ -17,7 +17,7 @@ from .gen_vtk import *
 from .input import Parameters
 from .output_motab import output_metadata_motab, output_motab
 from .master import *
-from .incident_angles import get_annual_incident
+from .incident_angles import get_annual_incident, twisting_focals
 
 class CRS:
 	'''
@@ -25,7 +25,7 @@ class CRS:
 	the sun, the field and the receiver.
 	'''
 
-	def __init__(self, latitude, casedir, nproc=None, verbose=False, target_aligned=False):
+	def __init__(self, latitude, casedir, nproc=None, verbose=False, target_aligned=False, fixed_focus=True):
 		'''
 		Arguements:
 			casedir : str, the directory of the case 
@@ -33,6 +33,8 @@ class CRS:
                                                     nproc=4 will run with 4 processors in parallel
 											        nproc=None will run with any number of processors that are available
 			verbose : bool, write results to files or not
+            target_aligned: bool, simulate target-aligned heliostats or not
+            fixed_focus: bool, the target-aligned heliostats has fixed focus or ideal focus that changes with time
 		'''
 		self.casedir=casedir
 		self.verb=verbose
@@ -43,6 +45,7 @@ class CRS:
 		self.sun=SunPosition()
 		self.master=Master(casedir, nproc)
 		self.target_aligned=target_aligned        
+		self.fixed_focus=fixed_focus    
 
 	def receiversystem(self, receiver, rec_w=0., rec_h=0., rec_x=0., rec_y=0., rec_z=100., rec_tilt=0., rec_grid_w=10, rec_grid_h=10, rec_abs=1., num_aperture=1, gamma=0.):
 
@@ -148,10 +151,15 @@ class CRS:
 
 		if self.target_aligned:
 			print('calculating angles')
-			incidents= get_annual_incident(self.hst_pos, self.hst_aims, self.latitude, casename='', verbose=False)  
-			incidents=incidents*np.pi/180.
-			self.Fx=self.hst_foc*np.cos(incidents)
-			self.Fy=self.hst_foc/np.cos(incidents)
+			if self.fixed_focus:
+				print('fixed focus')
+				incidents= get_annual_incident(self.hst_pos, self.hst_aims, self.latitude, casename='', verbose=False)  
+				incidents=incidents*np.pi/180.
+				self.Fx=self.hst_foc*np.cos(incidents)
+				self.Fy=self.hst_foc/np.cos(incidents)
+			else:
+				self.Fx=np.zeros(self.hst_foc.shape)
+				self.Fy=np.zeros(self.hst_foc.shape)
 		else:
 			self.Fx=self.hst_foc # focal length in the x direction
 			self.Fy=self.hst_foc # focal length in the y direction
@@ -189,7 +197,11 @@ class CRS:
 			, self.rec_abs, outfile_yaml=outfile_yaml, outfile_recv=outfile_recv
 			, hemisphere=hemisphere, tower_h=self.tower_h, tower_r=self.tower_r
 			, spectral=False , medium=att_factor, one_heliostat=False)
-
+		self.dni=dni
+		self.sunshape=sunshape
+		self.csr=csr
+		self.half_angle_deg=half_angle_deg
+		self.std_dev=std_dev
 
 
 	def field_design_annual(self,  dni_des, num_rays, nd, nh, weafile, method, Q_in_des=None, n_helios=None, zipfiles=False, gen_vtk=False, plot=False):
@@ -238,6 +250,10 @@ class CRS:
 					performance_hst[:,0]=1. 
 					efficiency_hst=np.zeros(nhst)
 				else:
+					if not self.fixed_focus:
+						self.Fx, self.Fy=twisting_focals(elevation/180.*np.pi, azimuth/180.*np.pi, self.hst_pos, self.hst_aims, self.hst_foc, self.latitude, one_heliostat=False)
+						self.yaml(self.dni, self.sunshape, self.csr, self.half_angle_deg, self.std_dev)
+
 					efficiency_total, performance_hst=self.master.run(azimuth, elevation, num_rays, self.hst_rho, dni, folder=onesunfolder, gen_vtk=gen_vtk, printresult=False, verbose=self.verb, system=system)
 					
 					#res=np.loadtxt(onesunfolder+'/result-formatted.csv', dtype=str, delimiter=',')
@@ -251,42 +267,42 @@ class CRS:
 				sys.stderr.write(yellow("Total efficiency: {:f}\n".format(efficiency_total)))
 				run=np.append(run,c)  
 
-			cc=0
-			for a in range(len(table[3:])):
-				for b in range(len(table[0,3:])):
-					val=re.findall(r'\d+', table[a+3,b+3])
-					if str(c) in val:
-						if cc==0: 
-							# i.e. morning positions
-							ANNUAL+=dni*efficiency_hst
-							annual_solar+=dni
-							cc+=1 
-						else:
-							# the symetrical points (i.e. afternoon)
-							eff_symetrical=np.array([])
-							for e in range(self.Nzones):
-								idx_z=(self.hst_zone==e)
-								eff_zone=efficiency_hst[idx_z]
-								row_zone=self.hst_row[idx_z]
+				cc=0
+				for a in range(len(table[3:])):
+					for b in range(len(table[0,3:])):
+						val=re.findall(r'\d+', table[a+3,b+3])
+						if str(c) in val:
+							if cc==0: 
+								# i.e. morning positions
+								ANNUAL+=dni*efficiency_hst
+								annual_solar+=dni
+								cc+=1 
+							else:
+								# the symetrical points (i.e. afternoon)
+								eff_symetrical=np.array([])
+								for e in range(self.Nzones):
+									idx_z=(self.hst_zone==e)
+									eff_zone=efficiency_hst[idx_z]
+									row_zone=self.hst_row[idx_z]
 
-								nr=int(self.Nrows[e])
-								for r in range(nr):
-									idx_r=(row_zone==r)
-									eff_row=eff_zone[idx_r]
-									if r%2==0:
-										eff_row=eff_row[::-1]
-									else:
-										eff_row[1:]=eff_row[1:][::-1]
-										
-									eff_symetrical=np.append(eff_symetrical, eff_row)
+									nr=int(self.Nrows[e])
+									for r in range(nr):
+										idx_r=(row_zone==r)
+										eff_row=eff_zone[idx_r]
+										if r%2==0:
+											eff_row=eff_row[::-1]
+										else:
+											eff_row[1:]=eff_row[1:][::-1]
+											
+										eff_symetrical=np.append(eff_symetrical, eff_row)
 
-							#print(np.shape(eff_symetrical))
-							#check=np.append(self.hst_zone, (self.hst_row, self.hst_num_idx, efficiency_hst, eff_symetrical))
-							#print(np.shape(check))
-							#check=check.reshape(5,int(len(check)/5))
-							#np.savetxt('./check.csv', check.T, fmt='%.5f', delimiter=',') 
-							ANNUAL+=dni*eff_symetrical	
-							annual_solar+=dni	
+								#print(np.shape(eff_symetrical))
+								#check=np.append(self.hst_zone, (self.hst_row, self.hst_num_idx, efficiency_hst, eff_symetrical))
+								#print(np.shape(check))
+								#check=check.reshape(5,int(len(check)/5))
+								#np.savetxt('./check.csv', check.T, fmt='%.5f', delimiter=',') 
+								ANNUAL+=dni*eff_symetrical	
+								annual_solar+=dni	
 					
 		ANNUAL/=annual_solar  
 		if self.verb:    
@@ -300,7 +316,11 @@ class CRS:
 		azi=self.sun.azimuth(self.latitude, zen, dec, hra)        
 		azi_des, ele_des=self.sun.convert_convention('solstice', azi, zen) 
 
-		sys.stderr.write("\n"+green('Design Point: \n'))		
+		sys.stderr.write("\n"+green('Design Point: \n'))	
+		if not self.fixed_focus:
+			self.Fx, self.Fy=twisting_focals(ele_des/180.*np.pi, azi_des/180.*np.pi, self.hst_pos, self.hst_aims, self.hst_foc, self.latitude, one_heliostat=False)
+			self.yaml(self.dni, self.sunshape, self.csr, self.half_angle_deg, self.std_dev)
+	
 		efficiency_total, performance_hst_des=self.master.run(azi_des, ele_des, num_rays, self.hst_rho, dni_des, folder=designfolder, gen_vtk=gen_vtk, printresult=False, verbose=self.verb, system=system)
 		sys.stderr.write(yellow("Total efficiency: {:f}\n".format(efficiency_total)))
 		
@@ -511,6 +531,7 @@ class CRS:
 		'''  
 		self.n_helios=len(self.hst_pos) 
 		self.master.casedir=self.casedir
+
 		oelt, ANNUAL=self.master.run_annual(nd=nd, nh=nh, latitude=self.latitude, num_rays=num_rays, num_hst=self.n_helios, rho_mirror=self.hst_rho, dni=dni_des, verbose=self.verb)
 
 		Xmax=max(self.hst_pos[:,0])
@@ -532,7 +553,10 @@ class CRS:
 		azi=self.sun.azimuth(self.latitude, zen, dec, hra)        
 		azi_des, ele_des=self.sun.convert_convention('solstice', azi, zen) 
 
-		sys.stderr.write("\n"+green('Design Point: \n'))		
+		sys.stderr.write("\n"+green('Design Point: \n'))	
+		if not self.fixed_focus:
+			self.Fx, self.Fy=twisting_focals(ele_des/180.*np.pi, azi_des/180.*np.pi, self.hst_pos, self.hst_aims, self.hst_foc, self.latitude, one_heliostat=False)
+			self.yaml(self.dni, self.sunshape, self.csr, self.half_angle_deg, self.std_dev)	
 		efficiency_total, performance_hst_des=self.master.run(azi_des, ele_des, num_rays, self.hst_rho, dni_des, folder=designfolder, gen_vtk=False, printresult=False, verbose=self.verb)
 		self.eff_des=efficiency_total.n
 
