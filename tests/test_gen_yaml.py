@@ -38,3 +38,28 @@ def test_quadricxy_uses_azimuth_elevation_tracking():
 		assert 'target_aligned' not in text
 		assert 'ax2: 2.500000e-03' in text
 		assert 'ay2: 1.923077e-03' in text
+
+
+def test_canted_quadricxy_uses_azimuth_elevation_tracking():
+	sun = Sun(dni=1000, sunshape='pillbox')
+	hst_pos = np.array([[0., 100., 8.54]])
+	hst_aims = np.array([[0., 0., 62.]])
+	hst_foc = np.array([100.])
+	bands = np.array([[200., 100., 120., 140.]])
+	rec_param = np.r_[20., 20., 10, 10, 0., 0., 62., 0.]
+	with tempfile.TemporaryDirectory() as tmpdir:
+		tmp_path = Path(tmpdir)
+		outfile_yaml = tmp_path / 'input.yaml'
+		outfile_recv = tmp_path / 'input-rcv.yaml'
+
+		gen_yaml(sun, hst_pos, hst_foc, hst_aims, 12.2, 12.2, 1., 1e-3, 'flat',
+			rec_param, 1., outfile_yaml=outfile_yaml, outfile_recv=outfile_recv,
+			cant=True, bands=bands, fct_w=6.0, fct_h=6.0, fct_gap=0.1, n_row=2, n_col=2,
+			shape='quadricxy')
+
+		text = outfile_yaml.read_text()
+		assert text.count('quadricxy:') == 1
+		assert 'geometry: *facet_g_band_0' in text
+		assert 'target_aligned' not in text
+		assert 'ax2: 2.083333e-03' in text
+		assert 'ay2: 1.785714e-03' in text

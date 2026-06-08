@@ -52,6 +52,26 @@ def _quadricxy_coefficients(hst_foc, idx, num_hst):
 
 	raise ValueError("quadricxy hst_foc must be focal, [fx, fy], or [ax2, ay2, axy, ax, ay, ac]")
 
+def _quadricxy_band_coefficients(band):
+	"""Return quadricxy coefficients from one canting band row.
+
+	Accepted band formats for shape='quadricxy' and cant=True:
+	- [range, cant_focus, facet_focus]
+	- [range, cant_focus, fx, fy]
+	- [range, cant_focus, ax2, ay2, axy, ax, ay, ac]
+	"""
+	row = np.asarray(band, dtype=float).ravel()
+	if len(row) == 3:
+		fx = fy = row[2]
+		return 1. / 4. / fx, 1. / 4. / fy, 0., 0., 0., 0.
+	if len(row) == 4:
+		fx, fy = row[2], row[3]
+		return 1. / 4. / fx, 1. / 4. / fy, 0., 0., 0., 0.
+	if len(row) == 8:
+		return tuple(row[2:8])
+
+	raise ValueError("quadricxy bands must be [range, cant_focus, facet_focus], [range, cant_focus, fx, fy], or [range, cant_focus, ax2, ay2, axy, ax, ay, ac]")
+
 class Sun:
 	"""Sun parameters for solstice-input
 
@@ -125,13 +145,19 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims, hst_w, hst_h
 	  * `bands` (nparray or None): a 3D numpy array ((band range, focal length of cant, focal length of facets)) that specifies 
 						the distance range and focal length for each canting band, it is <= than this
 						, or None for slant range canting
+						, For canted quadricxy heliostats, each facet band can define the facet curvature using either 
+						one focal length applied to both x and y directions, 
+						two directional focal lengths fx and fy, 
+						or six explicit quadricxy coefficients ax2, ay2, axy, ax, ay, and ac.
 	  * `fct_w` (float): facet width (if cant==True) 
 	  * `fct_h` (float): facet height (if cant==True) 
 	  * `fct_gap` (float): facet gaps (if cant==True)  
 	  * `n_row` (int): number of rows for the facet arrangement (if cant==True)  
 	  * `n_col` (int): number of cols for the facet arrangement (if cant==True)  
 	  * `shape` (str): "paraboloid", "quadricxy", "flat", "parabolic-cylinder" or 'sphere' shaped heliostats/facets
-		For "quadricxy", `hst_foc` can be a focal length, [fx, fy], or [ax2, ay2, axy, ax, ay, ac].
+		For single-facet "quadricxy", `hst_foc` can be a focal length, [fx, fy], or [ax2, ay2, axy, ax, ay, ac].
+		For canted multi-facet "quadricxy", `bands` can use [range, cant_focus, facet_focus], [range, cant_focus, fx, fy],
+		or [range, cant_focus, ax2, ay2, axy, ax, ay, ac].
 	  * `tower_h` (float): tower height (m)
 	  * `tower_r` (float): tower radius (a cylindrical shape tower) (m)
 	3. the receiver
@@ -339,10 +365,7 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims, hst_w, hst_h
 	# 
 	### Section (5)
 
-	if shape=='quadricxy' and cant:
-		raise ValueError("shape='quadricxy' is only implemented for single-facet heliostats")
-
-	if shape!='quadricxy' and None in bands:
+	if None in bands:
 		if one_heliostat:
 			bands=np.array([hst_foc, hst_foc, hst_foc])
 			bands=bands.reshape(1,3)
@@ -403,7 +426,23 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims, hst_w, hst_h
 				iyaml+="        vertices: [ [%e, %e], [%e, %e], [%e, %e], [%e, %e] ]\n"%(-fct_w/2., -fct_h/2.,-fct_w/2., fct_h/2., fct_w/2., fct_h/2., fct_w/2., -fct_h/2.)
 				iyaml+="      slices: 4\n\n"
 
-				
+		elif shape=='quadricxy': # curved facets
+			for i in range(len(bands)):
+				ax2, ay2, axy, ax, ay, ac = _quadricxy_band_coefficients(bands[i])
+				iyaml+="- geometry: &facet_g_band_%d\n"%i
+				iyaml+="  - material: *material_mirror\n"
+				iyaml+="    quadricxy:\n"
+				iyaml+="      ax2: %e\n"%(ax2)
+				iyaml+="      ay2: %e\n"%(ay2)
+				iyaml+="      axy: %e\n"%(axy)
+				iyaml+="      ax: %e\n"%(ax)
+				iyaml+="      ay: %e\n"%(ay)
+				iyaml+="      ac: %e\n"%(ac)
+				iyaml+="      clip:\n"
+				iyaml+="      - operation: AND\n" 
+				iyaml+="        vertices: [ [%e, %e], [%e, %e], [%e, %e], [%e, %e] ]\n"%(-fct_w/2., -fct_h/2.,-fct_w/2., fct_h/2., fct_w/2., fct_h/2., fct_w/2., -fct_h/2.)
+				iyaml+="      slices: 4\n\n"
+
 		else: # paraboloid facets 
 			for i in range(len(bands)):
 				foc=bands[i,2]				
