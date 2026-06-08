@@ -13,6 +13,45 @@ from .geometry import get_rotation
 def yamltransform(pos,rot):
     return "transform: { translation: [%e,%e,%e], rotation: [%e,%e,%e] }" % (*pos,*rot)
 
+def _quadricxy_coefficients(hst_foc, idx, num_hst):
+	"""Return quadricxy coefficients for one heliostat.
+
+	Accepted hst_foc formats for shape='quadricxy':
+	- scalar or 1D length n: focal length, with fx=fy=focal
+	- 2D n x 2: focal lengths [fx, fy]
+	- 2D n x 6: coefficients [ax2, ay2, axy, ax, ay, ac]
+	"""
+	foc = np.asarray(hst_foc, dtype=float)
+	if foc.ndim == 0:
+		fx = fy = float(foc)
+		return 1. / 4. / fx, 1. / 4. / fy, 0., 0., 0., 0.
+
+	if foc.ndim == 1:
+		if len(foc) == num_hst:
+			fx = fy = foc[idx]
+			return 1. / 4. / fx, 1. / 4. / fy, 0., 0., 0., 0.
+		if num_hst == 1 and len(foc) == 2:
+			fx, fy = foc
+			return 1. / 4. / fx, 1. / 4. / fy, 0., 0., 0., 0.
+		if num_hst == 1 and len(foc) == 6:
+			return tuple(foc)
+
+	if foc.ndim == 2:
+		if foc.shape[0] == 1 and num_hst > 1:
+			row = foc[0]
+		elif foc.shape[0] == num_hst:
+			row = foc[idx]
+		else:
+			raise ValueError("quadricxy hst_foc must have one row or one row per heliostat")
+
+		if foc.shape[1] == 2:
+			fx, fy = row
+			return 1. / 4. / fx, 1. / 4. / fy, 0., 0., 0., 0.
+		if foc.shape[1] == 6:
+			return tuple(row)
+
+	raise ValueError("quadricxy hst_foc must be focal, [fx, fy], or [ax2, ay2, axy, ax, ay, ac]")
+
 class Sun:
 	"""Sun parameters for solstice-input
 
@@ -91,7 +130,8 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims, hst_w, hst_h
 	  * `fct_gap` (float): facet gaps (if cant==True)  
 	  * `n_row` (int): number of rows for the facet arrangement (if cant==True)  
 	  * `n_col` (int): number of cols for the facet arrangement (if cant==True)  
-	  * `shape` (str): "paraboloid" or "flat" or "parabolic-cylinder" or 'sphere' shaped heliostats/facets  
+	  * `shape` (str): "paraboloid", "quadricxy", "flat", "parabolic-cylinder" or 'sphere' shaped heliostats/facets
+		For "quadricxy", `hst_foc` can be a focal length, [fx, fy], or [ax2, ay2, axy, ax, ay, ac].
 	  * `tower_h` (float): tower height (m)
 	  * `tower_r` (float): tower radius (a cylindrical shape tower) (m)
 	3. the receiver
@@ -299,7 +339,10 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims, hst_w, hst_h
 	# 
 	### Section (5)
 
-	if None in bands:
+	if shape=='quadricxy' and cant:
+		raise ValueError("shape='quadricxy' is only implemented for single-facet heliostats")
+
+	if shape!='quadricxy' and None in bands:
 		if one_heliostat:
 			bands=np.array([hst_foc, hst_foc, hst_foc])
 			bands=bands.reshape(1,3)
@@ -467,6 +510,61 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims, hst_w, hst_h
 				iyaml+='    name: %s\n' % name_e
 				iyaml+='    ' + yamltransform(pos=[hst_x[i], hst_y[i], hst_z[i]],rot=[0,0,0]) + '\n' 
 				iyaml+='    children: [ *%s ]\n' % name_hst_t 	
+
+		elif shape=='quadricxy':
+			for i in range(num_hst):
+				name_hst_g = 'hst_g_'+str(i)
+				iyaml+='- geometry: &%s\n' % name_hst_g 
+				if isinstance(slope_error, float):
+					iyaml+='  - material: *%s\n' % 'material_mirror' 
+				else:
+					iyaml+='  - material: *%s\n' % 'material_mirror_%d'%i
+
+				ax2, ay2, axy, ax, ay, ac = _quadricxy_coefficients(hst_foc, i, num_hst)
+				iyaml+="    quadricxy:\n"
+				iyaml+="      ax2: %e\n"%(ax2)
+				iyaml+="      ay2: %e\n"%(ay2)
+				iyaml+="      axy: %e\n"%(axy)
+				iyaml+="      ax: %e\n"%(ax)
+				iyaml+="      ay: %e\n"%(ay)
+				iyaml+="      ac: %e\n"%(ac)
+				iyaml+='      clip: \n'
+				iyaml+='      - operation: AND \n'
+				iyaml+='        vertices: [ [%e, %e], [%e, %e], [%e, %e], [%e, %e] ]\n' % (-hst_w*0.5, -hst_h*0.5, -hst_w*0.5, hst_h*0.5, hst_w*0.5, hst_h*0.5, hst_w*0.5,-hst_h*0.5)
+				iyaml+='      slices: %d\n\n' % slices 
+
+			summary=np.array(['x','y','z', 'ax2', 'ay2', 'axy', 'ax', 'ay', 'ac'])
+			for i in range(num_hst):
+				name_hst_t = 'hst_t_'+str(i)
+				iyaml+='- template: &%s\n' % name_hst_t
+				name_hst_n = 'hst_'+ str(i)
+				iyaml+='    name: %s\n' % name_hst_n
+				iyaml+='    primary: 0\n'
+				iyaml+='    geometry: *pylon_g\n'
+				iyaml+='    children: \n'
+				iyaml+='    - name: pivot\n'
+				iyaml+='      zx_pivot:\n'
+				iyaml+='        target:\n'
+				iyaml+='          position: [%e, %e, %e] \n' % (aim_x[i],aim_y[i],aim_z[i])
+				iyaml+='      children: \n'
+				iyaml+='      - name: reflect_surface\n'
+				iyaml+='        primary: 1\n'
+				iyaml+='        transform: {rotation: [-90,0,0]} \n'
+				name_hst_g = 'hst_g_'+str(i)
+				iyaml+='        geometry: *%s\n\n' % name_hst_g
+
+				coeffs = _quadricxy_coefficients(hst_foc, i, num_hst)
+				summary=np.append(summary, (hst_x[i], hst_y[i], hst_z[i]) + coeffs)
+			summary=summary.reshape(int(len(summary)/9), 9)
+			np.savetxt('heliostat-info-summary.csv', summary, fmt='%s', delimiter=',')
+
+			for i in range(num_hst):
+				name_e ='H_'+str(i)
+				name_hst_t = 'hst_t_'+str(i)
+				iyaml+='\n- entity:\n'
+				iyaml+='    name: %s\n' % name_e
+				iyaml+='    ' + yamltransform(pos=[hst_x[i], hst_y[i], hst_z[i]],rot=[0,0,0]) + '\n'
+				iyaml+='    children: [ *%s ]\n' % name_hst_t
 
 		else: # single facet, paraboloid			
 			for i in range(len(bands)):
