@@ -8,4 +8,3 @@ from .gen_vtk import *
 from .gen_yaml import *
 from .process_raw import *
 from .master import *
-from .quadricxy_analysis import *
