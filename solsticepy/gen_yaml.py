@@ -125,7 +125,8 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims, hst_w, hst_h
 		, outfile_yaml, outfile_recv
 		, hemisphere='North', tower_h=0.01, tower_r=0.01,  spectral=False
 		, medium=0, one_heliostat=False, cant=False, bands=np.array([[None, None]])
-		, fct_w=0, fct_h=0, fct_gap=0, n_row=0, n_col=0, shape='paraboloid'):
+		, fct_w=0, fct_h=0, fct_gap=0, n_row=0, n_col=0, shape='paraboloid'
+		, virtual_target=None):
 
 	"""Generate the heliostat field and receiver YAML input files for Solstice ray-tracing simulation.
 
@@ -316,7 +317,7 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims, hst_w, hst_h
 	# Receiver Geometry
 	#
 	if receiver=='flat':
-		geom, rec_entt, rcv = flat_receiver(rec_param, hemisphere)
+		geom, rec_entt, rcv = flat_receiver(rec_param, hemisphere, virtual_target=virtual_target)
 		iyaml+=geom
 
 	elif receiver=='cylinder':
@@ -365,7 +366,7 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims, hst_w, hst_h
 	# 
 	### Section (5)
 
-	if None in bands:
+	if (shape!='quadricxy' or cant) and None in bands:
 		if one_heliostat:
 			bands=np.array([hst_foc, hst_foc, hst_foc])
 			bands=bands.reshape(1,3)
@@ -1032,7 +1033,7 @@ def heliostat_canted_facets(hst_w, hst_h, fct_w, fct_h, gap, n_row, n_col, foc):
 	return data
 
 
-def flat_receiver(rec_param, hemisphere='North'):
+def flat_receiver(rec_param, hemisphere='North', virtual_target=None):
 	"""
 	hemisphere : 'North' or 'South' hemisphere of the earth where the field located
 		        if North: the field is in the positive y direction
@@ -1085,17 +1086,37 @@ def flat_receiver(rec_param, hemisphere='North'):
 	entt+='    geometry: *%s\n' % 'target_g'
 
 
-	# CREATE a virtual target entity from "target_g" geometry (primary = 0)
-	radius=np.sqrt(rec_w**2+rec_h**2)/2.*1.5
+	# CREATE a virtual target entity (primary = 0).
 	entt+='\n- entity:\n'
 	entt+='    name: virtual_target_e\n'
 	entt+='    primary: 0\n'
-	entt+='    transform: { translation: [%e,%e,%e]}\n' % (x, y, z)
-	entt+='    geometry: \n' 
-	entt+='      - material: *%s\n' % 'material_virtual' 
-	entt+='        sphere: \n'
-	entt+='          radius: %s\n' % radius   
-	entt+='          slices: %d\n' % 20  
+	if virtual_target is None:
+		radius=np.sqrt(rec_w**2+rec_h**2)/2.*1.5
+		entt+='    transform: { translation: [%e,%e,%e]}\n' % (x, y, z)
+		entt+='    geometry: \n'
+		entt+='      - material: *%s\n' % 'material_virtual'
+		entt+='        sphere: \n'
+		entt+='          radius: %s\n' % radius
+		entt+='          slices: %d\n' % 20
+	else:
+		virtual_w=float(virtual_target['width'])
+		virtual_h=float(virtual_target['height'])
+		virtual_slices=int(virtual_target.get('slices', 200))
+		virtual_pos=virtual_target.get('position', (x, y, z))
+		virtual_tilt=float(virtual_target.get('tilt', tilt))
+		virtual_tilt_y=float(virtual_target.get('tilt_y', tilt_y))
+		if hemisphere=='North':
+			virtual_rot=[-90.-virtual_tilt, virtual_tilt_y, 0]
+		else:
+			virtual_rot=[90.+virtual_tilt, -virtual_tilt_y, 0]
+		entt+='    ' + yamltransform(pos=virtual_pos, rot=virtual_rot) + '\n'
+		entt+='    geometry: \n'
+		entt+='      - material: *%s\n' % 'material_virtual'
+		entt+='        plane: \n'
+		entt+='          clip: \n'
+		entt+='          - operation: AND \n'
+		entt+='            vertices: [ [%e, %e], [%e, %e], [%e, %e], [%e, %e] ] \n' % (-virtual_w*0.5, -virtual_h*0.5, -virtual_w*0.5, virtual_h*0.5, virtual_w*0.5, virtual_h*0.5, virtual_w*0.5, -virtual_h*0.5)
+		entt+='          slices: %d\n' % virtual_slices
 
 
 	rcv=''

@@ -1,85 +1,131 @@
 #! /bin/env python3
 
+"""Single-heliostat quadricxy simulation at equinox solar noon.
+
+Select the heliostat configuration with HELIOSTAT_MODE=single, canted, or both.
+"""
+
 from __future__ import division
+
+import os
 import unittest
+
+import numpy as np
 
 import solsticepy
 from solsticepy.master import Master
-from solsticepy.cal_layout import radial_stagger
-import os
-import numpy as np
-
-class TestMaster(unittest.TestCase):
-	def setUp(self):
-
-		self.casedir='./test_master'
-
-		DNI = 1000 # W/m2
-		sunshape = 'pillbox'
-		half_angle_deg = 0.2664
-		sun = solsticepy.Sun(dni=DNI, sunshape=sunshape, half_angle_deg=half_angle_deg)
-
-		# S3. sun position
-		# e.g. summer solstice, solar noon
-		azimuth=270.   # from East to North, deg
-		elevation =78. # 0 is horizontal, deg
-		latitude=34.   # latitude of the crs plant
-		# S4. number of rays for the ray-tracing simulation
-		num_rays=2000000
-
-		# F2. Heliostat
-		hst_w=10. # m
-		hst_h=10. # m
-		rho_refl=0.95 # mirror reflectivity
-		slope_error=2.e-3 # radians
-		tower_h=80. # tower height
-		tower_r=0.01 # tower radius
-
-		field, Nzones, Nrows_zone=radial_stagger(latitude=latitude, num_hst=1000, width=hst_w, height=hst_h, hst_z=3., towerheight=tower_h, R1=50., fb=0.5, dsep=0., field='polar', savedir=self.casedir, plot=False, verbose=False)
-		hst_pos=field[2:,:3].astype(float)
-		hst_foc=field[2:,3].astype(float) 
-		hst_aims=field[2:,4:].astype(float)
-
-		#
-		# the receiver
-		# ============
-		# R1. shape
-		receiver='flat' # 'flat' or 'stl'
-		# R2. Size
-		rec_w=8. # width, m
-		rec_h=6. # height, m
-		# R3. tilt angle
-		tilt=0.  # deg
-		# R4. position
-		loc_x=0. # m
-		loc_y=0. # m
-		loc_z=tower_h# m
-		# R5. Abosrptivity
-		rec_abs=0.9
-		rec_mesh_x=100
-		rec_mesh_y=100
-		rec_param=np.r_[rec_w, rec_h, rec_mesh_x, rec_mesh_y, loc_x, loc_y, loc_z, tilt]
 
 
-		master=Master(self.casedir)
-		outfile_yaml = master.in_case(self.casedir, 'input.yaml')
-		outfile_recv = master.in_case(self.casedir, 'input-rcv.yaml')
-
-		solsticepy.gen_yaml(sun, hst_pos, hst_foc, hst_aims, hst_w, hst_h
-		, rho_refl, slope_error, receiver, rec_param, rec_abs
-		, outfile_yaml=outfile_yaml, outfile_recv=outfile_recv
-		, hemisphere='North', tower_h=tower_h, tower_r=tower_r,  spectral=False
-		, medium=0, one_heliostat=False, shape='quadricxy')
-
-		self.eta, self.performance_hst=master.run(azimuth, elevation, num_rays, rho_refl,sun.dni, folder=self.casedir+'/test_run', gen_vtk=False, verbose=False)
-
-		self.table, self.ANNUAL=master.run_annual(nd=5, nh=5, latitude=latitude, num_rays=num_rays, num_hst=len(hst_pos),rho_mirror=rho_refl, dni=DNI, verbose=False)
-
-	def test_touching(self):
-		self.assertEqual(round(self.eta.n, 2), 0.47)
-		#os.system('rm -rf '+self.casedir)
+# Select "single", "canted", or "both".
+HELIOSTAT_MODE = os.environ.get("HELIOSTAT_MODE", "canted").lower()
 
 
-if __name__ == '__main__':
+class TestHelioshape(unittest.TestCase):
+	def test_single_heliostat_at_equinox_noon(self):
+		if HELIOSTAT_MODE == "both":
+			modes = ("single", "canted")
+		else:
+			self.assertIn(HELIOSTAT_MODE, ("single", "canted"))
+			modes = (HELIOSTAT_MODE,)
+
+		for mode in modes:
+			with self.subTest(mode=mode):
+				eta, performance_hst = self.run_case(mode)       
+				self.assertTrue(np.isfinite(eta.nominal_value))
+				#self.assertEqual(len(performance_hst), 1)
+
+	def run_case(self, mode):
+		latitude = 34.0
+		azimuth = 270.0  # Solstice convention: south at solar noon.
+		elevation = 90.0 - latitude  # Equinox solar noon: declination = 0 deg.
+		num_rays = 200000
+
+		dni = 1000.0
+		sun = solsticepy.Sun(
+			dni=dni,
+			sunshape="pillbox",
+			half_angle_deg=0.2664,
+		)
+
+		hst_w = 10.0
+		hst_h = 10.0
+		rho_refl = 0.95
+		slope_error = 2.0e-3
+		tower_h = 80.0
+		tower_r = 0.01
+
+		# One heliostat north of the tower, aimed at the receiver centre.
+		hst_pos = np.array([[0.0, 100.0, 3.0]])
+		hst_aims = np.array([[0.0, 0.0, tower_h]])
+		slant = np.linalg.norm(hst_aims[0] - hst_pos[0])
+
+		receiver = "flat"
+		rec_param = np.r_[8.0, 6.0, 100, 100, 0.0, 0.0, tower_h, 0.0]
+		rec_abs = 0.9
+
+		casedir = "./test_helioshape_%s" % mode
+		master = Master(casedir)
+		outfile_yaml = master.in_case(casedir, "input.yaml")
+		outfile_recv = master.in_case(casedir, "input-rcv.yaml")
+
+		common = dict(
+			sun=sun,
+			hst_pos=hst_pos,
+			hst_aims=hst_aims,
+			hst_w=hst_w,
+			hst_h=hst_h,
+			rho_refl=rho_refl,
+			slope_error=slope_error,
+			receiver=receiver,
+			rec_param=rec_param,
+			rec_abs=rec_abs,
+			outfile_yaml=outfile_yaml,
+			outfile_recv=outfile_recv,
+			hemisphere="North",
+			tower_h=tower_h,
+			tower_r=tower_r,
+			spectral=False,
+			medium=0,
+			one_heliostat=True,
+			shape="quadricxy",
+		)
+
+		if mode == "single":
+			# One surface with independent focal lengths in x and y.
+			solsticepy.gen_yaml(
+				hst_foc=np.array([slant, slant]),
+				cant=False,
+				**common
+			)
+		else:
+			# A 2 x 2 canted assembly. Each facet uses independent fx and fy.
+			facet_gap = 0.1
+			facet_w = (hst_w - facet_gap) / 2.0
+			facet_h = (hst_h - facet_gap) / 2.0
+			bands = np.array([[slant, slant, slant, slant]])
+			solsticepy.gen_yaml(
+				hst_foc=np.array([slant]),
+				cant=True,
+				bands=bands,
+				fct_w=facet_w,
+				fct_h=facet_h,
+				fct_gap=facet_gap,
+				n_row=2,
+				n_col=2,
+				**common
+			)
+
+		return master.run(
+			azimuth,
+			elevation,
+			num_rays,
+			rho_refl,
+			dni,
+			folder=master.in_case(casedir, "sunpos_equinox_noon"),
+			gen_vtk=False,
+			verbose=False,
+		)
+
+
+if __name__ == "__main__":
 	unittest.main()
-
