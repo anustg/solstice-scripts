@@ -198,7 +198,7 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims, hst_w, hst_h
 
 	2. the field
 	  * `hst_pos` (nx3 numpy array): heliostat positions (x, y, z) (first of the 'field' parameters)
-	  * `hst_foc` (nx1 numpy array): heliostat focal length
+	  * `hst_foc` (nx1 numpy array): heliostat focal length or facet focal length
 	  * `hst_aims` (nx3 numpy array): heliostat aiming point (ax, ay, az)
 	  * `hst_w` (float): heliostat mirror width  (in x direction)
 	  * `hst_h` (float): heliostat mirror height (in y direction)
@@ -387,8 +387,9 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims, hst_w, hst_h
 	slices = 4 # slices for the envelop circle
 	
 
-	reflectivities = _heliostat_values(rho_refl, 'rho_refl', num_hst, num_hst)
-	slope_errors = _heliostat_values(slope_error, 'slope_error', num_hst, num_hst)
+	# Validate against the full input field, then select the emitted heliostats.
+	reflectivities = _heliostat_values(rho_refl, 'rho_refl', num_hst, len(hst_pos))
+	slope_errors = _heliostat_values(slope_error, 'slope_error', num_hst, len(hst_pos))
 
 	# Generate each heliostat using its actual optical parameters. Geometry
 	summary = [['x', 'y', 'z', 'ax2', 'ay2', 'axy', 'ax', 'ay', 'ac']

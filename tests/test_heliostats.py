@@ -267,7 +267,8 @@ class TestHeliostats(unittest.TestCase):
                                         [885, 668],
                                         [1267, 959],
                                         [1650, 1500]])
-                                    hst_foc=np.sqrt((hst_x)**2+(hst_y)**2+(hst_z)**2) # slant range is the heliostat to the bottom of the tower (0,0,0)
+                                    slant=np.sqrt((hst_x)**2+(hst_y)**2+(hst_z)**2) # slant range is the heliostat to the bottom of the tower (0,0,0)
+                                    hst_foc = bands[np.searchsorted(bands[:, 0], slant , side='left'), 1]
 
                                 if t==12:
                                     azi=self.azimuth
@@ -304,7 +305,6 @@ class TestHeliostats(unittest.TestCase):
 	                                                rho_refl=self.rho_refl, 
                                                     slope_error=self.slope_error, 
                                                     cant=cant, 
-                                                    bands=bands, 
                                                     receiver=self.receiver, 
                                                     rec_param=self.rec_param, 
                                                     rec_abs=self.rec_abs,
@@ -455,16 +455,17 @@ class TestHeliostats(unittest.TestCase):
                                         [885, 668, 704.8],
                                         [1267, 959, 1072.5],
                                         [1650, 1500, 1444.3]])
-
+                                    
 
                                     #bands=np.array([[502.5, 353.8],  # band range (<=), focal length
                                     #    [878, 704.8],
                                     #    [1253.5, 1072.5],
                                     #    [1650, 1444.3]])
 
-
-                                    hst_foc=np.sqrt((hst_x)**2+(hst_y)**2+(hst_z)**2) # slant range is the heliostat to the bottom of the tower (0,0,0)
-
+                                    slant=np.sqrt((hst_x)**2+(hst_y)**2+(hst_z)**2) # slant range is the heliostat to the bottom of the tower (0,0,0)
+                                    hst_foc = bands[np.searchsorted(bands[:, 0], slant , side='left'), 2]
+                                    cant_foc = bands[np.searchsorted(bands[:, 0], slant , side='left'), 1]
+                                    
                                 if t==12:
                                     azi=self.azimuth
                                     ele=self.elevation
@@ -500,7 +501,7 @@ class TestHeliostats(unittest.TestCase):
 	                                                rho_refl=self.rho_refl, 
                                                     slope_error=self.slope_error, 
                                                     cant=cant, 
-                                                    bands=bands, 
+                                                    cant_foc=cant_foc,
                                                     receiver=self.receiver, 
                                                     rec_param=self.rec_param, 
                                                     rec_abs=self.rec_abs,
@@ -594,11 +595,13 @@ class TestHeliostats(unittest.TestCase):
         hst_aims[:,2]=self.loc_z
 
         # slant range focus
-        hst_foc=np.sqrt((hst_x-hst_aims[:,0])**2+(hst_y-hst_aims[:,1])**2+(hst_z-hst_aims[:,2])**2)
+        slant=np.sqrt((hst_x-hst_aims[:,0])**2+(hst_y-hst_aims[:,1])**2+(hst_z-hst_aims[:,2])**2)
         bands=np.array([[502, 516],  # band range (<=), focal length
                 [885, 668],
                 [1267, 959],
                 [1650, 1500]])
+                
+        hst_foc = bands[np.searchsorted(bands[:, 0], slant , side='left'), 1]
 
         master=Master(casedir=casedir)
         outfile_yaml = master.in_case(folder=casedir, fn='input.yaml')
@@ -619,7 +622,6 @@ class TestHeliostats(unittest.TestCase):
 	                        rho_refl=self.rho_refl, 
                             slope_error=self.slope_error, 
                             cant=cant, 
-                            bands=bands, 
                             receiver=self.receiver, 
                             rec_param=self.rec_param, 
                             rec_abs=self.rec_abs,
@@ -700,8 +702,7 @@ class TestHeliostats(unittest.TestCase):
                                 hst_h=self.hst_h,
 	                            rho_refl=self.rho_refl, 
                                 slope_error=self.slope_error, #0., 
-                                cant=cant, 
-                                bands=bands, 
+                                cant=cant,  
                                 receiver=self.receiver, 
                                 rec_param=self.rec_param, 
                                 rec_abs=self.rec_abs,
@@ -791,7 +792,6 @@ class TestHeliostats(unittest.TestCase):
 	                            rho_refl=self.rho_refl, 
                                 slope_error=self.slope_error, #0., 
                                 cant=cant, 
-                                bands=bands, 
                                 receiver=self.receiver, 
                                 rec_param=self.rec_param, 
                                 rec_abs=self.rec_abs,
@@ -900,7 +900,6 @@ class TestHeliostats(unittest.TestCase):
 	                                rho_refl=self.rho_refl, 
                                     slope_error=0., 
                                     cant=cant, 
-                                    bands=bands, 
                                     receiver=self.receiver, 
                                     rec_param=self.rec_param, 
                                     rec_abs=self.rec_abs,
@@ -976,7 +975,6 @@ class TestHeliostats(unittest.TestCase):
 	                        rho_refl=self.rho_refl, 
                             slope_error=1e-9, 
                             cant=cant, 
-                            bands=bands, 
                             receiver=self.receiver, 
                             rec_param=self.rec_param, 
                             rec_abs=self.rec_abs,
@@ -1047,8 +1045,7 @@ class TestHeliostats(unittest.TestCase):
                             hst_h=self.hst_h,
 	                        rho_refl=self.rho_refl, 
                             slope_error=1e-9, 
-                            cant=cant, 
-                            bands=bands, 
+                            cant=cant,  
                             receiver=self.receiver, 
                             rec_param=self.rec_param, 
                             rec_abs=self.rec_abs,
@@ -1120,7 +1117,6 @@ class TestHeliostats(unittest.TestCase):
 	                        rho_refl=self.rho_refl, 
                             slope_error=1e-9, 
                             cant=cant, 
-                            bands=bands, 
                             receiver=self.receiver, 
                             rec_param=self.rec_param, 
                             rec_abs=self.rec_abs,
@@ -1196,7 +1192,6 @@ class TestHeliostats(unittest.TestCase):
 	                        rho_refl=self.rho_refl, 
                             slope_error=1e-9, 
                             cant=cant, 
-                            bands=bands, 
                             receiver=self.receiver, 
                             rec_param=self.rec_param, 
                             rec_abs=self.rec_abs,
@@ -1287,9 +1282,10 @@ class TestHeliostats(unittest.TestCase):
                 hst_aims[:,2]=self.loc_z+offset_z
 
                 # slant range focus
-                hst_foc=np.sqrt((hst_x)**2+(hst_y)**2+(hst_z)**2) # slant range is the heliostat to the bottom of the tower (0,0,0) 
+                slant=np.sqrt((hst_x)**2+(hst_y)**2+(hst_z)**2) # slant range is the heliostat to the bottom of the tower (0,0,0) 
                 #np.sqrt((hst_x)**2+(hst_y)**2+(hst_z-self.loc_z)**2) #slant range is the centre point of the receiver cylinder
 
+                hst_foc = bands[np.searchsorted(bands[:, 0], slant , side='left'), 1]
                 master=Master(casedir=casedir)
                 outfile_yaml = master.in_case(folder=casedir, fn='input.yaml')
                 outfile_recv = master.in_case(folder=casedir, fn='input-rcv.yaml')
@@ -1304,7 +1300,6 @@ class TestHeliostats(unittest.TestCase):
                                     rho_refl=self.rho_refl, 
                                     slope_error=self.slope_error, 
                                     cant=cant, 
-                                    bands=bands, 
                                     receiver=self.receiver, 
                                     rec_param=self.rec_param, 
                                     rec_abs=self.rec_abs,

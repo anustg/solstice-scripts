@@ -199,14 +199,16 @@ def test_canting_focus_is_independent_of_optical_focus(tmp_path):
         assert entity.count('slope_error: %15.8e' % [.001, .002][i]) == 5
 
 
+@pytest.mark.parametrize('one_heliostat', [False, True])
 @pytest.mark.parametrize('mode', ['single', 'canted', 'target_aligned'])
 @pytest.mark.parametrize('rho,slope', [(.91, .001), ([.81, .92345678], .001),
                                      (.91, [.001, .003]), ([.81, .92345678], [.001, .003])])
-def test_embedded_materials(tmp_path, mode, rho, slope):
+def test_embedded_materials(tmp_path, mode, rho, slope, one_heliostat):
     from solsticepy.gen_yaml import gen_yaml_target_aligned
     positions = np.array([[0., 100., 8.], [20., 120., 8.]])
     aims = np.array([[0., 0., 62.]] * 2)
     kwargs = dict(hst_pos=positions, hst_aims=aims, sun=Sun(), hst_w=12.2, hst_h=12.2,
+                  one_heliostat=one_heliostat,
                   rho_refl=rho, slope_error=slope, receiver='flat',
                   rec_param=[20., 20., 10, 10, 0., 0., 62., 0.], rec_abs=.9,
                   outfile_yaml=tmp_path / 'input.yaml', outfile_recv=tmp_path / 'receiver.yaml')
@@ -218,7 +220,10 @@ def test_embedded_materials(tmp_path, mode, rho, slope):
     text = (tmp_path / 'input.yaml').read_text()
     assert 'material_mirror' not in text
     assert 'mirror:' not in text.split('- entity:')[0]
-    for i, entity in enumerate(text.split('- entity:')[1:3]):
+    entities = [entity for entity in text.split('- entity:')[1:]
+                if entity.lstrip().startswith('name: H_')]
+    assert len(entities) == (1 if one_heliostat else 2)
+    for i, entity in enumerate(entities):
         reflectivity = rho if np.ndim(rho) == 0 else rho[i]
         error = slope if np.ndim(slope) == 0 else slope[i]
         expected = 'mirror: {reflectivity: %15.8e, slope_error: %15.8e}' % (reflectivity, error)
