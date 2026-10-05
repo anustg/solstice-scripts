@@ -139,7 +139,8 @@ class TestHeliostats(unittest.TestCase):
                                 [885, 668],
                                 [1267, 959],
                                 [1650, 1500]])
-                            hst_foc=np.sqrt((hst_x)**2+(hst_y)**2+(hst_z)**2) # slant range is the heliostat to the bottom of the tower (0,0,0)
+                            slant=np.sqrt((hst_x)**2+(hst_y)**2+(hst_z)**2) # slant range is the heliostat to the bottom of the tower (0,0,0)
+                            hst_foc = bands[np.searchsorted(bands[:, 0], slant , side='left'), 1]
     
 
                         master=Master(casedir=casedir)
@@ -156,7 +157,6 @@ class TestHeliostats(unittest.TestCase):
                                             rho_refl=self.rho_refl, 
                                             slope_error=self.slope_error, 
                                             cant=cant, 
-                                            bands=bands, 
                                             receiver=self.receiver, 
                                             rec_param=self.rec_param, 
                                             rec_abs=self.rec_abs,
@@ -180,7 +180,7 @@ class TestHeliostats(unittest.TestCase):
                     print('time', (end-start)/60, 'min')
                     points, tri, flux, flux_abs, flux_back, flux_abs_back=flux_reader(vtkfile, casedir)
                     Q_receiver, peak=plot_fluxmap(points, tri, flux, casedir, casename=casename, loc_z_rec=self.loc_z, rec_r=self.rec_r, rec_h=self.rec_h, m=self.mesh_h, n=self.mesh_circ)
-                    print('Peak=%.2f, Qrec=%.2f'%(peak, Q_receiver), abs(Q_receiver-total_energy[i,j,k])/Q_receiver<0.02, abs(peak-peak_flux[i,j,k])/peak<0.02)
+                    print('Peak=%.2f, Qrec=%.2f'%(peak, Q_receiver), abs(Q_receiver-total_energy[i,1,k])/Q_receiver<0.02, abs(peak-peak_flux[i,j,k])/peak<0.02)
                     self.assertTrue(abs(Q_receiver-total_energy[i,j,k])/Q_receiver<0.02)
                     self.assertTrue(abs(peak-peak_flux[i,j,k])/peak<0.02)
 

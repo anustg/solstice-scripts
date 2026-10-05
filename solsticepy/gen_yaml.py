@@ -13,6 +13,32 @@ from .geometry import get_rotation
 def yamltransform(pos,rot):
     return "transform: { translation: [%e,%e,%e], rotation: [%e,%e,%e] }" % (*pos,*rot)
 
+def _heliostat_entity(index, position, aim, geometry, target_aligned=False):
+    """Write a single-facet heliostat directly in its placed entity."""
+    text = '- entity:\n'
+    text += '    name: H_%d\n' % index
+    text += '    ' + yamltransform(position, [0, 0, 0]) + '\n'
+    text += '    children:\n'
+    text += '      - name: hst_%d\n' % index
+    if not target_aligned:
+        text += '        primary: 0\n'
+        text += _inline_geometry(_pylon_geometry(), 8)
+    text += '        children:\n'
+    text += '          - name: pivot\n'
+    text += '            zx_pivot:\n'
+    if target_aligned:
+        text += '              target_aligned: true\n'
+    text += '              target:\n'
+    text += '                position: [%e, %e, %e]\n' % tuple(aim)
+    text += '            children:\n'
+    text += '              - name: reflect_surface\n'
+    text += '                primary: 1\n'
+    if not target_aligned:
+        text += '                transform: {rotation: [-90,0,0]}\n'
+    text += _inline_geometry(geometry, 16) + '\n'
+    return text
+
+
 def _quadricxy_coefficients(hst_foc, idx, num_hst):
 	"""Return quadricxy coefficients for one heliostat.
 
@@ -52,25 +78,62 @@ def _quadricxy_coefficients(hst_foc, idx, num_hst):
 
 	raise ValueError("quadricxy hst_foc must be focal, [fx, fy], or [ax2, ay2, axy, ax, ay, ac]")
 
-def _quadricxy_band_coefficients(band):
-	"""Return quadricxy coefficients from one canting band row.
+def _inline_geometry(geometry, indent):
+    """Indent a geometry value beneath an entity's geometry key."""
+    return ' ' * indent + 'geometry:\n' + ''.join(
+        ' ' * (indent + 2) + line + '\n' for line in geometry.splitlines())
 
-	Accepted band formats for shape='quadricxy' and cant=True:
-	- [range, cant_focus, facet_focus]
-	- [range, cant_focus, fx, fy]
-	- [range, cant_focus, ax2, ay2, axy, ax, ay, ac]
-	"""
-	row = np.asarray(band, dtype=float).ravel()
-	if len(row) == 3:
-		fx = fy = row[2]
-		return 1. / 4. / fx, 1. / 4. / fy, 0., 0., 0., 0.
-	if len(row) == 4:
-		fx, fy = row[2], row[3]
-		return 1. / 4. / fx, 1. / 4. / fy, 0., 0., 0., 0.
-	if len(row) == 8:
-		return tuple(row[2:8])
 
-	raise ValueError("quadricxy bands must be [range, cant_focus, facet_focus], [range, cant_focus, fx, fy], or [range, cant_focus, ax2, ay2, axy, ax, ay, ac]")
+def _heliostat_values(values, name, count, total):
+    """Broadcast a scalar or validate values in heliostat input order."""
+    values = np.asarray(values, dtype=float)
+    if values.ndim == 0:
+        return np.full(count, float(values))
+    if values.ndim != 1 or len(values) not in (count, total):
+        raise ValueError('%s must be a scalar or one value per heliostat' % name)
+    return values[:count]
+
+
+def _mirror_material(reflectivity, slope_error, spectral=False):
+    """Material mapping embedded in each mirror geometry."""
+    rho = '*ref_mirror' if spectral else '%15.8e' % reflectivity
+    return ('front:\n'
+            '  mirror: {reflectivity: %s, slope_error: %15.8e}\n'
+            'back:\n'
+            '  matte: {reflectivity: 0.}\n') % (rho, slope_error)
+
+
+def _mirror_geometry(shape, width, height, material, focal=None, coefficients=None, slices=4):
+    """Write an unanchored geometry using the supplied physical curvature."""
+    text = '- material:\n' + ''.join('    ' + line + '\n' for line in material.splitlines())
+    surface = {'flat': 'plane', 'sphere': 'hemisphere',
+               'parabolic-cylinder': 'parabolic-cylinder', 'quadricxy': 'quadricxy'}.get(shape, 'parabol')
+    text += '  %s:\n' % surface
+    if shape == 'quadricxy':
+        for name, value in zip(('ax2', 'ay2', 'axy', 'ax', 'ay', 'ac'), coefficients):
+            text += '    %s: %e\n' % (name, value)
+    elif shape == 'sphere':
+        text += '    radius: %e\n' % (2. * focal)
+    elif shape != 'flat':
+        text += '    focal: %e\n' % focal
+    text += '    clip:\n'
+    text += '    - operation: AND\n'
+    text += '      vertices: [ [%e, %e], [%e, %e], [%e, %e], [%e, %e] ]\n' % (
+        -width/2., -height/2., -width/2., height/2., width/2., height/2., width/2., -height/2.)
+    text += '    slices: %d\n' % slices
+    return text
+
+
+def _pylon_geometry():
+    return ('- material: *material_black\n  '
+            + yamltransform([0, 0, -0.003], [0, 90, 0])
+            + '\n  cylinder: {height: 0.001, radius: 0.200, slices: 4}\n')
+
+
+def _focal_value(values, index):
+    values = np.asarray(values, dtype=float)
+    return float(values) if values.ndim == 0 else float(values.reshape(-1)[index])
+
 
 class Sun:
 	"""Sun parameters for solstice-input
@@ -124,9 +187,9 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims, hst_w, hst_h
 		, rho_refl, slope_error, receiver, rec_param, rec_abs
 		, outfile_yaml, outfile_recv
 		, hemisphere='North', tower_h=0.01, tower_r=0.01,  spectral=False
-		, medium=0, one_heliostat=False, cant=False, bands=np.array([[None, None]])
+		, medium=0, one_heliostat=False, cant=False
 		, fct_w=0, fct_h=0, fct_gap=0, n_row=0, n_col=0, shape='paraboloid'
-		, virtual_target=None):
+		, virtual_target=None, cant_foc=None):
 
 	"""Generate the heliostat field and receiver YAML input files for Solstice ray-tracing simulation.
 
@@ -140,16 +203,13 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims, hst_w, hst_h
 	  * `hst_w` (float): heliostat mirror width  (in x direction)
 	  * `hst_h` (float): heliostat mirror height (in y direction)
 	  * `hst_z` (float): heliostat center height (in z direction)
-	  * `rho_refl` (float): reflector reflectivity
-	  * `slope_error` (float): reflector surface slope error rms, radians
+	  * `rho_refl` (scalar or length n): reflector reflectivity in heliostat input order.
+		With spectral=True, the existing mirror spectrum supplies reflectivity instead.
+	  * `slope_error` (scalar or length n): reflector surface slope error rms, radians, in heliostat input order
 	  * `cant` (bool): True, multi-facets canted heliostats, False, ideally shaped single facet heliostat
-	  * `bands` (nparray or None): a 3D numpy array ((band range, focal length of cant, focal length of facets)) that specifies 
-						the distance range and focal length for each canting band, it is <= than this
-						, or None for slant range canting
-						, For canted quadricxy heliostats, each facet band can define the facet curvature using either 
-						one focal length applied to both x and y directions, 
-						two directional focal lengths fx and fy, 
-						or six explicit quadricxy coefficients ax2, ay2, axy, ax, ay, and ac.
+	  * `cant_foc` (scalar or length n, optional): actual canting focus for each heliostat.
+		Defaults to `hst_foc` for scalar focal lengths. For directional/explicit quadricxy
+		curvatures, defaults to the distance from the heliostat to its aiming point.
 	  * `fct_w` (float): facet width (if cant==True) 
 	  * `fct_h` (float): facet height (if cant==True) 
 	  * `fct_gap` (float): facet gaps (if cant==True)  
@@ -157,8 +217,7 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims, hst_w, hst_h
 	  * `n_col` (int): number of cols for the facet arrangement (if cant==True)  
 	  * `shape` (str): "paraboloid", "quadricxy", "flat", "parabolic-cylinder" or 'sphere' shaped heliostats/facets
 		For single-facet "quadricxy", `hst_foc` can be a focal length, [fx, fy], or [ax2, ay2, axy, ax, ay, ac].
-		For canted multi-facet "quadricxy", `bands` can use [range, cant_focus, facet_focus], [range, cant_focus, fx, fy],
-		or [range, cant_focus, ax2, ay2, axy, ax, ay, ac].
+		Canted quadricxy facets use the same `hst_foc` formats; use `cant_foc` to set their canting focus.
 	  * `tower_h` (float): tower height (m)
 	  * `tower_r` (float): tower radius (a cylindrical shape tower) (m)
 	3. the receiver
@@ -169,6 +228,9 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims, hst_w, hst_h
 	  * `spectral` (bool): True - simulate the spectral dependent performance (first of the 'other' parameters)
 	  * `medium` (float): if the atmosphere is surrounded by non-participant medium, medium=0; otherwise it is the extinction coefficient in m-1
 	  * `one_heliosat` (boolean): if `True`, implements ray tracing from just one heliostat.
+
+	Heliostat children and geometries are emitted directly inside each entity.
+	Mirror curvature uses `hst_foc` directly; mirror materials are embedded per heliostat.
 
 	Returns: nothing (requested files are created and written)
 
@@ -254,33 +316,6 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims, hst_w, hst_h
 	iyaml+='   back:\n'
 	iyaml+='     matte: {reflectivity: 0. }\n' # and back reflectivity
 	iyaml+='\n'
-	#
-	# CREATE a specular material
-	r_f= rho_refl # front
-	r_b = 0.      # and back reflectivity
-	if isinstance(slope_error, float):
-		iyaml+='- material: &%s\n' % 'material_mirror'
-		iyaml+='   front:\n'
-		if spectral:
-			iyaml+='     mirror: {reflectivity: *ref_mirror, slope_error: %15.8e }\n' % ( slope_error ) 
-		else:
-			iyaml+='     mirror: {reflectivity: %6.4f, slope_error: %15.8e }\n' % (r_f, slope_error) 
-		iyaml+='   back:\n'
-		iyaml+='     matte: {reflectivity: %6.4f }\n' % r_b 
-		iyaml+='\n'
-	else: # assign slope error for individual heliostat
-		for i in range(len(slope_error)):
-			#TODO this is only works for the single facet paraboloid heliostat
-			iyaml+='- material: &%s\n' % 'material_mirror_%.0f'%i
-			iyaml+='   front:\n'
-			if spectral:
-				iyaml+='     mirror: {reflectivity: *ref_mirror, slope_error: %15.8e }\n' % (slope_error[i] ) 
-			else:
-				iyaml+='     mirror: {reflectivity: %6.4f, slope_error: %15.8e }\n' % (r_f, slope_error[i]) 	
-			iyaml+='   back:\n'
-			iyaml+='     matte: {reflectivity: %6.4f }\n' % r_b 
-			iyaml+='\n'	
-
 	#
 	# CREATE a material for the target
 	r_f = 1.-rec_abs # front
@@ -341,7 +376,6 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims, hst_w, hst_h
 		aim_y=np.r_[hst_aims[0 ,1]]
 		aim_z=np.r_[hst_aims[0, 2]]
 		num_hst=1
-		hst_foc=np.r_[hst_foc]
 	else:
 		hst_x=hst_pos[:,0]
 		hst_y=hst_pos[:,1]
@@ -353,326 +387,65 @@ def gen_yaml(sun, hst_pos, hst_foc, hst_aims, hst_w, hst_h
 	slices = 4 # slices for the envelop circle
 	
 
-	# CREATE the pylon "pylon_g" geometry cylindrical shape
-	h_pyl = 0.001 # pylon height
-	r_pyl = 0.2 # pylon radius
-	slices = 4 # slices for the envelop circle
-	iyaml+='- geometry: &pylon_g\n'
-	iyaml+='  - material: *material_black\n' 
-	iyaml+='    '+yamltransform(pos=[0,0,-h_pyl*3],rot=[0,90,0]) + '\n'
-	iyaml+='    cylinder: {height: %7.3f, radius: %7.3f, slices: %d }\n' % (h_pyl,r_pyl,slices) 
-	#   
+	reflectivities = _heliostat_values(rho_refl, 'rho_refl', num_hst, num_hst)
+	slope_errors = _heliostat_values(slope_error, 'slope_error', num_hst, num_hst)
 
-	# 
-	### Section (5)
-
-	if (shape!='quadricxy' or cant) and None in bands:
-		if one_heliostat:
-			bands=np.array([hst_foc, hst_foc, hst_foc])
-			bands=bands.reshape(1,3)
-			print('One heliostats: band', bands)	    
+	# Generate each heliostat using its actual optical parameters. Geometry
+	summary = [['x', 'y', 'z', 'ax2', 'ay2', 'axy', 'ax', 'ay', 'ac']
+		if shape == 'quadricxy' else ['x', 'y', 'z', 'focal']]
+	for i in range(num_hst):
+		position = [hst_x[i], hst_y[i], hst_z[i]]
+		aim = [aim_x[i], aim_y[i], aim_z[i]]
+		material = _mirror_material(reflectivities[i], slope_errors[i], spectral)
+		coefficients = _quadricxy_coefficients(hst_foc, i, len(hst_pos)) if shape == 'quadricxy' else None
+		focal = None if shape == 'quadricxy' else _focal_value(hst_foc, i)
+		geometry = _mirror_geometry(shape, fct_w if cant else hst_w,
+			fct_h if cant else hst_h, material, focal, coefficients,
+			slices=1 if shape == 'flat' and not cant else 4)
+		if cant:
+			if cant_foc is not None:
+				canting_focus = _focal_value(cant_foc, i)
+			elif shape != 'quadricxy' or np.asarray(hst_foc).ndim == 0 or (
+				np.asarray(hst_foc).ndim == 1 and len(np.asarray(hst_foc)) == len(hst_pos)):
+				canting_focus = _focal_value(hst_foc, i)
+			else:
+				canting_focus = np.linalg.norm(np.asarray(position) - aim)
+			data = heliostat_canted_facets(hst_w, hst_h, fct_w, fct_h,
+				fct_gap, n_row, n_col, canting_focus).reshape(n_row, n_col, 4)
+			iyaml += '- entity:\n'
+			iyaml += '    name: H_%d\n' % i
+			iyaml += '    ' + yamltransform([hst_x[i], hst_y[i], hst_z[i]], [0,0,0]) + '\n'
+			iyaml += '    children:\n'
+			iyaml += '      - name: hst_%d\n' % i
+			iyaml += '        primary: 0\n'
+			iyaml += _inline_geometry(_pylon_geometry(), 8)
+			iyaml += '        children:\n'
+			iyaml += '          - name: pivot\n'
+			iyaml += '            ' + yamltransform([0,0,0], [0,0,0]) + '\n'
+			iyaml += '            zx_pivot: \n'
+			iyaml += '              spacing: 0\n'
+			iyaml += '              ref_point: [0,0,0]\n'
+			iyaml += '              target: {position: [%e, %e, %e]}\n' % (aim_x[i], aim_y[i], aim_z[i])
+			iyaml += '            children:\n'
+			iyaml += '              - name: facets\n'
+			iyaml += '                primary: 0\n'
+			iyaml += '                ' + yamltransform([0,0,0], [0,0,0]) + '\n'
+			iyaml += _inline_geometry(_mirror_geometry('flat', 2e-5, 2e-5, material, slices=1), 16)
+			iyaml += '                children:\n'
+			for col in range(n_col):
+				for row in range(n_row):
+					x, z, rotx, roty = data[row, col]
+					iyaml += '                    - name: facet_%d_c%d_r%d\n' % (i, col, row)
+					iyaml += '                      primary: 1\n'
+					iyaml += '                      ' + yamltransform([x,0,z], [rotx,roty,0]) + '\n'
+					iyaml += _inline_geometry(geometry, 22)
 		else:
-			dist=(hst_w+hst_h)/2.
-			min_foc=np.min(hst_foc)
-			max_foc=np.max(hst_foc)
-			bands=np.arange(min_foc+dist, max_foc+dist, dist)
-			bands=np.append(bands, (bands, bands)) # 1) band range, 2) canting focus, 3) facet focus
-			bands=bands.reshape(3, int(len(bands)/3))
-			bands=bands.T 
+			iyaml += _heliostat_entity(i, position, aim, geometry)
+			if shape != 'flat':
+				summary.append(position + (list(coefficients) if coefficients is not None else [focal]))
+	if not cant and shape != 'flat':
+		np.savetxt('heliostat-info-summary.csv', np.asarray(summary), fmt='%s', delimiter=',')
 
-
-	if cant==True: # multi facets
-
-		iyaml+="""
-- geometry: &facet_g_s
-  - material: *material_mirror
-    plane:
-      clip: 
-      - operation: AND 
-        vertices: [[-0.00001, -0.00001], [-0.00001, 0.00001], [0.00001, 0.00001], [0.00001, -0.00001]]
-      slices: 1\n\n"""
-
-		if shape=='flat':
-			iyaml+="- geometry: &facet_g\n"
-			iyaml+="  - material: *material_mirror\n"
-			iyaml+='    plane: \n'
-			iyaml+="      clip:\n"
-			iyaml+="      - operation: AND\n" 
-			iyaml+="        vertices: [ [%e, %e], [%e, %e], [%e, %e], [%e, %e] ]\n"%(-fct_w/2., -fct_h/2.,-fct_w/2., fct_h/2., fct_w/2., fct_h/2., fct_w/2., -fct_h/2.)
-			iyaml+="      slices: 4\n\n"	
-
-
-
-		elif shape=='parabolic-cylinder': # curved facets 
-			for i in range(len(bands)):
-				foc=bands[i,2]				
-				iyaml+="- geometry: &facet_g_band_%d\n"%i
-				iyaml+="  - material: *material_mirror\n"
-				iyaml+="    parabolic-cylinder:\n"
-				iyaml+="      focal: %e\n"%foc
-				iyaml+="      clip:\n"
-				iyaml+="      - operation: AND\n" 
-				iyaml+="        vertices: [ [%e, %e], [%e, %e], [%e, %e], [%e, %e] ]\n"%(-fct_w/2., -fct_h/2.,-fct_w/2., fct_h/2., fct_w/2., fct_h/2., fct_w/2., -fct_h/2.)
-				iyaml+="      slices: 4\n\n"
-
-		elif shape=='sphere': # parabol curved facets 
-			for i in range(len(bands)):
-				foc=bands[i,2]				
-				iyaml+="- geometry: &facet_g_band_%d\n"%i
-				iyaml+="  - material: *material_mirror\n"
-				iyaml+="    hemisphere:\n"
-				iyaml+="      radius: %e\n"%(foc*2.)
-				iyaml+="      clip:\n"
-				iyaml+="      - operation: AND\n" 
-				iyaml+="        vertices: [ [%e, %e], [%e, %e], [%e, %e], [%e, %e] ]\n"%(-fct_w/2., -fct_h/2.,-fct_w/2., fct_h/2., fct_w/2., fct_h/2., fct_w/2., -fct_h/2.)
-				iyaml+="      slices: 4\n\n"
-
-		elif shape=='quadricxy': # curved facets
-			for i in range(len(bands)):
-				ax2, ay2, axy, ax, ay, ac = _quadricxy_band_coefficients(bands[i])
-				iyaml+="- geometry: &facet_g_band_%d\n"%i
-				iyaml+="  - material: *material_mirror\n"
-				iyaml+="    quadricxy:\n"
-				iyaml+="      ax2: %e\n"%(ax2)
-				iyaml+="      ay2: %e\n"%(ay2)
-				iyaml+="      axy: %e\n"%(axy)
-				iyaml+="      ax: %e\n"%(ax)
-				iyaml+="      ay: %e\n"%(ay)
-				iyaml+="      ac: %e\n"%(ac)
-				iyaml+="      clip:\n"
-				iyaml+="      - operation: AND\n" 
-				iyaml+="        vertices: [ [%e, %e], [%e, %e], [%e, %e], [%e, %e] ]\n"%(-fct_w/2., -fct_h/2.,-fct_w/2., fct_h/2., fct_w/2., fct_h/2., fct_w/2., -fct_h/2.)
-				iyaml+="      slices: 4\n\n"
-
-		else: # paraboloid facets 
-			for i in range(len(bands)):
-				foc=bands[i,2]				
-				iyaml+="- geometry: &facet_g_band_%d\n"%i
-				iyaml+="  - material: *material_mirror\n"
-				iyaml+="    parabol:\n"
-				iyaml+="      focal: %e\n"%foc
-				iyaml+="      clip:\n"
-				iyaml+="      - operation: AND\n" 
-				iyaml+="        vertices: [ [%e, %e], [%e, %e], [%e, %e], [%e, %e] ]\n"%(-fct_w/2., -fct_h/2.,-fct_w/2., fct_h/2., fct_w/2., fct_h/2., fct_w/2., -fct_h/2.)
-				iyaml+="      slices: 4\n\n"
-				
-
-
-		for b in range(len(bands)):
-			iyaml+="- template: &facets_t_band_%d\n"%b
-			iyaml+="    name: facets\n"
-			iyaml+="    primary: 0\n"
-			iyaml+='    ' + yamltransform(pos=[0,0,0],rot=[0,0,0]) + '\n'
-			iyaml+="    geometry: *facet_g_s\n"
-			iyaml+="    children:\n"
-
-			foc=bands[b,1] # canting focus
-			#print('foc', foc)
-			data=heliostat_canted_facets(hst_w, hst_h, fct_w, fct_h, fct_gap, n_row, n_col, foc)
-			fct_x=data[:,0].reshape(n_row, n_col)
-			fct_z=data[:,1].reshape(n_row, n_col)
-			rotx=data[:,2].reshape(n_row, n_col)
-			roty=data[:,3].reshape(n_row, n_col)
-
-			for j in range(n_col):
-				for i in range(n_row):			
-					iyaml+='        - name: facet_%d_c%d_r%d\n'%(b, j, i)
-					iyaml+='          primary: 1\n'
-					iyaml+='          ' + yamltransform(pos=[fct_x[i,j], 0, fct_z[i,j]],rot=[rotx[i,j], roty[i,j],0]) + '\n' 
-					if shape=='flat':
-						iyaml+='          geometry: *facet_g\n'
-					else:
-						iyaml+='          geometry: *facet_g_band_%d\n'%b
-
-
-		# heliostat entities from the template
-		for i in range(num_hst):
-
-			iyaml+='- template: &hst_t_%d\n'%i
-			iyaml+='    name: hst_%d\n'%i
-			iyaml+='    primary: 0\n'
-			iyaml+='    geometry: *pylon_g\n'
-			iyaml+='    children:\n'     
-			iyaml+='      - name: pivot\n'
-			iyaml+='        ' + yamltransform(pos=[0,0,0],rot=[0,0,0]) + '\n'
-			iyaml+='        zx_pivot: \n'
-			iyaml+='          spacing: 0\n'
-			iyaml+='          ref_point: [0,0,0]\n'
-			iyaml+='          target: {position: [%e, %e, %e]}\n' % (aim_x[i],aim_y[i],aim_z[i]) 
-			foc=hst_foc[i]
-			idx=np.argmin(abs(foc-bands[:,0]))
-			if foc-bands[idx, 0]>0:
-				idx+=1
-			#idx= np.where(bands[foc<=bands][0]==bands)[0][0]
-			iyaml+='        children: [ *facets_t_band_%d ]\n\n'%idx
-
-			iyaml+='- entity:\n'
-			iyaml+='    name: H_%d\n'%i
-			iyaml+='    ' + yamltransform(pos=[hst_x[i], hst_y[i], hst_z[i]],rot=[0,0,0]) + '\n' 
-			iyaml+='    children: [ *hst_t_%d ]\n'%i
-
-	else: # single facet
-		if shape=='flat':
-			iyaml+="- geometry: &hst_g\n"
-			iyaml+="  - material: *material_mirror\n"
-			iyaml+='    plane: \n'
-			iyaml+="      clip:\n"
-			iyaml+="      - operation: AND\n" 
-			iyaml+="        vertices: [[%e, %e],[%e, %e],[%e, %e],[%e, %e]]\n" % (-hst_w*0.5, -hst_h*0.5, -hst_w*0.5, hst_h*0.5, hst_w*0.5, hst_h*0.5, hst_w*0.5,-hst_h*0.5)
-			iyaml+="      slices: 1\n\n"
-
-
-			for i in range(num_hst):
-			# CREATE the heliostat templates   
-				name_hst_t = 'hst_t_%d' %i
-				iyaml+='- template: &%s\n' % name_hst_t 
-				name_hst_n = 'hst_%d\n'%i
-				iyaml+='    name: %s\n' % name_hst_n 
-				iyaml+='    primary: 0\n'   
-				iyaml+='    geometry: *pylon_g\n'
-				iyaml+='    children: \n' 
-				iyaml+='    - name: pivot\n'
-				iyaml+='      zx_pivot:\n'
-				iyaml+='        target:\n'
-				iyaml+='          position: [%e, %e, %e] \n' % (aim_x[i],aim_y[i],aim_z[i]) 
-				iyaml+='      children: \n'
-				iyaml+='      - name: reflect_surface\n'
-				iyaml+='        primary: 1\n'				 
-				iyaml+='        transform: {rotation: [-90,0,0]} \n' 
-				#idx= np.where(bands[foc<=bands][0]==bands)[0][0]
-				name_hst_g = 'hst_g'
-				iyaml+='        geometry: *%s\n\n' % name_hst_g 
-
-
-				name_e ='H_'+str(i)
-				name_hst_t = 'hst_t_%d'%i
-				iyaml+='\n- entity:\n'
-				iyaml+='    name: %s\n' % name_e
-				iyaml+='    ' + yamltransform(pos=[hst_x[i], hst_y[i], hst_z[i]],rot=[0,0,0]) + '\n' 
-				iyaml+='    children: [ *%s ]\n' % name_hst_t 	
-
-		elif shape=='quadricxy':
-			for i in range(num_hst):
-				name_hst_g = 'hst_g_'+str(i)
-				iyaml+='- geometry: &%s\n' % name_hst_g 
-				if isinstance(slope_error, float):
-					iyaml+='  - material: *%s\n' % 'material_mirror' 
-				else:
-					iyaml+='  - material: *%s\n' % 'material_mirror_%d'%i
-
-				ax2, ay2, axy, ax, ay, ac = _quadricxy_coefficients(hst_foc, i, num_hst)
-				iyaml+="    quadricxy:\n"
-				iyaml+="      ax2: %e\n"%(ax2)
-				iyaml+="      ay2: %e\n"%(ay2)
-				iyaml+="      axy: %e\n"%(axy)
-				iyaml+="      ax: %e\n"%(ax)
-				iyaml+="      ay: %e\n"%(ay)
-				iyaml+="      ac: %e\n"%(ac)
-				iyaml+='      clip: \n'
-				iyaml+='      - operation: AND \n'
-				iyaml+='        vertices: [ [%e, %e], [%e, %e], [%e, %e], [%e, %e] ]\n' % (-hst_w*0.5, -hst_h*0.5, -hst_w*0.5, hst_h*0.5, hst_w*0.5, hst_h*0.5, hst_w*0.5,-hst_h*0.5)
-				iyaml+='      slices: %d\n\n' % slices 
-
-			summary=np.array(['x','y','z', 'ax2', 'ay2', 'axy', 'ax', 'ay', 'ac'])
-			for i in range(num_hst):
-				name_hst_t = 'hst_t_'+str(i)
-				iyaml+='- template: &%s\n' % name_hst_t
-				name_hst_n = 'hst_'+ str(i)
-				iyaml+='    name: %s\n' % name_hst_n
-				iyaml+='    primary: 0\n'
-				iyaml+='    geometry: *pylon_g\n'
-				iyaml+='    children: \n'
-				iyaml+='    - name: pivot\n'
-				iyaml+='      zx_pivot:\n'
-				iyaml+='        target:\n'
-				iyaml+='          position: [%e, %e, %e] \n' % (aim_x[i],aim_y[i],aim_z[i])
-				iyaml+='      children: \n'
-				iyaml+='      - name: reflect_surface\n'
-				iyaml+='        primary: 1\n'
-				iyaml+='        transform: {rotation: [-90,0,0]} \n'
-				name_hst_g = 'hst_g_'+str(i)
-				iyaml+='        geometry: *%s\n\n' % name_hst_g
-
-				coeffs = _quadricxy_coefficients(hst_foc, i, num_hst)
-				summary=np.append(summary, (hst_x[i], hst_y[i], hst_z[i]) + coeffs)
-			summary=summary.reshape(int(len(summary)/9), 9)
-			np.savetxt('heliostat-info-summary.csv', summary, fmt='%s', delimiter=',')
-
-			for i in range(num_hst):
-				name_e ='H_'+str(i)
-				name_hst_t = 'hst_t_'+str(i)
-				iyaml+='\n- entity:\n'
-				iyaml+='    name: %s\n' % name_e
-				iyaml+='    ' + yamltransform(pos=[hst_x[i], hst_y[i], hst_z[i]],rot=[0,0,0]) + '\n'
-				iyaml+='    children: [ *%s ]\n' % name_hst_t
-
-		else: # single facet, paraboloid			
-			for i in range(len(bands)):
-				foc=bands[i,1]
-				name_hst_g = 'hst_g_band_'+str(i)
-				iyaml+='- geometry: &%s\n' % name_hst_g 
-				if isinstance(slope_error, float):
-					iyaml+='  - material: *%s\n' % 'material_mirror' 
-				else:
-					idx_f=np.argmin(abs(hst_foc-foc))
-					iyaml+='  - material: *%s\n' % 'material_mirror_%d'%idx_f 						
-				#print(i, 'focal', foc)
-				if  shape=='parabolic-cylinder':
-					iyaml+="    parabolic-cylinder:\n"
-					iyaml+='      focal: %e\n' % foc
-				elif shape=='sphere':
-					iyaml+="    hemisphere:\n"
-					iyaml+="      radius: %e\n"%(foc*2.)
-				else:# shape=='paraboloid':
-					iyaml+='    parabol: \n'
-					iyaml+='      focal: %e\n' % foc
-
-				iyaml+='      clip: \n'  
-				iyaml+='      - operation: AND \n'
-				iyaml+='        vertices: [ [%e, %e], [%e, %e], [%e, %e], [%e, %e] ]\n' % (-hst_w*0.5, -hst_h*0.5, -hst_w*0.5, hst_h*0.5, hst_w*0.5, hst_h*0.5, hst_w*0.5,-hst_h*0.5)
-				iyaml+='      slices: %d\n\n' % slices 
-
-
-			summary=np.array(['x','y','z', 'band foc'])
-			for i in range(num_hst):
-				# CREATE the heliostat templates   
-				name_hst_t = 'hst_t_'+str(i)
-				iyaml+='- template: &%s\n' % name_hst_t 
-				name_hst_n = 'hst_'+ str(i)
-				iyaml+='    name: %s\n' % name_hst_n 
-				iyaml+='    primary: 0\n'   
-				iyaml+='    geometry: *pylon_g\n'
-				iyaml+='    children: \n' 
-				iyaml+='    - name: pivot\n'
-				iyaml+='      zx_pivot:\n'				 
-				iyaml+='        target:\n'
-				iyaml+='          position: [%e, %e, %e] \n' % (aim_x[i],aim_y[i],aim_z[i]) 
-				iyaml+='      children: \n'
-				iyaml+='      - name: reflect_surface\n'
-				iyaml+='        primary: 1\n'
-				iyaml+='        transform: {rotation: [-90,0,0]} \n' 
-				foc=hst_foc[i]
-				if len(bands)==1:
-					idx=0
-				else:
-					idx=np.argmin(abs(foc-bands[:,0]))
-					if foc-bands[idx, 0]>0:
-						idx+=1
-				#idx= np.where(bands[foc<=bands][0]==bands)[0][0]
-				name_hst_g = 'hst_g_band_'+str(idx)
-				iyaml+='        geometry: *%s\n\n' % name_hst_g 
-				summary=np.append(summary, (hst_x[i], hst_y[i], hst_z[i], bands[idx, 1]))
-			summary=summary.reshape(int(len(summary)/4), 4)
-			np.savetxt('heliostat-info-summary.csv', summary, fmt='%s', delimiter=',')
-
-
-			for i in range(num_hst):
-				name_e ='H_'+str(i)
-				name_hst_t = 'hst_t_'+str(i)
-				iyaml+='\n- entity:\n'
-				iyaml+='    name: %s\n' % name_e
-				iyaml+='    ' + yamltransform(pos=[hst_x[i], hst_y[i], hst_z[i]],rot=[0,0,0]) + '\n' 
-				iyaml+='    children: [ *%s ]\n' % name_hst_t 
 
 	# 
 	### Section (6)
@@ -718,8 +491,9 @@ def gen_yaml_target_aligned(sun, hst_pos, hst_aims, Fx, Fy, hst_w, hst_h
 	  * `hst_w` (float): heliostat mirror width  (in x direction)
 	  * `hst_h` (float): heliostat mirror height (in y direction)
 	  * `hst_z` (float): heliostat center height (in z direction)
-	  * `rho_refl` (float): reflector reflectivity
-	  * `slope_error` (float): reflector surface slope error rms, radians
+	  * `rho_refl` (scalar or length n): reflector reflectivity in heliostat input order.
+		With spectral=True, the existing mirror spectrum supplies reflectivity instead.
+	  * `slope_error` (scalar or length n): reflector surface slope error rms, radians, in heliostat input order
 	  * `tower_h` (float): tower height (m)
 	  * `tower_r` (float): tower radius (a cylindrical shape tower) (m)
 	  * `target_aligned' (bool): use target_aligned tracking or not (False is using azi-ele tracking), only avaiable for single facet heliostats at the moment
@@ -731,6 +505,9 @@ def gen_yaml_target_aligned(sun, hst_pos, hst_aims, Fx, Fy, hst_w, hst_h
 	  * `spectral` (bool): True - simulate the spectral dependent performance (first of the 'other' parameters)
 	  * `medium` (float): if the atmosphere is surrounded by non-participant medium, medium=0; otherwise it is the extinction coefficient in m-1
 	  * `one_heliosat` (boolean): if `True`, implements ray tracing from just one heliostat.
+
+	Heliostat children and geometries are emitted directly inside each entity.
+	Mirror curvature uses `hst_foc` directly; mirror materials are embedded per heliostat.
 
 	Returns: nothing (requested files are created and written)
 
@@ -816,33 +593,6 @@ def gen_yaml_target_aligned(sun, hst_pos, hst_aims, Fx, Fy, hst_w, hst_h
 	iyaml+='   back:\n'
 	iyaml+='     matte: {reflectivity: 0. }\n' # and back reflectivity
 	iyaml+='\n'
-	#
-	# CREATE a specular material
-	r_f= rho_refl # front
-	r_b = 0.      # and back reflectivity
-	if isinstance(slope_error, float):
-		iyaml+='- material: &%s\n' % 'material_mirror'
-		iyaml+='   front:\n'
-		if spectral:
-			iyaml+='     mirror: {reflectivity: *ref_mirror, slope_error: %15.8e }\n' % ( slope_error ) 
-		else:
-			iyaml+='     mirror: {reflectivity: %6.4f, slope_error: %15.8e }\n' % (r_f, slope_error) 
-		iyaml+='   back:\n'
-		iyaml+='     matte: {reflectivity: %6.4f }\n' % r_b 
-		iyaml+='\n'
-	else: # assign slope error for individual heliostat
-		for i in range(len(slope_error)):
-			#TODO this is only works for the single facet paraboloid heliostat
-			iyaml+='- material: &%s\n' % 'material_mirror_%.0f'%i
-			iyaml+='   front:\n'
-			if spectral:
-				iyaml+='     mirror: {reflectivity: *ref_mirror, slope_error: %15.8e }\n' % (slope_error[i] ) 
-			else:
-				iyaml+='     mirror: {reflectivity: %6.4f, slope_error: %15.8e }\n' % (r_f, slope_error[i]) 	
-			iyaml+='   back:\n'
-			iyaml+='     matte: {reflectivity: %6.4f }\n' % r_b 
-			iyaml+='\n'	
-
 	#
 	# CREATE a material for the target
 	r_f = 1.-rec_abs # front
@@ -919,56 +669,14 @@ def gen_yaml_target_aligned(sun, hst_pos, hst_aims, Fx, Fy, hst_w, hst_h
 	
 	# 
 	### Section (5)			
-	for i in range(len(slants)):
-		slant=slants[i]
-		name_hst_g = 'hst_g_'+str(i)
-		iyaml+='- geometry: &%s\n' % name_hst_g 
-		if isinstance(slope_error, float):
-			iyaml+='  - material: *%s\n' % 'material_mirror' 
-		else:
-			iyaml+='  - material: *%s\n' % 'material_mirror_%d'%i 						
-
-		fx=Fx[i]
-		fy=Fy[i]	
-		ax2=1./4./fx
-		ay2=1./4./fy
-		iyaml+="    quadricxy:\n"
-		iyaml+="      ax2: %e\n"%(ax2)
-		iyaml+="      ay2: %e\n"%(ay2)
-		iyaml+="      axy: 0\n"
-		iyaml+="      ax: 0\n"
-		iyaml+="      ay: 0\n"
-		iyaml+="      ac: 0\n"			
-		iyaml+='      clip: \n'  
-		iyaml+='      - operation: AND \n'
-		iyaml+='        vertices: [ [%e, %e], [%e, %e], [%e, %e], [%e, %e] ]\n' % (-hst_w*0.5, -hst_h*0.5, -hst_w*0.5, hst_h*0.5, hst_w*0.5, hst_h*0.5, hst_w*0.5,-hst_h*0.5)
-		iyaml+='      slices: %d\n\n' % slices 
-
+	reflectivities = _heliostat_values(rho_refl, 'rho_refl', num_hst, len(hst_pos))
+	slope_errors = _heliostat_values(slope_error, 'slope_error', num_hst, len(hst_pos))
 	for i in range(num_hst):
-		# CREATE the heliostat templates   
-		name_hst_t = 'hst_t_'+str(i)
-		iyaml+='- template: &%s\n' % name_hst_t 
-		name_hst_n = 'hst_'+ str(i)
-		iyaml+='    name: %s\n' % name_hst_n 
-		iyaml+='    children: \n' 
-		iyaml+='    - name: pivot\n'
-		iyaml+='      zx_pivot:\n'
-		iyaml+='        target_aligned: true \n'					 
-		iyaml+='        target:\n'
-		iyaml+='          position: [%e, %e, %e] \n' % (aim_x[i],aim_y[i],aim_z[i]) 
-		iyaml+='      children: \n'
-		iyaml+='      - name: reflect_surface\n'
-		iyaml+='        primary: 1\n'
-		name_hst_g = 'hst_g_'+str(i)
-		iyaml+='        geometry: *%s\n\n' % name_hst_g 
-
-	for i in range(num_hst):
-		name_e ='H_'+str(i)
-		name_hst_t = 'hst_t_'+str(i)
-		iyaml+='\n- entity:\n'
-		iyaml+='    name: %s\n' % name_e
-		iyaml+='    ' + yamltransform(pos=[hst_x[i], hst_y[i], hst_z[i]],rot=[0,0,0]) + '\n' 
-		iyaml+='    children: [ *%s ]\n' % name_hst_t 
+		material = _mirror_material(reflectivities[i], slope_errors[i], spectral)
+		coefficients = (1. / 4. / Fx[i], 1. / 4. / Fy[i], 0., 0., 0., 0.)
+		geometry = _mirror_geometry('quadricxy', hst_w, hst_h, material, coefficients=coefficients)
+		iyaml += _heliostat_entity(i, [hst_x[i], hst_y[i], hst_z[i]],
+			[aim_x[i], aim_y[i], aim_z[i]], geometry, target_aligned=True)
 
 	# 
 	### Section (6)

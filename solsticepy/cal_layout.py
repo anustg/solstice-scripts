@@ -221,9 +221,9 @@ def radial_stagger(latitude, num_hst, width, height, hst_z, towerheight, R1, fb,
 		C=np.array([])
 
 		APOS=np.array([])
+
 		for i in range(num_aperture):
 			ang_pos, xc, yc=multi_aperture_pos(rec_w, gamma, num_aperture, i)
-			print(ang_pos, xc, yc)
 
 			zc=rec_z[i]
 			APOS=np.append(APOS, ang_pos)
