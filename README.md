@@ -108,7 +108,7 @@ Pavaview is a software to visualise Solstice simulation scene.
 
 ```
 cd example
-run.py
+python sim_crs.py
 ```
 * You should see various output, followed by "Completed successfully". Also note the output what says "Case directory is...".
 
