@@ -1,0 +1,69 @@
+# From the repository root (the upstream Embree package is x86-64):
+#   docker build --platform linux/amd64 -t solstice-resolute -f solstice-build/Dockerfile-resolute solstice-build
+#   docker run --rm solstice-resolute solstice --version
+#   docker run --rm -v "$PWD:/host" solstice-resolute sh -c 'cp solstice-*.tar.gz /host/'
+FROM ubuntu:26.04 AS build
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        autoconf automake build-essential ca-certificates cmake curl git \
+        libtool m4 mandoc pkg-config \
+    && rm -rf /var/lib/apt/lists/*
+
+ARG JOBS=4
+# jdpipe/libyaml, binary-search-anchors. Embed it in Solstice so an installed
+# distribution copy of LibYAML cannot replace the tested loader at runtime.
+ARG LIBYAML_COMMIT=a6cc7b5b32aebeb6730c54dfd027b27d34700443
+WORKDIR /build/libyaml
+RUN git init . \
+    && git fetch --depth 1 https://github.com/jdpipe/libyaml.git "${LIBYAML_COMMIT}" \
+    && git checkout --detach FETCH_HEAD \
+    && ./bootstrap \
+    && ./configure --prefix=/opt/solstice-yaml --disable-shared --enable-static --with-pic \
+    && make -j"${JOBS}" \
+    && make check \
+    && make install
+
+# Use Star-Build for the release dependencies, including Embree 4 and TBB.
+ARG STAR_BUILD_COMMIT=583cb3f9e03d9c4ae97c81b9093a5294d73d8642
+ARG SOLSTICE_VERSION=0.11
+WORKDIR /build/star-build
+RUN git init . \
+    && git fetch --depth 1 https://gitlab.com/meso-star/star-build.git "${STAR_BUILD_COMMIT}" \
+    && git checkout --detach FETCH_HEAD
+COPY configure-forks.sh /build/configure-forks.sh
+RUN sh /build/configure-forks.sh
+ENV PKG_CONFIG_PATH=/opt/solstice-yaml/lib/pkgconfig
+RUN test "$(pkg-config --variable=prefix yaml-0.1)" = /opt/solstice-yaml \
+    && make -j"${JOBS}" BUILD="src/rad-apps/solstice_${SOLSTICE_VERSION}.sh" \
+        PREFIX=/usr/local BUILD_TYPE=RELEASE install \
+    && ldconfig \
+    && solstice --version \
+    && cd cache/solstice/* \
+    && solstice -t 1 -D 0,75 -n 1000 \
+        -R yaml/test01_receiver.yaml \
+        yaml/test01.yaml > /dev/null
+
+# Upstream's test executables also need the private dependencies of its
+# internal static parser, receiver and solver-core archives.
+RUN OMP_NUM_THREADS=2 make -C cache/ssol/* -j"${JOBS}" test \
+    && make -C cache/sanim/* -j"${JOBS}" test \
+    && OMP_NUM_THREADS=2 make -C cache/solstice/* \
+        -j"${JOBS}" PCFLAGS=--static test
+
+# Retain the archive layout used by the existing --strip-components=3 installer.
+RUN name="solstice-${SOLSTICE_VERSION}-$(uname -m)-resolute" \
+    && install -Dm644 /build/libyaml/License /usr/local/share/doc/libyaml/License \
+    && mkdir -p "/out/${name}/usr" \
+    && cp -a /usr/local "/out/${name}/usr/" \
+    && tar -C /out -czf "/out/${name}.tar.gz" "${name}"
+
+FROM ubuntu:26.04
+RUN apt-get update && apt-get install -y --no-install-recommends libgomp1 \
+    && rm -rf /var/lib/apt/lists/*
+WORKDIR /home/john
+COPY --from=build /out/solstice-*.tar.gz ./
+RUN tar -xzf solstice-*.tar.gz --strip-components=1 -C / \
+    && ldconfig \
+    && solstice --version
+
+LABEL description="Solstice on Ubuntu 26.04 with target-aligned tracking, quadricxy geometry, local ray-origin searches and indexed LibYAML anchor lookup"
