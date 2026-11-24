@@ -66,4 +66,4 @@ RUN tar -xzf solstice-*.tar.gz --strip-components=1 -C / \
     && ldconfig \
     && solstice --version
 
-LABEL description="Solstice on Ubuntu 24.04 with target-aligned tracking, quadricxy geometry and indexed LibYAML anchor lookup"
+LABEL description="Solstice on Ubuntu 24.04 with target-aligned tracking, quadricxy geometry, local ray-origin searches and indexed LibYAML anchor lookup"
